@@ -39,7 +39,7 @@ services:
       - key: AUTH_PROVIDER
         value: local
       - key: SESSION_SECRET
-        generateValue: true
+        sync: false
       - key: COOKIE_NAME
         value: itdcc_session
       - key: COOKIE_SECURE
