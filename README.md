@@ -1,119 +1,232 @@
-# Task & Requests Control System
+# ERP Sprint Progress System
 
-This project is the planning and architecture base for an internal IT department control system.
+ERP Sprint Progress System is an internal Harouge Oil Operations web system for
+tracking ERP project progress across sprint areas, sprint items, assigned work,
+team activity, and audit history.
 
-Current stage: MongoDB Atlas development provisioning is complete. Connectivity,
-eight collections, indexes, four roles, 81 permissions, and the initial Super
-Admin are verified. A repeat-safe fictional operations dataset is seeded for
-development and dashboard testing. Stage 10.5 pre-dashboard hardening is
-verified. Stage 11 initial dashboard/report API work is implemented and tested.
-Stage 12 sign-in page foundation is implemented.
+The system is built for administrators, project managers, supervisors, and ERP
+team members. Admin users can manage sprint progress, sprint items, team users,
+roles, permissions, and audit records. Employee users have a focused workflow for
+their assigned work and progress reporting.
 
-## Current Scope
+## What The System Has
 
-The current system scope is limited to the entities in the supplied SQL file:
+### Sprint Progress Dashboard
 
-1. Roles
-2. Permissions
-3. Users
-4. Requests
-5. Tasks
-6. Task updates
-7. Comments
-8. Audit logs
+- Admin dashboard for ERP sprint progress visibility.
+- Overall project progress card with a manually editable percentage.
+- Sprint area cards for:
+  - Development Sprint
+  - Facility Sprint
+  - Infrastructure Sprint
+- Current sprint work, sprint focus, workload, recent sprint items, and recent
+  activity sections.
 
-MongoDB Atlas remains the planned database technology, but the active MongoDB collections must map to those eight entities for now.
+### Sprints
 
-## Cancelled For Now
+- Sprints page for monitoring the main ERP sprint areas.
+- Sprint area detail pages for Development, Facility, and Infrastructure.
+- Create Sprint workflow connected to MongoDB.
+- Sprint owner, status, dates, area, description, active flag, and progress
+  information.
 
-The following modules are not part of the current system:
+### Sprint Items
 
-- Purchases / MR
-- Products
-- Assets
-- Suppliers
-- Attachments
-- Notifications
-- System settings
+- Sprint Items page for ERP work items.
+- Sprint item list with status, progress, priority, due date, assignees, and
+  actions.
+- Create Sprint Item workflow.
+- View/edit sprint item details.
+- Progress update workflow with required progress notes.
+- Support for assigned work and sprint item history through task updates.
 
-Do not build or scaffold those modules unless the project owner approves a new scope change.
+### My Tasks
 
-## Purpose
+- Employee-focused My Tasks page.
+- Employees see their assigned sprint items.
+- Employees can open task details and update progress.
+- Progress updates require a written report/note.
+- When progress reaches 100%, the item is treated as completed.
 
-The system controls IT department requests, employee task assignment, task progress, comments, and audit history.
+### Team Management
 
-The admin or IT manager should be able to open the dashboard and understand the current department situation within 30 seconds:
+- Team page backed by the Users API.
+- Create team member workflow.
+- Edit team member workflow.
+- Role assignment.
+- Status changes.
+- Admin password reset for users.
+- First-login password-change requirement.
 
-- What requests are open
-- What tasks are active
-- What tasks are late
-- Who is responsible
-- Which employee has too much work
-- Which item needs manager action today
-- What was completed this week
+### Access Control
 
-## Planned Stack
+- Local email/password authentication.
+- HTTP-only cookie session authentication.
+- CSRF protection for unsafe requests.
+- Failed-login lockout.
+- Role-based authorization.
+- Approved roles:
+  - Super Admin
+  - IT Manager
+  - Supervisor
+  - Employee
 
-- Frontend: React
-- Backend: Node.js
-- Database: MongoDB Atlas
-- Database modeling: Mongoose with strict schemas and approved indexes
-- Recommended language: TypeScript
-- Recommended API style: REST
+### Audit Logs
 
-## Main Engines
+- Audit Logs page for reviewing system activity.
+- Audit API for listing and viewing audit records.
+- Important actions are recorded with actor, entity, action, and timestamp.
 
-1. Access Control Engine
-2. IT Request Engine
-3. Task Control Engine
-4. Comments And Task Updates Engine
-5. Audit Log Engine
+### Reports
 
-## Project Layout
+- Report API endpoints for request and task/sprint-item reporting.
+- Frontend Reports route exists in the application navigation.
+
+### Bilingual Interface
+
+- English and Arabic language support.
+- RTL layout support for Arabic.
+- Language switch on the sign-in page and inside the authenticated layout.
+
+## Active Data Collections
+
+MongoDB Atlas is the primary database.
+
+Current active collections:
+
+```text
+roles
+permissions
+users
+sprints
+requests
+tasks
+task_updates
+comments
+audit_logs
+project_progress
+```
+
+The frontend uses sprint terminology. Some backend collections still use earlier
+request/task names while they support the current sprint-item workflows.
+
+## Technology Stack
+
+- React 19
+- TypeScript
+- Vite
+- React Router
+- Node.js
+- Express 5
+- MongoDB Atlas
+- Mongoose
+- Zod
+- bcryptjs
+- pino logging
+- helmet
+- cors
+- express-rate-limit
+- Vitest and Supertest
+
+## Project Structure
 
 ```text
 IT-Department-Control-Center/
   apps/
-    api/                 Backend API application
-    web/                 Frontend application placeholder
-  docs/                  System knowledge base and architecture
-  database/              Current SQL scope reference and MongoDB planning
+    api/                 Node.js + Express API
+    web/                 React + Vite frontend
+  database/              Database reference and MongoDB planning
+  docs/                  Project documentation and decisions
+  render.yaml            Render deployment blueprint
   .env.example           Environment variable template
-  .gitignore
-  package.json           Workspace placeholder
+  package.json           npm workspace scripts
 ```
 
-Start by reading:
+## Main Frontend Routes
 
-1. `docs/00-project-charter.md`
-2. `docs/01-system-understanding.md`
-3. `docs/04-workflows.md`
-4. `docs/05-data-model.md`
-5. `docs/16-mongodb-collection-model.md`
-6. `docs/09-business-rules.md`
-7. `docs/15-official-schema-review.md`
-8. `docs/decisions/0004-current-scope-from-sql-schema.md`
-9. `docs/17-implementation-roadmap.md`
-10. `docs/decisions/0005-local-authentication.md`
-11. `docs/decisions/0006-approved-mvp-values.md`
-12. `docs/18-stage-1-api-foundation.md`
-13. `docs/19-stage-2-shared-infrastructure.md`
-14. `docs/20-stage-3-mongoose-models.md`
-15. `docs/21-stage-4-seed-data.md`
-16. `docs/22-stage-5-authentication.md`
-17. `docs/23-stage-6-access-management-api.md`
-18. `docs/24-stage-7-requests-api.md`
-19. `docs/25-stage-7-enterprise-hardening.md`
-20. `docs/26-stage-8-tasks-api.md`
-21. `docs/27-stage-9-comments-api.md`
-22. `docs/28-stage-10-audit-logs-api.md`
-23. `docs/29-pre-dashboard-backend-review.md`
-24. `docs/30-mongodb-atlas-setup.md`
-25. `docs/31-development-data-seed.md`
-26. `docs/32-stage-10-5-pre-dashboard-hardening.md`
-27. `docs/33-stage-11-dashboard-reports-api.md`
-28. `docs/34-stage-12-sign-in-page.md`
+```text
+/login
+/dashboard
+/project-progress
+/sprints
+/sprints/:areaKey
+/sprint-items
+/my-tasks
+/users
+/audit-logs
+/reports
+/settings
+```
 
-## Implementation Rule
+## Main API Areas
 
-Every new stage must keep the current scope locked to the eight approved entities and must update the knowledge base when API behavior, permissions, workflows, security rules, or data fields change.
+All API routes are under `/api`.
+
+```text
+/api/health
+/api/auth
+/api/roles
+/api/permissions
+/api/users
+/api/sprints
+/api/requests
+/api/tasks
+/api/comments
+/api/audit-logs
+/api/dashboard
+/api/project-progress
+/api/reports
+```
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the API:
+
+```bash
+npm run api:dev
+```
+
+Run the frontend:
+
+```bash
+npm run web:dev
+```
+
+Default local URLs:
+
+```text
+API: http://127.0.0.1:5000
+Web: http://127.0.0.1:3000
+```
+
+## Build
+
+```bash
+npm run api:build
+npm run web:build
+```
+
+## Database Commands
+
+```bash
+npm run api:db:check
+npm run api:db:setup
+npm run api:db:indexes
+```
+
+## Deployment
+
+The repository includes a Render Blueprint:
+
+```text
+render.yaml
+```
+
+Production secrets such as `MONGODB_URI` and `SESSION_SECRET` must be configured
+in Render environment variables. They must not be committed to the repository.
