@@ -1,0 +1,35 @@
+{
+  "name": "it-department-control-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Planning and architecture base for an IT department control system.",
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "api:build": "npm run build --workspace @itdcc/api",
+    "api:db:check": "npm run db:check --workspace @itdcc/api",
+    "api:db:clean-demo": "npm run db:clean-demo --workspace @itdcc/api",
+    "api:db:indexes": "npm run db:indexes --workspace @itdcc/api",
+    "api:db:setup": "npm run db:setup --workspace @itdcc/api",
+    "api:dev": "npm run dev --workspace @itdcc/api",
+    "api:seed": "npm run seed --workspace @itdcc/api",
+    "api:seed:development": "npm run seed:development --workspace @itdcc/api",
+    "api:seed:erp-team": "npm run seed:erp-team --workspace @itdcc/api",
+    "api:seed:erp-sprint-items": "npm run seed:erp-sprint-items --workspace @itdcc/api",
+    "api:start": "npm run start --workspace @itdcc/api",
+    "api:test": "npm run test --workspace @itdcc/api",
+    "api:test:typecheck": "npm run typecheck:tests --workspace @itdcc/api",
+    "api:typecheck": "npm run typecheck --workspace @itdcc/api",
+    "stage": "echo \"Stage 1: API foundation started.\"",
+    "web:build": "npm run build --workspace @itdcc/web",
+    "web:dev": "npm run dev --workspace @itdcc/web",
+    "web:preview": "npm run preview --workspace @itdcc/web",
+    "web:typecheck": "npm run typecheck --workspace @itdcc/web"
+  }
+}

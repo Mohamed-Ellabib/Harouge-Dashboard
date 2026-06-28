@@ -1,0 +1,46 @@
+{
+  "name": "@itdcc/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend API for ERP Sprint Progress System.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "db:check": "tsx src/database/check.ts",
+    "db:clean-demo": "tsx src/database/clean-demo-data.ts",
+    "db:indexes": "tsx src/database/create-indexes.ts",
+    "db:setup": "tsx src/database/setup.ts",
+    "dev": "tsx watch src/server.ts",
+    "seed": "tsx src/database/seed.ts",
+    "seed:development": "tsx src/database/seed-development.ts",
+    "seed:erp-team": "tsx src/database/seed-erp-team-users.ts",
+    "seed:erp-sprint-items": "tsx src/database/seed-erp-sprint-items.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "mongoose": "^9.7.2",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.0.0",
+    "@types/supertest": "^7.2.0",
+    "mongodb-memory-server": "^11.2.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
