@@ -4,6 +4,7 @@ build/
 coverage/
 .codex-logs/
 .codex-screenshots/
+AGENTS.md
 *.tsbuildinfo
 .env
 .env.*
