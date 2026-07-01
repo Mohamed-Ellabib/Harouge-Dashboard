@@ -2,6 +2,7 @@ import { PRIORITIES } from "./request.constants";
 
 export const TASK_STATUSES = [
   "open",
+  "assigned",
   "in_progress",
   "blocked",
   "waiting_review",

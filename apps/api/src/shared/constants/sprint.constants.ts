@@ -1,7 +1,8 @@
 export const SPRINT_AREAS = [
   "development",
   "facility",
-  "infrastructure"
+  "infrastructure",
+  "master_data_collection"
 ] as const;
 
 export const SPRINT_STATUSES = [

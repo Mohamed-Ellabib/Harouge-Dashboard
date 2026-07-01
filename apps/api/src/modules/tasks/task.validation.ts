@@ -22,6 +22,10 @@ const optionalBooleanQuerySchema = z
   .optional();
 
 const progressSchema = z.coerce.number().int().min(0).max(100);
+const taskModuleSchema = optionalTrimmedStringSchema.refine(
+  (value) => value === undefined || value.length <= 120,
+  "Module values must be 120 characters or fewer"
+);
 
 export const taskIdParamsSchema = z.object({
   id: mongoObjectIdSchema
@@ -34,10 +38,12 @@ export const taskListQuerySchema = baseListQuerySchema
     createdBy: mongoObjectIdSchema.optional(),
     dueDateFrom: z.string().datetime().optional(),
     dueDateTo: z.string().datetime().optional(),
+    mainModule: taskModuleSchema,
     overdue: optionalBooleanQuerySchema,
     priority: enumSchema(PRIORITIES).optional(),
     requestId: mongoObjectIdSchema.optional(),
-    status: enumSchema(TASK_STATUSES).optional()
+    status: enumSchema(TASK_STATUSES).optional(),
+    subModule: taskModuleSchema
   })
   .refine(
     (value) => {
@@ -62,9 +68,11 @@ export const createTaskBodySchema = z
     category: enumSchema(TASK_CATEGORIES).default("support"),
     description: optionalTrimmedStringSchema,
     dueDate: z.string().datetime().optional(),
+    mainModule: taskModuleSchema,
     priority: enumSchema(PRIORITIES).default("medium"),
     requestId: mongoObjectIdSchema.optional(),
     startDate: z.string().datetime().optional(),
+    subModule: taskModuleSchema,
     title: nonEmptyStringSchema
   })
   .strict();
@@ -74,8 +82,10 @@ export const updateTaskBodySchema = z
     category: enumSchema(TASK_CATEGORIES).optional(),
     description: optionalTrimmedStringSchema,
     dueDate: z.string().datetime().nullable().optional(),
+    mainModule: taskModuleSchema,
     priority: enumSchema(PRIORITIES).optional(),
     startDate: z.string().datetime().nullable().optional(),
+    subModule: taskModuleSchema,
     title: nonEmptyStringSchema.optional()
   })
   .strict()

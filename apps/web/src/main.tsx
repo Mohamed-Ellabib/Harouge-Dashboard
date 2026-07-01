@@ -8,6 +8,14 @@ import { I18nProvider } from "./i18n";
 import "./styles.css";
 
 const container = document.getElementById("root");
+const dashboardThemeStorageKey = "itdcc.dashboardTheme";
+
+try {
+  document.documentElement.dataset.theme = "dark";
+  window.localStorage.setItem(dashboardThemeStorageKey, "dark");
+} catch {
+  document.documentElement.dataset.theme = "dark";
+}
 
 if (!container) {
   throw new Error("Root container '#root' was not found.");

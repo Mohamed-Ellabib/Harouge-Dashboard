@@ -62,16 +62,19 @@ const taskReportSortFields = [
   "createdAt",
   "dueDate",
   "lastProgressUpdateAt",
+  "mainModule",
   "priority",
   "progress",
   "startDate",
   "status",
+  "subModule",
   "taskCode",
   "title"
 ] as const;
 
 const activeTaskStatuses: readonly TaskStatus[] = [
   "open",
+  "assigned",
   "in_progress",
   "blocked",
   "waiting_review"
@@ -241,6 +244,10 @@ function buildTaskReportFilter(query: TaskReportQuery): Record<string, unknown> 
     directFilter.priority = query.priority;
   }
 
+  if (query.mainModule) {
+    directFilter.mainModule = query.mainModule;
+  }
+
   if (query.requestId) {
     directFilter.requestId = new Types.ObjectId(query.requestId);
   }
@@ -251,6 +258,10 @@ function buildTaskReportFilter(query: TaskReportQuery): Record<string, unknown> 
 
   if (query.status) {
     directFilter.status = query.status;
+  }
+
+  if (query.subModule) {
+    directFilter.subModule = query.subModule;
   }
 
   addDateRangeFilter(filters, "createdAt", query.dateFrom, query.dateTo);
@@ -282,7 +293,13 @@ function buildTaskReportFilter(query: TaskReportQuery): Record<string, unknown> 
   if (query.search) {
     const regex = new RegExp(escapeRegex(query.search), "i");
     filters.push({
-      $or: [{ taskCode: regex }, { title: regex }, { category: regex }]
+      $or: [
+        { taskCode: regex },
+        { title: regex },
+        { category: regex },
+        { mainModule: regex },
+        { subModule: regex }
+      ]
     });
   }
 
@@ -418,6 +435,7 @@ function serializeTaskReportRow(
     ...(task.lastProgressUpdateAt
       ? { lastProgressUpdateAt: task.lastProgressUpdateAt }
       : {}),
+    ...(task.mainModule ? { mainModule: task.mainModule } : {}),
     priority: task.priority,
     progress: task.progress,
     ...(task.requestId
@@ -428,6 +446,7 @@ function serializeTaskReportRow(
       : {}),
     ...(task.startDate ? { startDate: task.startDate } : {}),
     status: task.status,
+    ...(task.subModule ? { subModule: task.subModule } : {}),
     taskCode: task.taskCode,
     title: task.title
   };

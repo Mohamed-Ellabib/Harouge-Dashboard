@@ -84,6 +84,14 @@ const employeePermissions: readonly PermissionRequirementSeed[] = [
   { action: "view", module: "reports" }
 ];
 
+const managementCommitteePermissions: readonly PermissionRequirementSeed[] = [
+  { action: "view", module: "dashboard" },
+  { action: "view", module: "sprints" },
+  { action: "view", module: "tasks" },
+  { action: "view", module: "task_updates" },
+  { action: "view", module: "reports" }
+];
+
 export const defaultPermissionRequirementsByRole: Record<
   RoleKey,
   readonly PermissionRequirementSeed[]
@@ -99,6 +107,7 @@ export const defaultPermissionRequirementsByRole: Record<
     { action: "view", module: "audit_logs" },
     { action: "view_audit", module: "audit_logs" }
   ],
+  management_committee: managementCommitteePermissions,
   supervisor: [
     { action: "view", module: "requests" },
     { action: "create", module: "requests" },

@@ -30,12 +30,14 @@ export interface Task {
   description?: string;
   dueDate?: Date;
   lastProgressUpdateAt?: Date;
+  mainModule?: string;
   priority: Priority;
   progress: number;
   requestId?: Types.ObjectId;
   reviewedBy?: Types.ObjectId;
   startDate?: Date;
   status: TaskStatus;
+  subModule?: string;
   taskCode: string;
   title: string;
   updatedAt?: Date;
@@ -83,6 +85,11 @@ const taskSchema = new Schema<Task>(
     lastProgressUpdateAt: {
       type: Date
     },
+    mainModule: {
+      maxlength: 120,
+      trim: true,
+      type: String
+    },
     priority: {
       default: "medium",
       enum: PRIORITIES,
@@ -115,6 +122,11 @@ const taskSchema = new Schema<Task>(
       trim: true,
       type: String
     },
+    subModule: {
+      maxlength: 120,
+      trim: true,
+      type: String
+    },
     taskCode: {
       required: true,
       trim: true,
@@ -138,6 +150,9 @@ taskSchema.index({ assignedTo: 1, status: 1 });
 taskSchema.index({ status: 1 });
 taskSchema.index({ status: 1, dueDate: 1 });
 taskSchema.index({ category: 1 });
+taskSchema.index({ mainModule: 1 });
+taskSchema.index({ mainModule: 1, status: 1 });
+taskSchema.index({ mainModule: 1, subModule: 1 });
 taskSchema.index({ priority: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ lastProgressUpdateAt: 1 });
@@ -166,6 +181,14 @@ taskSchema.pre("validate", function enforceTaskRules() {
 
   if (normalizedAssigneeIds.length === 0) {
     this.set("assignedTo", undefined);
+  }
+
+  if (this.status === "assigned" && normalizedAssigneeIds.length === 0) {
+    this.invalidate("assignedTo", "Assigned tasks require at least one assignee.");
+  }
+
+  if (this.status === "assigned" && this.progress !== 0) {
+    this.invalidate("progress", "Assigned tasks must have progress 0.");
   }
 
   if (this.status === "completed" && this.progress !== 100) {

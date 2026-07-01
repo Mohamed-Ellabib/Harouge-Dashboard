@@ -50,6 +50,7 @@ const openRequestStatuses: readonly RequestStatus[] = [
 ];
 const activeTaskStatuses: readonly TaskStatus[] = [
   "open",
+  "assigned",
   "in_progress",
   "blocked",
   "waiting_review"
@@ -91,6 +92,7 @@ export async function getDashboardSummary(
     tasksByStatus,
     tasksByPriority,
     tasksByCategory,
+    tasksByMainModule,
     averageTaskProgress,
     usersByStatus
   ] = await Promise.all([
@@ -137,6 +139,7 @@ export async function getDashboardSummary(
     countByValue(TaskModel, taskVisibilityFilter, "status"),
     countByValue(TaskModel, taskVisibilityFilter, "priority"),
     countByValue(TaskModel, taskVisibilityFilter, "category"),
+    countByExistingValue(TaskModel, taskVisibilityFilter, "mainModule"),
     averageNumber(TaskModel, taskVisibilityFilter, "progress"),
     isEnterpriseAdmin(actor) ? countByValue(UserModel, {}, "status") : undefined
   ]);
@@ -156,6 +159,7 @@ export async function getDashboardSummary(
       averageProgress: averageTaskProgress,
       blocked: blockedTasks,
       byCategory: tasksByCategory,
+      byMainModule: tasksByMainModule,
       byPriority: tasksByPriority,
       byStatus: tasksByStatus,
       completedThisWeek: completedTasksThisWeek,
@@ -288,11 +292,14 @@ async function listDashboardWorkQueue(
       ...(task.assignedTo
         ? { assignedTo: usersById.get(String(task.assignedTo)) }
         : {}),
+      category: task.category,
       ...(task.dueDate ? { dueDate: task.dueDate } : {}),
       id: String(task._id),
+      ...(task.mainModule ? { mainModule: task.mainModule } : {}),
       priority: task.priority,
       progress: task.progress,
       status: task.status,
+      ...(task.subModule ? { subModule: task.subModule } : {}),
       taskCode: task.taskCode,
       title: task.title
     };
@@ -486,6 +493,23 @@ async function countByValue(
     count: result.count,
     value: result._id
   }));
+}
+
+async function countByExistingValue(
+  model: typeof TaskModel,
+  filter: Record<string, unknown>,
+  field: string
+): Promise<CountByValueDto[]> {
+  return countByValue(
+    model,
+    combineMongoFilters(filter, {
+      [field]: {
+        $exists: true,
+        $ne: ""
+      }
+    }),
+    field
+  );
 }
 
 async function averageNumber(

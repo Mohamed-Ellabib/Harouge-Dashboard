@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -6,7 +6,9 @@ import {
   Eye,
   EyeOff,
   LockKeyhole,
+  Moon,
   ShieldCheck,
+  Sun,
   UserRound
 } from "lucide-react";
 
@@ -16,16 +18,26 @@ import { ApiError } from "../../api/client";
 import { resolvePostLoginRoute } from "../../app/navigation";
 
 const minimumSignInLoadingMs = 2000;
+const dashboardThemeStorageKey = "itdcc.dashboardTheme";
+type LoginTheme = "dark" | "light";
 
 export function LoginPage() {
   const { isLoading, session, login } = useAuth();
-  const { language, setLanguage, t } = useI18n();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [theme, setTheme] = useState<LoginTheme>("dark");
+  const isDarkMode = theme === "dark";
+  const ThemeIcon = isDarkMode ? Sun : Moon;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(dashboardThemeStorageKey, theme);
+  }, [theme]);
 
   if (!isLoading && session && !isSubmitting) {
     return <Navigate replace to={resolvePostLoginRoute(session)} />;
@@ -67,24 +79,15 @@ export function LoginPage() {
       </div>
 
       <div className="auth-shell">
-        <div className="auth-language-control" aria-label={t("language.appLanguage")} dir="ltr">
-          <button
-            aria-pressed={language === "en"}
-            className="auth-language-button"
-            onClick={() => setLanguage("en")}
-            type="button"
-          >
-            EN
-          </button>
-          <button
-            aria-pressed={language === "ar"}
-            className="auth-language-button"
-            onClick={() => setLanguage("ar")}
-            type="button"
-          >
-            AR
-          </button>
-        </div>
+        <button
+          aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          className="auth-theme-toggle"
+          onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+          type="button"
+        >
+          <ThemeIcon size={17} strokeWidth={2.2} aria-hidden="true" />
+          <span>{isDarkMode ? "Light" : "Dark"}</span>
+        </button>
 
         <section className="auth-card" aria-label={t("login.panelTitle")}>
           {isSubmitting ? (

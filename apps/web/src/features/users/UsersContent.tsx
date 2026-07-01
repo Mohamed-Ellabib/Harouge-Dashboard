@@ -173,6 +173,7 @@ const usersCopy = {
     roles: {
       employee: "موظف",
       it_manager: "مدير تقنية المعلومات",
+      management_committee: "لجنة الإدارة",
       supervisor: "مشرف",
       super_admin: "مدير النظام"
     },
@@ -258,6 +259,7 @@ const usersCopy = {
     roles: {
       employee: "Employee",
       it_manager: "IT Manager",
+      management_committee: "Management Committee",
       supervisor: "Supervisor",
       super_admin: "Super Administrator"
     },
@@ -460,7 +462,11 @@ function UsersContentView({ refreshSignal = 0 }: { refreshSignal?: number }) {
           sortOrder: "asc"
         });
         const adminRoleIds = rolesResult.data
-          .filter((role) => role.name === "super_admin" || role.name === "it_manager")
+          .filter((role) =>
+            role.name === "super_admin" ||
+            role.name === "it_manager" ||
+            role.name === "management_committee"
+          )
           .map((role) => role.id);
         const [
           pageResult,

@@ -12,12 +12,14 @@ export interface TaskDto {
   dueDate?: Date;
   id: string;
   lastProgressUpdateAt?: Date;
+  mainModule?: string;
   priority: string;
   progress: number;
   requestId?: string;
   reviewedBy?: string;
   startDate?: Date;
   status: string;
+  subModule?: string;
   taskCode: string;
   title: string;
   updatedAt?: Date;
@@ -40,12 +42,14 @@ export function serializeTask(task: TaskDocument): TaskDto {
     ...(task.lastProgressUpdateAt
       ? { lastProgressUpdateAt: task.lastProgressUpdateAt }
       : {}),
+    ...(task.mainModule ? { mainModule: task.mainModule } : {}),
     priority: task.priority,
     progress: task.progress,
     ...(task.requestId ? { requestId: String(task.requestId) } : {}),
     ...(task.reviewedBy ? { reviewedBy: String(task.reviewedBy) } : {}),
     ...(task.startDate ? { startDate: task.startDate } : {}),
     status: task.status,
+    ...(task.subModule ? { subModule: task.subModule } : {}),
     taskCode: task.taskCode,
     title: task.title,
     ...(task.updatedAt ? { updatedAt: task.updatedAt } : {})

@@ -87,6 +87,8 @@ export const messages = {
         checkingSession: "جار التحقق من الجلسة..."
       },
       navigation: {
+        managementDashboard: "Management View",
+        modules: "Modules",
         auditLogs: "سجلات التدقيق",
         dashboard: "لوحة التحكم",
         myTasks: "مهامي",
@@ -158,6 +160,7 @@ export const messages = {
       roles: {
         employee: "موظف",
         itManager: "مدير تقنية المعلومات",
+        managementCommittee: "لجنة الإدارة",
         supervisor: "مشرف",
         superAdmin: "مدير النظام"
       },
@@ -168,6 +171,7 @@ export const messages = {
         development: "سبرنت التطوير",
         facility: "سبرنت المرافق",
         infrastructure: "سبرنت البنية التحتية",
+        masterDataCollection: "جمع البيانات الرئيسية",
         latestItems: "آخر خمسة عناصر",
         noRecentItems: "لا توجد عناصر حديثة.",
         title: "مجالات السبرنت",
@@ -309,6 +313,9 @@ export const messages = {
       navigation: {
         auditLogs: "Audit Logs",
         dashboard: "Dashboard",
+        departments: "Departments",
+        managementDashboard: "Management View",
+        modules: "Modules",
         myTasks: "My Tasks",
         permissions: "Permissions",
         reports: "Reports",
@@ -378,6 +385,7 @@ export const messages = {
       roles: {
         employee: "Employee",
         itManager: "IT Manager",
+        managementCommittee: "Management Committee",
         supervisor: "Supervisor",
         superAdmin: "Super Administrator"
       },
@@ -385,9 +393,10 @@ export const messages = {
         placeholder: "Search sprint areas, sprint items, team, or IDs..."
       },
       sprintAreas: {
-        development: "Development Sprint",
-        facility: "Facility Sprint",
-        infrastructure: "Infrastructure Sprint",
+        development: "Development",
+        facility: "Facilities",
+        infrastructure: "Infrastructure",
+        masterDataCollection: "Master Data Collection",
         latestItems: "Latest five items",
         noRecentItems: "No recent items.",
         title: "Sprint Areas",

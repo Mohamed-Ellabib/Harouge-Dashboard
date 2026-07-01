@@ -363,6 +363,68 @@ describe("API hardening", () => {
     expect(overviewResponse.body.data.overview.recentActivity.length).toBeGreaterThan(0);
   });
 
+  it("lets admins lower completed task progress and permanently delete tasks", async () => {
+    const manager = await UserModel.findOne({
+      email: "manager.integration@example.com"
+    });
+    const employee = await UserModel.findOne({
+      email: "employee.integration@example.com"
+    });
+    const completedTask = await TaskModel.create({
+      assignedTo: employee?._id,
+      category: "software",
+      completedAt: new Date(),
+      createdBy: manager?._id,
+      priority: "high",
+      progress: 100,
+      reviewedBy: manager?._id,
+      status: "completed",
+      taskCode: "TASK-INTEGRATION-ADMIN-PROGRESS",
+      title: "Completed progress override test"
+    });
+
+    await TaskUpdateModel.create({
+      newProgress: 100,
+      newStatus: "completed",
+      previousProgress: 80,
+      previousStatus: "in_progress",
+      taskId: completedTask._id,
+      updatedBy: manager?._id
+    });
+
+    const session = await login(
+      "manager.integration@example.com",
+      managerPassword
+    );
+    const progressResponse = await session.agent
+      .post(`/api/tasks/${String(completedTask._id)}/progress`)
+      .set("x-csrf-token", session.csrfToken)
+      .send({ progress: 55 });
+
+    expect(progressResponse.status).toBe(200);
+    expect(progressResponse.body.data.task.progress).toBe(55);
+    expect(progressResponse.body.data.task.status).toBe("in_progress");
+    expect(progressResponse.body.data.task.completedAt).toBeUndefined();
+    expect(progressResponse.body.data.task.reviewedBy).toBeUndefined();
+
+    const deleteResponse = await session.agent
+      .delete(`/api/tasks/${String(completedTask._id)}`)
+      .set("x-csrf-token", session.csrfToken);
+
+    expect(deleteResponse.status).toBe(200);
+    expect(deleteResponse.body.data.deletedTask.id).toBe(String(completedTask._id));
+    expect(deleteResponse.body.data.deletedTaskUpdateCount).toBe(2);
+    expect(await TaskModel.findById(completedTask._id)).toBeNull();
+    expect(await TaskUpdateModel.countDocuments({ taskId: completedTask._id })).toBe(0);
+    expect(
+      await AuditLogModel.exists({
+        action: "delete",
+        entityId: completedTask._id,
+        entityType: "task"
+      })
+    ).toBeTruthy();
+  });
+
   it("returns request and task report rows with display references", async () => {
     const manager = await UserModel.findOne({
       email: "manager.integration@example.com"

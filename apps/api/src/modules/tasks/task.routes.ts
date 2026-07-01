@@ -9,6 +9,7 @@ import { validateRequest } from "../../shared/validation/validate-request";
 import {
   changeTaskStatusController,
   createTaskController,
+  deleteTaskController,
   getTaskController,
   listTaskUpdatesController,
   listTasksController,
@@ -94,6 +95,13 @@ taskRouter.get(
   requirePermission({ action: "view", module: "tasks" }),
   validateRequest({ params: taskIdParamsSchema }),
   getTaskController
+);
+
+taskRouter.delete(
+  "/:id",
+  requirePermission({ action: "update", module: "tasks" }),
+  validateRequest({ params: taskIdParamsSchema }),
+  deleteTaskController
 );
 
 taskRouter.patch(

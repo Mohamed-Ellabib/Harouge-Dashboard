@@ -37,12 +37,14 @@ export interface TaskReportRowDto {
   dueDate?: Date;
   id: string;
   lastProgressUpdateAt?: Date;
+  mainModule?: string;
   priority: string;
   progress: number;
   request?: ReportRequestReferenceDto;
   reviewedBy?: ReportUserReferenceDto;
   startDate?: Date;
   status: string;
+  subModule?: string;
   taskCode: string;
   title: string;
 }

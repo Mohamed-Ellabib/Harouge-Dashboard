@@ -1,18 +1,23 @@
 import {
   ClipboardCheck,
+  Database,
   FileText,
   Server,
   type LucideIcon
 } from "lucide-react";
 
-export type SprintAreaKey = "development" | "facility" | "infrastructure";
+export type SprintAreaKey =
+  | "development"
+  | "facility"
+  | "infrastructure"
+  | "master_data_collection";
 
 export type SprintAreaDefinition = {
   categories: readonly string[];
   icon: LucideIcon;
   key: SprintAreaKey;
   labelKey: string;
-  tone: "blue" | "green" | "orange";
+  tone: "blue" | "green" | "orange" | "purple";
 };
 
 export const sprintAreaDefinitions: SprintAreaDefinition[] = [
@@ -31,11 +36,18 @@ export const sprintAreaDefinitions: SprintAreaDefinition[] = [
     tone: "orange"
   },
   {
-    categories: ["network", "server", "other"],
+    categories: ["network", "server"],
     icon: Server,
     key: "infrastructure",
     labelKey: "dashboard.sprintAreas.infrastructure",
     tone: "green"
+  },
+  {
+    categories: ["other"],
+    icon: Database,
+    key: "master_data_collection",
+    labelKey: "dashboard.sprintAreas.masterDataCollection",
+    tone: "purple"
   }
 ];
 

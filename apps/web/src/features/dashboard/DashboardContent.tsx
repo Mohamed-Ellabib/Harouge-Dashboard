@@ -6,11 +6,13 @@ import {
   Check,
   ClipboardCheck,
   Code2,
+  Database,
   FileText,
-  Gauge,
   LockKeyhole,
   Server,
   ShieldCheck,
+  Trash2,
+  UserRound,
   UsersRound,
   type LucideIcon
 } from "lucide-react";
@@ -73,7 +75,7 @@ type SprintAreaCard = {
   openItems: number;
   progress: number;
   status: "at_risk" | "completed" | "in_progress" | "on_track" | "planned";
-  tone: "blue" | "green" | "orange";
+  tone: "blue" | "green" | "orange" | "purple";
 };
 
 const loadingSprintAreaCards: SprintAreaCard[] = sprintAreaDefinitions.map(
@@ -101,8 +103,10 @@ function DashboardContentView({
   const { language, t } = useI18n();
   const navigate = useNavigate();
   const [state, setState] = useState<DashboardState>({ status: "loading" });
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const canManageProjectProgress =
     session.roleCode === "super_admin" || session.roleCode === "it_manager";
+  const canDeleteSprintItems = canPermanentlyDeleteSprintItems(session);
 
   useEffect(() => {
     let isMounted = true;
@@ -161,10 +165,34 @@ function DashboardContentView({
     () => (overview ? buildDashboardTeamCard(overview) : buildDashboardTeamCard()),
     [overview]
   );
-  const recentSprintItems = useMemo(
-    () => getRecentSprintItems(sprintItems),
-    [sprintItems]
-  );
+
+  async function deleteDashboardSprintItem(item: DashboardWorkQueueItem) {
+    const confirmed = window.confirm(
+      language === "ar"
+        ? "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+        : "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingTaskId(item.id);
+
+    try {
+      await api.deleteSprintItem(item.id);
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : language === "ar"
+            ? "Sprint item could not be deleted."
+            : "Sprint item could not be deleted."
+      );
+    } finally {
+      setDeletingTaskId(null);
+    }
+  }
 
   return (
     <section className="dashboard-canvas" aria-label={t("dashboard.aria.workspace")}>
@@ -172,7 +200,11 @@ function DashboardContentView({
         className="dashboard-sprint-area-section"
         aria-label={t("dashboard.sprintAreas.title")}
       >
-        <div className="dashboard-sprint-strip">
+        <div
+          className={`dashboard-sprint-strip${
+            canManageProjectProgress ? " is-project-layout" : ""
+          }`}
+        >
           {canManageProjectProgress ? (
             <DashboardProjectProgressCard
               onViewProgress={() => navigate("/project-progress")}
@@ -206,6 +238,22 @@ function DashboardContentView({
         <>
           <div className="dashboard-work-grid">
             <DashboardPanel
+              actionLabel={t("dashboard.panels.workQueue.action")}
+              onAction={() => navigate("/sprint-items")}
+              actionPosition="footer"
+              className="dashboard-panel-queue"
+              title={t("dashboard.panels.workQueue.title")}
+            >
+              <DashboardQueueTable
+                canDelete={canDeleteSprintItems}
+                deletingItemId={deletingTaskId}
+                emptyText={getEmptyStateText("queue", language)}
+                items={overview?.workQueue ?? []}
+                onDelete={deleteDashboardSprintItem}
+              />
+            </DashboardPanel>
+
+            <DashboardPanel
               actionLabel={t("dashboard.panels.focus.action")}
               onAction={() => navigate("/sprint-items?focus=urgent")}
               actionPosition="footer"
@@ -226,27 +274,9 @@ function DashboardContentView({
                 )}
               </div>
             </DashboardPanel>
+          </div>
 
-            <DashboardPanel
-              actionLabel={t("dashboard.panels.workQueue.action")}
-              onAction={() => navigate("/sprint-items")}
-              className="dashboard-panel-queue"
-              description={t("dashboard.panels.workQueue.description")}
-              title={t("dashboard.panels.workQueue.title")}
-            >
-              <div className="dashboard-queue-list">
-                {overview?.workQueue.length ? (
-                  overview.workQueue.map((item) => (
-                    <DashboardQueueRow item={item} key={item.id} />
-                  ))
-                ) : (
-                  <p className="dashboard-empty-state">
-                    {getEmptyStateText("queue", language)}
-                  </p>
-                )}
-              </div>
-            </DashboardPanel>
-
+          <div className="dashboard-bottom-grid">
             <DashboardPanel
               actionLabel={t("dashboard.panels.team.action")}
               onAction={() => navigate("/users")}
@@ -265,46 +295,6 @@ function DashboardContentView({
                     {getEmptyStateText("team", language)}
                   </p>
                 )}
-              </div>
-            </DashboardPanel>
-          </div>
-
-          <div className="dashboard-bottom-grid">
-            <DashboardPanel
-              actionLabel={t("dashboard.panels.recentRequests.action")}
-              onAction={() => navigate("/sprint-items")}
-              className="dashboard-panel-requests"
-              title={t("dashboard.panels.recentRequests.title")}
-            >
-              <div className="dashboard-table-scroll">
-                <table className="dashboard-requests-table">
-                  <thead>
-                    <tr>
-                      <th>{t("dashboard.panels.requestsTable.id")}</th>
-                      <th>{t("dashboard.panels.requestsTable.title")}</th>
-                      <th>{t("dashboard.panels.requestsTable.requestedBy")}</th>
-                      <th>{t("dashboard.panels.requestsTable.department")}</th>
-                      <th>{t("dashboard.panels.requestsTable.priority")}</th>
-                      <th>{t("dashboard.panels.requestsTable.status")}</th>
-                      <th>{t("dashboard.panels.requestsTable.created")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentSprintItems.length ? (
-                      recentSprintItems.map((item) => (
-                        <DashboardRecentSprintItemRow
-                          key={item.id}
-                          item={item}
-                          language={language}
-                        />
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7}>{getEmptyStateText("sprintItems", language)}</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
               </div>
             </DashboardPanel>
 
@@ -349,45 +339,56 @@ function DashboardProjectProgressCard({
     "--progress": `${progress}%`,
     "--tone": "#08265d"
   } as CSSProperties;
+  const updatedAt = formatProjectProgressUpdatedAt(projectProgress, language).replace(/^Updated\s+/, "");
+  const projectStatus = labels.projectStatus ?? "Project Status";
+  const earlyProgress = labels.earlyProgress ?? "Early Progress";
+  const statusDescription =
+    labels.statusDescription ?? "Project is in early stages. Keep the momentum going.";
 
   return (
     <article className="dashboard-project-progress-card">
-      <header className="dashboard-sprint-card-header">
-        <span className="dashboard-sprint-card-icon">
-          <Gauge size={17} strokeWidth={2.25} aria-hidden="true" />
-        </span>
+      <header className="dashboard-project-progress-header">
         <h4>{labels.title}</h4>
-        <Badge label={labels.manual} variant="open" />
       </header>
-      <div className="dashboard-sprint-card-body">
+      <div className="dashboard-project-progress-body">
         <div
           aria-label={`${progress}% ${labels.progress}`}
           className="dashboard-sprint-progress-ring"
           role="img"
           style={progressStyle}
         >
-          <span>{progress}%</span>
+          <strong>{progress}%</strong>
         </div>
-        <dl className="dashboard-sprint-card-metrics">
+        <div className="dashboard-project-progress-status">
+          <span>{projectStatus}</span>
+          <strong>{earlyProgress}</strong>
+          <p>{statusDescription}</p>
+        </div>
+        <span className="dashboard-project-progress-divider" aria-hidden="true" />
+        <div className="dashboard-project-progress-metrics">
           <div>
-            <dt>{labels.scope}</dt>
-            <dd>{labels.erp}</dd>
+            <span className="dashboard-project-progress-meta-icon">
+              <UserRound size={16} strokeWidth={2.35} aria-hidden="true" />
+            </span>
+            <span className="dashboard-project-progress-meta-copy">
+              <span className="dashboard-project-progress-meta-label">{labels.updatedBy}</span>
+              <strong>{projectProgress?.updatedBy?.fullName ?? labels.notSet}</strong>
+            </span>
           </div>
           <div>
-            <dt>{labels.updatedBy}</dt>
-            <dd>{projectProgress?.updatedBy?.fullName ?? labels.notSet}</dd>
+            <span className="dashboard-project-progress-meta-icon">
+              <CalendarDays size={16} strokeWidth={2.35} aria-hidden="true" />
+            </span>
+            <span className="dashboard-project-progress-meta-copy">
+              <span className="dashboard-project-progress-meta-label">
+                {labels.lastUpdated ?? "Last Updated"}
+              </span>
+              <strong>{updatedAt}</strong>
+            </span>
           </div>
-          <div>
-            <dt>{labels.source}</dt>
-            <dd>{labels.manual}</dd>
-          </div>
-        </dl>
+        </div>
       </div>
       <footer className="dashboard-sprint-card-footer">
-        <span>
-          <CalendarDays size={12} strokeWidth={2.2} aria-hidden="true" />
-          {formatProjectProgressUpdatedAt(projectProgress, language)}
-        </span>
         <button onClick={onViewProgress} type="button">
           {labels.viewProgress}
           <ArrowRight size={12} strokeWidth={2.35} aria-hidden="true" />
@@ -527,23 +528,112 @@ function DashboardFocusRow({ item }: { item: DashboardFocusItem }) {
   );
 }
 
-function DashboardQueueRow({ item }: { item: DashboardWorkQueueItem }) {
+function DashboardQueueTable({
+  canDelete,
+  deletingItemId,
+  emptyText,
+  items,
+  onDelete
+}: {
+  canDelete: boolean;
+  deletingItemId: string | null;
+  emptyText: string;
+  items: DashboardWorkQueueItem[];
+  onDelete: (item: DashboardWorkQueueItem) => void;
+}) {
   const { language } = useI18n();
+  const labels = getCurrentWorkTableLabels(language);
+
+  return (
+    <div className="dashboard-queue-table-wrap">
+      <table className="dashboard-queue-table">
+        <thead>
+          <tr>
+            <th>{labels.id}</th>
+            <th>{labels.sprintItem}</th>
+            <th>{labels.owner}</th>
+            <th>{labels.sprintArea}</th>
+            <th>{labels.module}</th>
+            <th>{labels.priority}</th>
+            <th>{labels.status}</th>
+            {canDelete ? <th>{labels.actions}</th> : null}
+          </tr>
+        </thead>
+        <tbody>
+          {items.length ? (
+            items.slice(0, 5).map((item) => (
+              <DashboardQueueRow
+                canDelete={canDelete}
+                isDeleting={deletingItemId === item.id}
+                item={item}
+                key={item.id}
+                onDelete={onDelete}
+              />
+            ))
+          ) : (
+            <tr>
+              <td className="dashboard-queue-empty" colSpan={canDelete ? 8 : 7}>
+                {emptyText}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function DashboardQueueRow({
+  canDelete,
+  isDeleting,
+  item,
+  onDelete
+}: {
+  canDelete: boolean;
+  isDeleting: boolean;
+  item: DashboardWorkQueueItem;
+  onDelete: (item: DashboardWorkQueueItem) => void;
+}) {
+  const { language, t } = useI18n();
   const owner = item.assignedTo;
 
   return (
-    <article className="dashboard-queue-row">
-      <input aria-label={item.title} type="checkbox" />
-      <div className="dashboard-queue-title">
-        <strong>{item.title}</strong>
-        <span>{item.taskCode}</span>
-      </div>
-      <Badge label={formatPriority(item.priority, language)} variant={toBadgeVariant(item.priority)} />
-      <Badge label={formatStatus(item.status, language)} variant={toBadgeVariant(item.status)} />
-      <Avatar initials={resolveInitials(owner)} />
-      <span className="dashboard-owner">{owner?.fullName ?? "-"}</span>
-      <time>{formatDateTime(item.dueDate, language)}</time>
-    </article>
+    <tr className="dashboard-queue-row">
+      <td>
+        <strong>{item.taskCode}</strong>
+      </td>
+      <td>
+        <div className="dashboard-queue-title">
+          <strong>{item.title}</strong>
+        </div>
+      </td>
+      <td>{owner?.fullName ?? "-"}</td>
+      <td>{formatSprintAreaByCategory(item.category, t)}</td>
+      <td>
+        <span className="dashboard-queue-module" title={formatTaskModule(item) ?? "-"}>
+          {formatTaskModule(item) ?? "-"}
+        </span>
+      </td>
+      <td>
+        <Badge label={formatPriority(item.priority, language)} variant={toBadgeVariant(item.priority)} />
+      </td>
+      <td>
+        <Badge label={formatStatus(item.status, language)} variant={toBadgeVariant(item.status)} />
+      </td>
+      {canDelete ? (
+        <td>
+          <button
+            aria-label={language === "ar" ? "Delete sprint item" : "Delete sprint item"}
+            className="dashboard-queue-action-button"
+            disabled={isDeleting}
+            onClick={() => onDelete(item)}
+            type="button"
+          >
+            <Trash2 size={14} strokeWidth={2.25} aria-hidden="true" />
+          </button>
+        </td>
+      ) : null}
+    </tr>
   );
 }
 
@@ -561,34 +651,6 @@ function DashboardWorkloadRow({ item }: { item: DashboardWorkloadItem }) {
       <strong className="dashboard-workload-value">{item.workloadPercent}%</strong>
       <i className={`dashboard-status-dot dashboard-status-${item.status}`} />
     </article>
-  );
-}
-
-function DashboardRecentSprintItemRow({
-  item,
-  language,
-}: {
-  item: TaskReportRow;
-  language: AppLanguage;
-}) {
-  const { t } = useI18n();
-
-  return (
-    <tr>
-      <td>
-        <strong>{item.taskCode}</strong>
-      </td>
-      <td>{item.title}</td>
-      <td>{item.assignedTo?.fullName ?? item.createdBy?.fullName ?? "-"}</td>
-      <td>{formatSprintAreaByCategory(item.category, t)}</td>
-      <td>
-        <Badge label={formatPriority(item.priority, language)} variant={toBadgeVariant(item.priority)} />
-      </td>
-      <td>
-        <Badge label={formatStatus(item.status, language)} variant={toBadgeVariant(item.status)} />
-      </td>
-      <td>{formatDateTime(item.lastProgressUpdateAt ?? item.createdAt, language)}</td>
-    </tr>
   );
 }
 
@@ -721,6 +783,13 @@ function buildDashboardTeamCard(overview?: DashboardOverview): {
   };
 }
 
+function canPermanentlyDeleteSprintItems(session: Session): boolean {
+  return (
+    (session.roleCode === "super_admin" || session.roleCode === "it_manager") &&
+    session.permissionCodes.includes("tasks:update")
+  );
+}
+
 function getCountByValue(
   values: DashboardOverview["summary"]["requests"]["byStatus"],
   key: string
@@ -791,17 +860,9 @@ function resolveSprintAreaCardIcon(key: SprintAreaKey): LucideIcon {
       return Building2;
     case "infrastructure":
       return Server;
+    case "master_data_collection":
+      return Database;
   }
-}
-
-function getRecentSprintItems(items: TaskReportRow[]): TaskReportRow[] {
-  return [...items]
-    .sort(
-      (left, right) =>
-        getTimeValue(right.lastProgressUpdateAt ?? right.createdAt) -
-        getTimeValue(left.lastProgressUpdateAt ?? left.createdAt)
-    )
-    .slice(0, 5);
 }
 
 function getTimeValue(value: string | undefined): number {
@@ -958,6 +1019,55 @@ function formatSprintAreaByCategory(
   return area ? t(area.labelKey) : titleize(category);
 }
 
+function formatTaskModule(
+  item: Pick<DashboardWorkQueueItem, "mainModule" | "subModule">
+): string | undefined {
+  if (!item.mainModule && !item.subModule) {
+    return undefined;
+  }
+
+  if (!item.mainModule) {
+    return item.subModule;
+  }
+
+  return item.subModule ? `${item.mainModule} / ${item.subModule}` : item.mainModule;
+}
+
+function getCurrentWorkTableLabels(language: AppLanguage): {
+  actions: string;
+  id: string;
+  module: string;
+  owner: string;
+  priority: string;
+  sprintArea: string;
+  sprintItem: string;
+  status: string;
+} {
+  if (language === "ar") {
+    return {
+      actions: "Actions",
+      id: "\u0627\u0644\u0631\u0645\u0632",
+      module: "Module",
+      owner: "\u0627\u0644\u0645\u0633\u0624\u0648\u0644",
+      priority: "\u0627\u0644\u0623\u0648\u0644\u0648\u064a\u0629",
+      sprintArea: "\u0645\u0646\u0637\u0642\u0629 \u0627\u0644\u0633\u0628\u0631\u0646\u062a",
+      sprintItem: "\u0639\u0646\u0635\u0631 \u0627\u0644\u0633\u0628\u0631\u0646\u062a",
+      status: "\u0627\u0644\u062d\u0627\u0644\u0629"
+    };
+  }
+
+  return {
+    actions: "Actions",
+    id: "ID",
+    module: "Module",
+    owner: "Owner",
+    priority: "Priority",
+    sprintArea: "Sprint Area",
+    sprintItem: "Sprint Item",
+    status: "Status"
+  };
+}
+
 function formatSprintAreaStatus(
   status: SprintAreaCard["status"],
   language: AppLanguage
@@ -1062,8 +1172,12 @@ function getProjectProgressCardLabels(language: AppLanguage): {
   manual: string;
   notSet: string;
   progress: string;
+  projectStatus?: string;
   scope: string;
   source: string;
+  earlyProgress?: string;
+  lastUpdated?: string;
+  statusDescription?: string;
   title: string;
   updatedBy: string;
   viewProgress: string;
@@ -1087,8 +1201,12 @@ function getProjectProgressCardLabels(language: AppLanguage): {
     manual: "Manual",
     notSet: "Not set",
     progress: "progress",
+    projectStatus: "Project Status",
     scope: "Scope",
     source: "Calculation",
+    earlyProgress: "Early Progress",
+    lastUpdated: "Last Updated",
+    statusDescription: "Project is in early stages. Keep the momentum going.",
     title: "Overall Project Progress",
     updatedBy: "Updated By",
     viewProgress: "Edit Progress"
@@ -1126,6 +1244,8 @@ function getSprintToneColor(tone: SprintAreaCard["tone"]): string {
       return "#17a65b";
     case "orange":
       return "#ff7a00";
+    case "purple":
+      return "#6a32ca";
     case "blue":
       return "#1268df";
   }

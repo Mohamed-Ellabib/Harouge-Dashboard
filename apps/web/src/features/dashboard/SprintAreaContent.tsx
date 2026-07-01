@@ -1,6 +1,8 @@
 import {
   Activity,
   AlertTriangle,
+  ArrowLeft,
+  Ban,
   Bell,
   Building2,
   CalendarDays,
@@ -9,6 +11,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Code2,
+  Database,
   Download,
   Edit3,
   Eye,
@@ -35,7 +38,7 @@ import {
   useMemo,
   useState
 } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import {
   api,
@@ -196,7 +199,6 @@ type Copy = {
     activity: string;
     blockers: string;
     items: string;
-    milestones: string;
     team: string;
     viewActivity: string;
     viewBlockers: string;
@@ -216,6 +218,7 @@ type Copy = {
     assignee: string;
     dueDate: string;
     itemId: string;
+    module: string;
     priority: string;
     progress: string;
     role: string;
@@ -245,7 +248,8 @@ const copy: Record<AppLanguage, Copy> = {
     description: {
       development: "يركز هذا السبرنت على تطوير وحدات ERP الأساسية والواجهات والتكاملات والاختبارات.",
       facility: "يركز هذا السبرنت على جاهزية الغرف ومحطات العمل ومناطق التدريب ودعم الإطلاق.",
-      infrastructure: "يركز هذا السبرنت على الخوادم والشبكات والاستضافة والنسخ الاحتياطي والصلاحيات."
+      infrastructure: "يركز هذا السبرنت على الخوادم والشبكات والاستضافة والنسخ الاحتياطي والصلاحيات.",
+      master_data_collection: "يركز هذا السبرنت على جمع البيانات الرئيسية والتحقق منها وتتبع نسبة اكتمالها."
     },
     footer: "Harouge Oil Operations | 2026 ©",
     loading: "جاري تحميل تفاصيل السبرنت...",
@@ -271,7 +275,6 @@ const copy: Record<AppLanguage, Copy> = {
       activity: "آخر نشاط السبرنت",
       blockers: "العوائق الحالية",
       items: "عناصر السبرنت",
-      milestones: "مراحل السبرنت",
       team: "توزيع الفريق",
       viewActivity: "عرض كل النشاطات",
       viewBlockers: "عرض كل العوائق"
@@ -286,6 +289,7 @@ const copy: Record<AppLanguage, Copy> = {
       review: "قيد المراجعة"
     },
     table: {
+      module: "Module",
       actions: "الإجراءات",
       allocation: "التوزيع",
       assignee: "المسؤول",
@@ -318,7 +322,8 @@ const copy: Record<AppLanguage, Copy> = {
     description: {
       development: "This sprint focuses on developing core software modules, APIs, user interfaces, and integrations.",
       facility: "This sprint focuses on room readiness, workstation preparation, training areas, and rollout support.",
-      infrastructure: "This sprint focuses on servers, network, hosting, backup, access, and security readiness."
+      infrastructure: "This sprint focuses on servers, network, hosting, backup, access, and security readiness.",
+      master_data_collection: "This sprint focuses on collecting master data, validating it, and tracking completion readiness."
     },
     footer: "Harouge Oil Operations | 2026 ©",
     loading: "Loading sprint detail...",
@@ -344,7 +349,6 @@ const copy: Record<AppLanguage, Copy> = {
       activity: "Recent Sprint Activity",
       blockers: "Current Blockers",
       items: "Sprint Items",
-      milestones: "Sprint Milestones",
       team: "Team Allocation",
       viewActivity: "View all activity",
       viewBlockers: "View all blockers"
@@ -364,6 +368,7 @@ const copy: Record<AppLanguage, Copy> = {
       assignee: "Assignee",
       dueDate: "Due Date",
       itemId: "Item ID",
+      module: "Module",
       priority: "Priority",
       progress: "Progress",
       role: "Role",
@@ -383,6 +388,7 @@ function SprintAreaContentView({
   session: Session;
 }) {
   const { areaKey } = useParams();
+  const navigate = useNavigate();
   const { language, t } = useI18n();
   const area = getSprintAreaDefinition(areaKey) ?? sprintAreaDefinitions[0];
   const pageCopy = copy[language];
@@ -450,14 +456,15 @@ function SprintAreaContentView({
   const sprint = state.status === "ready" ? state.sprint : undefined;
   const overview = useMemo(() => buildSprintOverview(items, sprint), [items, sprint]);
   const team = useMemo(() => buildTeamAllocation(items), [items]);
-  const milestones = useMemo(() => buildMilestones(items), [items]);
   const activities = useMemo(() => buildActivities(items), [items]);
   const blockers = useMemo(() => buildBlockers(items), [items]);
   const AreaIcon = resolveAreaIcon(area.key);
   const isEmployee = session.roleCode === "employee";
+  const isManagementCommittee = session.roleCode === "management_committee";
   const canManageItems =
     session.permissionCodes.includes("tasks:update") ||
     session.permissionCodes.includes("tasks:change_status");
+  const canDeleteItems = canPermanentlyDeleteSprintItems(session);
   const canCreateSprintItem =
     !isEmployee &&
     (session.permissionCodes.includes("tasks:create") ||
@@ -634,13 +641,46 @@ function SprintAreaContentView({
     }
   }
 
+  async function deleteSprintItem(item: TaskReportRow) {
+    setOpenActionMenu(null);
+
+    const confirmed = window.confirm(
+      language === "ar"
+        ? "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+        : "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteSprintItem(item.id);
+
+      if (detailState?.item.id === item.id) {
+        setDetailState(null);
+        setStatusForm(null);
+      }
+
+      refreshAreaData();
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : language === "ar"
+            ? "Sprint item could not be deleted."
+            : "Sprint item could not be deleted."
+      );
+    }
+  }
+
   function toggleActionMenu(
     itemId: string,
     event: MouseEvent<HTMLButtonElement>
   ) {
     const rect = event.currentTarget.getBoundingClientRect();
     const menuWidth = 152;
-    const menuHeight = 112;
+    const menuHeight = canDeleteItems ? 146 : 112;
     const gap = 8;
     const left =
       language === "ar"
@@ -780,13 +820,23 @@ function SprintAreaContentView({
     const currentStatus = detailState.details?.status ?? detailState.item.status;
     const nextProgress = Number(statusForm.progress);
     const note = statusForm.note.trim();
+    const canOverrideCompletedProgress = canDeleteItems;
+    const isLoweringLockedStatusProgress =
+      canOverrideCompletedProgress &&
+      (currentStatus === "completed" || currentStatus === "waiting_review") &&
+      statusForm.status === currentStatus &&
+      nextProgress !== 100;
 
     if (!Number.isFinite(nextProgress) || nextProgress < 0 || nextProgress > 100) {
       setStatusError(language === "ar" ? "أدخل نسبة تقدم صحيحة بين 0 و 100." : "Enter a valid progress value between 0 and 100.");
       return;
     }
 
-    if (statusForm.status === "completed" && nextProgress !== 100) {
+    if (
+      (statusForm.status === "completed" || statusForm.status === "waiting_review") &&
+      nextProgress !== 100 &&
+      !isLoweringLockedStatusProgress
+    ) {
       setStatusError(language === "ar" ? "يجب أن يكون التقدم 100% قبل الإكمال." : "Progress must be 100% before completion.");
       return;
     }
@@ -796,7 +846,11 @@ function SprintAreaContentView({
       return;
     }
 
-    if ((nextProgress !== currentProgress || statusForm.status !== currentStatus) && !note) {
+    if (
+      (nextProgress !== currentProgress || statusForm.status !== currentStatus) &&
+      !note &&
+      !canOverrideCompletedProgress
+    ) {
       setStatusError(
         language === "ar"
           ? "اكتب تعليقاً يوضح ما الذي تغير في هذا التحديث."
@@ -843,13 +897,27 @@ function SprintAreaContentView({
   }
 
   const hasOpenModal = Boolean((detailState && statusForm) || isSprintEditOpen || quickAction);
+  const canShowSprintActions = !isEmployee && !isManagementCommittee;
 
   return (
     <section
       className={`sprint-detail-canvas${hasOpenModal ? " has-modal-open" : ""}`}
       aria-label={t(area.labelKey)}
     >
-      {!isEmployee ? (
+      {isManagementCommittee ? (
+        <div className="sprint-detail-actions">
+          <button
+            className="sprint-detail-utility-button"
+            onClick={() => navigate("/management-dashboard")}
+            type="button"
+          >
+            <ArrowLeft size={16} strokeWidth={2.2} aria-hidden="true" />
+            {language === "ar" ? "العودة إلى لوحة الإدارة" : "Return to Dashboard"}
+          </button>
+        </div>
+      ) : null}
+
+      {canShowSprintActions ? (
         <div className="sprint-detail-actions">
           {canEditSprint ? (
             <button
@@ -948,80 +1016,6 @@ function SprintAreaContentView({
           </section>
 
           <div className="sprint-detail-upper-grid">
-            <section className="sprint-detail-panel">
-              <PanelHeader icon={Flag} title={pageCopy.panels.milestones} />
-              <div className="sprint-detail-table-scroll">
-                <table className="sprint-detail-table sprint-detail-milestone-table">
-                  <thead>
-                    <tr>
-                      <th>{pageCopy.table.title}</th>
-                      <th>{pageCopy.table.dueDate}</th>
-                      <th>{pageCopy.table.status}</th>
-                      <th>{pageCopy.table.progress}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {milestones.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.title}</td>
-                        <td>
-                          <CalendarDays size={14} strokeWidth={2.15} aria-hidden="true" />
-                          {formatDate(item.dueDate, language)}
-                        </td>
-                        <td>
-                          <StatusBadge item={item} language={language} />
-                        </td>
-                        <td>
-                          <ProgressCell progress={item.progress} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <footer className="sprint-detail-panel-footer">
-                Showing 1 to {milestones.length} of {milestones.length} milestones
-              </footer>
-            </section>
-
-            <section className="sprint-detail-panel">
-              <PanelHeader icon={Users} title={pageCopy.panels.team} />
-              <div className="sprint-detail-table-scroll">
-                <table className="sprint-detail-table sprint-detail-team-table">
-                  <thead>
-                    <tr>
-                      <th>{pageCopy.table.teamMember}</th>
-                      <th>{pageCopy.table.role}</th>
-                      <th>{pageCopy.table.workload}</th>
-                      <th>{pageCopy.table.allocation}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {team.map((member) => (
-                      <tr key={member.user.id}>
-                        <td>
-                          <span className="sprint-detail-person">
-                            <b>{resolveInitials(member.user)}</b>
-                            {member.user.fullName}
-                          </span>
-                        </td>
-                        <td>{member.user.jobTitle ?? member.user.department ?? "-"}</td>
-                        <td>{member.workload}%</td>
-                        <td>
-                          <ProgressCell progress={member.allocation} showValue={false} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <footer className="sprint-detail-panel-footer">
-                Showing 1 to {team.length} of {team.length} team members
-              </footer>
-            </section>
-          </div>
-
-          <div className="sprint-detail-lower-grid">
             <section className="sprint-detail-panel sprint-detail-items-panel">
               <PanelHeader icon={FileText} title={pageCopy.panels.items} />
               <div className="sprint-detail-table-scroll">
@@ -1031,6 +1025,7 @@ function SprintAreaContentView({
                       <th aria-label="Select" />
                       <th>{pageCopy.table.itemId}</th>
                       <th>{pageCopy.table.title}</th>
+                      <th>{pageCopy.table.module}</th>
                       <th>{pageCopy.table.assignee}</th>
                       <th>{pageCopy.table.priority}</th>
                       <th>{pageCopy.table.status}</th>
@@ -1054,11 +1049,13 @@ function SprintAreaContentView({
               </div>
               {openActionMenu && openActionMenuItem ? (
                 <SprintItemFloatingActionMenu
+                  canDelete={canDeleteItems}
                   canManage={canManageItems}
                   item={openActionMenuItem}
                   labels={getSprintDetailActionCopy(language)}
                   left={openActionMenu.left}
                   onCancel={cancelSprintItem}
+                  onDelete={deleteSprintItem}
                   onEdit={(selectedItem) => openSprintItemDetail(selectedItem, "edit")}
                   onView={(selectedItem) => openSprintItemDetail(selectedItem, "view")}
                   top={openActionMenu.top}
@@ -1083,9 +1080,11 @@ function SprintAreaContentView({
                 </div>
               </footer>
             </section>
+          </div>
 
-            <aside className="sprint-detail-side-stack">
-              <section className="sprint-detail-panel">
+          <div className={`sprint-detail-lower-grid${isManagementCommittee ? " is-management-view" : ""}`}>
+            {!isManagementCommittee ? (
+              <section className="sprint-detail-panel sprint-detail-activity-panel">
                 <PanelHeader icon={Activity} title={pageCopy.panels.activity} />
                 <div className="sprint-detail-activity-list">
                   {activities.map((item) => (
@@ -1097,9 +1096,47 @@ function SprintAreaContentView({
                   ))}
                 </div>
                 <footer className="sprint-detail-panel-footer">
-                  <button type="button">{pageCopy.panels.viewActivity} →</button>
+                  <button type="button">{pageCopy.panels.viewActivity} -&gt;</button>
                 </footer>
               </section>
+            ) : null}
+
+            <aside className="sprint-detail-side-stack">
+              {!isManagementCommittee ? (
+                <section className="sprint-detail-panel sprint-detail-team-panel">
+                  <PanelHeader icon={Users} title={pageCopy.panels.team} />
+                  <div className="sprint-detail-table-scroll">
+                    <table className="sprint-detail-table sprint-detail-team-table">
+                      <thead>
+                        <tr>
+                          <th>{pageCopy.table.teamMember}</th>
+                          <th>{pageCopy.table.workload}</th>
+                          <th>{pageCopy.table.allocation}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {team.map((member) => (
+                          <tr key={member.user.id}>
+                            <td>
+                              <span className="sprint-detail-person">
+                                <b>{resolveInitials(member.user)}</b>
+                                {member.user.fullName}
+                              </span>
+                            </td>
+                            <td>{member.workload}%</td>
+                            <td>
+                              <ProgressCell progress={member.allocation} showValue={false} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <footer className="sprint-detail-panel-footer">
+                    Showing 1 to {team.length} of {team.length} team members
+                  </footer>
+                </section>
+              ) : null}
 
               <section className="sprint-detail-panel">
                 <PanelHeader
@@ -1113,6 +1150,7 @@ function SprintAreaContentView({
                       <tr>
                         <th>{pageCopy.blocker.itemId}</th>
                         <th>{pageCopy.blocker.title}</th>
+                        <th>{pageCopy.table.module}</th>
                         <th>{pageCopy.blocker.blockedBy}</th>
                         <th>{pageCopy.blocker.since}</th>
                       </tr>
@@ -1123,13 +1161,14 @@ function SprintAreaContentView({
                           <tr key={blocker.item.id}>
                             <td>{formatSprintItemCode(blocker.item, area)}</td>
                             <td>{blocker.item.title}</td>
+                            <td>{formatTaskModule(blocker.item) ?? "-"}</td>
                             <td>{blocker.reason ?? "-"}</td>
                             <td>{formatDate(blocker.since, language)}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4}>No current blockers.</td>
+                          <td colSpan={5}>No current blockers.</td>
                         </tr>
                       )}
                     </tbody>
@@ -1573,7 +1612,7 @@ function SprintItemDetailModal({
                 onChange={(event) => onUpdate("status", event.target.value as TaskStatus)}
                 value={form.status}
               >
-                {(["open", "in_progress", "blocked", "waiting_review", "completed", "cancelled"] as TaskStatus[]).map((status) => (
+                {(["open", "assigned", "in_progress", "blocked", "waiting_review", "completed", "cancelled"] as TaskStatus[]).map((status) => (
                   <option key={status} value={status}>
                     {formatRawStatus(status, language)}
                   </option>
@@ -1723,6 +1762,11 @@ function SprintItemRow({
         </span>
       </td>
       <td>
+        <span className="sprint-detail-module-cell" title={formatTaskModule(item) ?? "-"}>
+          {formatTaskModule(item) ?? "-"}
+        </span>
+      </td>
+      <td>
         <span className="sprint-detail-person" title={owner?.fullName ?? "-"}>
           <b>{resolveInitials(owner)}</b>
           {owner?.fullName ?? "-"}
@@ -1761,20 +1805,24 @@ function SprintItemRow({
 }
 
 function SprintItemFloatingActionMenu({
+  canDelete,
   canManage,
   item,
   labels,
   left,
   onCancel,
+  onDelete,
   onEdit,
   onView,
   top
 }: {
+  canDelete: boolean;
   canManage: boolean;
   item: TaskReportRow;
   labels: ReturnType<typeof getSprintDetailActionCopy> & { view?: string };
   left: number;
   onCancel: (item: TaskReportRow) => void;
+  onDelete: (item: TaskReportRow) => void;
   onEdit: (item: TaskReportRow) => void;
   onView: (item: TaskReportRow) => void;
   top: number;
@@ -1804,8 +1852,19 @@ function SprintItemFloatingActionMenu({
           role="menuitem"
           type="button"
         >
+          <Ban size={14} strokeWidth={2.2} />
+          {labels.cancel ?? "Cancel"}
+        </button>
+      ) : null}
+      {canDelete ? (
+        <button
+          className="is-danger"
+          onClick={() => onDelete(item)}
+          role="menuitem"
+          type="button"
+        >
           <Trash2 size={14} strokeWidth={2.2} />
-          {labels.delete}
+          {labels.delete ?? "Delete"}
         </button>
       ) : null}
     </div>
@@ -1829,10 +1888,14 @@ function StatusBadge({
   );
 }
 
-function getSprintDetailActionCopy(language: AppLanguage) {
+function getSprintDetailActionCopy(language: AppLanguage): {
+  cancel?: string;
+  delete?: string;
+  edit: string;
+} {
   return language === "ar"
-    ? { delete: "إلغاء", edit: "تعديل" }
-    : { delete: "Cancel", edit: "Edit" };
+    ? { cancel: "إلغاء", delete: "Delete", edit: "تعديل" }
+    : { cancel: "Cancel", delete: "Delete", edit: "Edit" };
 }
 
 function getSprintItemDetailCopy(language: AppLanguage) {
@@ -1992,6 +2055,13 @@ function buildSprintOwnerOptions(
   );
 }
 
+function canPermanentlyDeleteSprintItems(session: Session): boolean {
+  return (
+    (session.roleCode === "super_admin" || session.roleCode === "it_manager") &&
+    session.permissionCodes.includes("tasks:update")
+  );
+}
+
 function toSprintEditForm(sprint: SprintRecord): SprintEditFormState {
   return {
     active: sprint.active,
@@ -2053,12 +2123,14 @@ function getSprintAreaLabel(areaKey: SprintAreaKey, language: AppLanguage): stri
     ar: {
       development: "سبرنت التطوير",
       facility: "سبرنت المرافق",
-      infrastructure: "سبرنت البنية التحتية"
+      infrastructure: "سبرنت البنية التحتية",
+      master_data_collection: "جمع البيانات الرئيسية"
     },
     en: {
-      development: "Development Sprint",
-      facility: "Facility Sprint",
-      infrastructure: "Infrastructure Sprint"
+      development: "Development",
+      facility: "Facilities",
+      infrastructure: "Infrastructure",
+      master_data_collection: "Master Data Collection"
     }
   } as const;
 
@@ -2080,6 +2152,7 @@ function toStatusForm(
 function formatRawStatus(status: TaskStatus, language: AppLanguage): string {
   const labels = {
     ar: {
+      assigned: "مسند",
       blocked: "محجوب",
       cancelled: "ملغى",
       completed: "مكتمل",
@@ -2088,6 +2161,7 @@ function formatRawStatus(status: TaskStatus, language: AppLanguage): string {
       waiting_review: "بانتظار المراجعة"
     },
     en: {
+      assigned: "Assigned",
       blocked: "Blocked",
       cancelled: "Cancelled",
       completed: "Completed",
@@ -2258,13 +2332,6 @@ function buildTeamAllocation(items: TaskReportRow[]): TeamAllocation[] {
     })
     .sort((left, right) => right.workload - left.workload)
     .slice(0, 4);
-}
-
-function buildMilestones(items: TaskReportRow[]): TaskReportRow[] {
-  return items
-    .slice()
-    .sort((left, right) => dateValue(left.dueDate) - dateValue(right.dueDate))
-    .slice(0, 5);
 }
 
 function buildActivities(items: TaskReportRow[]): TaskReportRow[] {
@@ -2448,6 +2515,8 @@ function resolveAreaIcon(key: SprintAreaKey): LucideIcon {
       return Building2;
     case "infrastructure":
       return Server;
+    case "master_data_collection":
+      return Database;
     default:
       return Code2;
   }
@@ -2460,6 +2529,8 @@ function resolveAreaSecondaryDescription(areaKey: SprintAreaKey, language: AppLa
         return "يشمل تجهيز المساحات ومتابعة جاهزية المستخدمين والتدريب.";
       case "infrastructure":
         return "يشمل الاستضافة والتأمين والنسخ الاحتياطي والتحقق من الاعتمادية.";
+      case "master_data_collection":
+        return "يشمل جمع البيانات من الإدارات، مراجعتها، وتحديد ما اكتمل وما لا يزال قيد المتابعة.";
       default:
         return "يشمل الاختبار الوحدوي واختبار التكامل وتحضير التسليم.";
     }
@@ -2470,6 +2541,8 @@ function resolveAreaSecondaryDescription(areaKey: SprintAreaKey, language: AppLa
       return "Includes readiness checks, workspace preparation, training support, and rollout coordination.";
     case "infrastructure":
       return "Includes hosting readiness, security hardening, backup validation, and access preparation.";
+    case "master_data_collection":
+      return "Includes collecting source data from departments, validating it, and tracking what is complete or still pending.";
     default:
       return "Includes unit testing, integration testing, and delivery preparation.";
   }
@@ -2509,7 +2582,13 @@ function formatActivityMessage(
 
 function formatSprintItemCode(item: TaskReportRow, area: SprintAreaDefinition): string {
   const prefix =
-    area.key === "facility" ? "FAC" : area.key === "infrastructure" ? "INF" : "DEV";
+    area.key === "facility"
+      ? "FAC"
+      : area.key === "infrastructure"
+        ? "INF"
+        : area.key === "master_data_collection"
+          ? "MDC"
+          : "DEV";
   const numericPart = item.taskCode.match(/\d+/g)?.at(-1);
 
   if (numericPart) {
@@ -2517,6 +2596,22 @@ function formatSprintItemCode(item: TaskReportRow, area: SprintAreaDefinition): 
   }
 
   return `${prefix}-${item.id.slice(-4).toUpperCase()}`;
+}
+
+function formatTaskModule(
+  item: Pick<TaskReportRow, "mainModule" | "subModule">
+): string | undefined {
+  if (!item.mainModule && !item.subModule) {
+    return undefined;
+  }
+
+  if (!item.mainModule) {
+    return item.subModule;
+  }
+
+  return item.subModule
+    ? `${item.mainModule} / ${item.subModule}`
+    : item.mainModule;
 }
 
 function formatPercent(value: number, total: number): string {

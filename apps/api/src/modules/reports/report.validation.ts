@@ -11,7 +11,8 @@ import {
 } from "../../shared/constants/task.constants";
 import {
   enumSchema,
-  mongoObjectIdSchema
+  mongoObjectIdSchema,
+  optionalTrimmedStringSchema
 } from "../../shared/validation/common-schemas";
 import { baseListQuerySchema } from "../../shared/validation/list-query-schemas";
 
@@ -29,6 +30,11 @@ const dateRangeIsOrdered = (
 
   return Date.parse(fromValue) <= Date.parse(toValue);
 };
+
+const taskModuleSchema = optionalTrimmedStringSchema.refine(
+  (value) => value === undefined || value.length <= 120,
+  "Module values must be 120 characters or fewer"
+);
 
 export const requestReportQuerySchema = baseListQuerySchema
   .extend({
@@ -60,6 +66,7 @@ export const taskReportQuerySchema = baseListQuerySchema
     createdBy: mongoObjectIdSchema.optional(),
     dueDateFrom: z.string().datetime().optional(),
     dueDateTo: z.string().datetime().optional(),
+    mainModule: taskModuleSchema,
     overdue: z
       .enum(["true", "false"])
       .transform((value) => value === "true")
@@ -67,7 +74,8 @@ export const taskReportQuerySchema = baseListQuerySchema
     priority: enumSchema(PRIORITIES).optional(),
     requestId: mongoObjectIdSchema.optional(),
     reviewedBy: mongoObjectIdSchema.optional(),
-    status: enumSchema(TASK_STATUSES).optional()
+    status: enumSchema(TASK_STATUSES).optional(),
+    subModule: taskModuleSchema
   })
   .refine((value) => dateRangeIsOrdered(value, "dueDateFrom", "dueDateTo"), {
     message: "`dueDateFrom` must be before or equal to `dueDateTo`",

@@ -84,6 +84,7 @@ export type AuditLogAction =
   | "change_status"
   | "comment"
   | "create"
+  | "delete"
   | "login_failed"
   | "login_succeeded"
   | "logout"
@@ -125,7 +126,7 @@ export type RoleRecord = {
   displayName: string;
   id: string;
   isSystem: boolean;
-  name: "employee" | "it_manager" | "super_admin" | "supervisor";
+  name: "employee" | "it_manager" | "management_committee" | "super_admin" | "supervisor";
   updatedAt?: string;
 };
 
@@ -216,6 +217,7 @@ export type DashboardSummary = {
     averageProgress: number;
     blocked: number;
     byCategory: DashboardCountByValue[];
+    byMainModule: DashboardCountByValue[];
     byPriority: DashboardCountByValue[];
     byStatus: DashboardCountByValue[];
     completedThisWeek: number;
@@ -247,11 +249,14 @@ export type DashboardFocusItem = {
 export type DashboardWorkQueueItem = {
   assignees: DashboardUserReference[];
   assignedTo?: DashboardUserReference;
+  category: TaskCategory;
   dueDate?: string;
   id: string;
+  mainModule?: string;
   priority: string;
   progress: number;
   status: string;
+  subModule?: string;
   taskCode: string;
   title: string;
 };
@@ -289,6 +294,7 @@ export type TaskCategory =
 export type TaskPriority = "high" | "low" | "medium" | "urgent";
 
 export type TaskStatus =
+  | "assigned"
   | "blocked"
   | "cancelled"
   | "completed"
@@ -306,6 +312,7 @@ export type TaskReportRow = {
   dueDate?: string;
   id: string;
   lastProgressUpdateAt?: string;
+  mainModule?: string;
   priority: string;
   progress: number;
   request?: {
@@ -316,6 +323,7 @@ export type TaskReportRow = {
   reviewedBy?: DashboardUserReference;
   startDate?: string;
   status: TaskStatus;
+  subModule?: string;
   taskCode: string;
   title: string;
 };
@@ -331,12 +339,14 @@ export type TaskRecord = {
   dueDate?: string;
   id: string;
   lastProgressUpdateAt?: string;
+  mainModule?: string;
   priority: TaskPriority;
   progress: number;
   requestId?: string;
   reviewedBy?: string;
   startDate?: string;
   status: TaskStatus;
+  subModule?: string;
   taskCode: string;
   title: string;
   updatedAt?: string;
@@ -361,7 +371,11 @@ export type SprintStatus =
   | "in_progress"
   | "planned";
 
-export type SprintAreaKey = "development" | "facility" | "infrastructure";
+export type SprintAreaKey =
+  | "development"
+  | "facility"
+  | "infrastructure"
+  | "master_data_collection";
 
 export type SprintRecord = {
   active: boolean;
@@ -405,8 +419,18 @@ export type ProjectProgressRecord = {
   key: "overall";
   note?: string;
   percentage: number;
+  timelineStages: ProjectProgressTimelineStage[];
   updatedAt?: string;
   updatedBy?: DashboardUserReference;
+};
+
+export type ProjectProgressTimelineStageStatus = "active" | "done" | "future";
+
+export type ProjectProgressTimelineStage = {
+  date: string;
+  id: string;
+  label: string;
+  status: ProjectProgressTimelineStageStatus;
 };
 
 export type ProjectProgressHistoryRecord = {
@@ -420,6 +444,7 @@ export type ProjectProgressHistoryRecord = {
 export type UpdateProjectProgressPayload = {
   note?: string;
   percentage?: number;
+  timelineStages?: ProjectProgressTimelineStage[];
 };
 
 export type DashboardRecentActivityItem = {
@@ -489,7 +514,9 @@ export type UserListParams = ListParams & {
 export type TaskReportParams = ListParams & {
   assignedTo?: string;
   category?: TaskCategory;
+  mainModule?: string;
   status?: TaskStatus;
+  subModule?: string;
 };
 
 export type AuditLogListParams = ListParams & {
@@ -507,8 +534,10 @@ export type CreateSprintItemPayload = {
   category?: TaskCategory;
   description?: string;
   dueDate?: string;
+  mainModule?: string;
   priority?: TaskPriority;
   startDate?: string;
+  subModule?: string;
   title: string;
 };
 
@@ -516,8 +545,10 @@ export type UpdateSprintItemPayload = {
   category?: TaskCategory;
   description?: string;
   dueDate?: string | null;
+  mainModule?: string;
   priority?: TaskPriority;
   startDate?: string | null;
+  subModule?: string;
   title?: string;
 };
 
@@ -539,6 +570,11 @@ export type ChangeTaskStatusPayload = {
 
 type TaskMutationResponse = ApiSuccess<{
   task: TaskRecord;
+}>;
+
+type DeleteTaskResponse = ApiSuccess<{
+  deletedTask: TaskRecord;
+  deletedTaskUpdateCount: number;
 }>;
 
 export type SprintListParams = ListParams & {
@@ -797,23 +833,26 @@ async function preloadAppData(
 
 function buildPreloadPaths(session: Session): string[] {
   const isEmployee = session.roleCode === "employee";
+  const isManagementCommittee = session.roleCode === "management_committee";
   const paths = new Set<string>();
 
-  paths.add(
-    `/api/roles${buildQueryString({
-      limit: 100,
-      sortBy: "displayName",
-      sortOrder: "asc"
-    })}`
-  );
-  paths.add(
-    `/api/users${buildQueryString({
-      limit: 100,
-      sortBy: "fullName",
-      sortOrder: "asc",
-      status: "active"
-    })}`
-  );
+  if (!isManagementCommittee) {
+    paths.add(
+      `/api/roles${buildQueryString({
+        limit: 100,
+        sortBy: "displayName",
+        sortOrder: "asc"
+      })}`
+    );
+    paths.add(
+      `/api/users${buildQueryString({
+        limit: 100,
+        sortBy: "fullName",
+        sortOrder: "asc",
+        status: "active"
+      })}`
+    );
+  }
   paths.add(
     `/api/reports/tasks${buildQueryString({
       limit: 100,
@@ -829,8 +868,11 @@ function buildPreloadPaths(session: Session): string[] {
     })}`
   );
 
-  if (!isEmployee) {
+  if (!isEmployee && !isManagementCommittee) {
     paths.add("/api/dashboard/overview");
+  }
+
+  if (!isEmployee) {
     paths.add("/api/project-progress");
   } else {
     paths.add(
@@ -1043,11 +1085,13 @@ export const api = {
         assignedTo: params.assignedTo,
         category: params.category,
         limit: params.limit,
+        mainModule: params.mainModule,
         page: params.page,
         search: params.search,
         sortBy: params.sortBy,
         sortOrder: params.sortOrder,
-        status: params.status
+        status: params.status,
+        subModule: params.subModule
       })}`
     );
 
@@ -1127,6 +1171,14 @@ export const api = {
     });
 
     return response.data.task;
+  },
+
+  async deleteSprintItem(taskId: string): Promise<TaskRecord> {
+    const response = await request<DeleteTaskResponse>(`/api/tasks/${taskId}`, {
+      method: "DELETE"
+    });
+
+    return response.data.deletedTask;
   },
 
   async getSprints(params: SprintListParams = {}): Promise<PaginatedResult<SprintRecord>> {

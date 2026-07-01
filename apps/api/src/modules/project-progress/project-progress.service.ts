@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { Types } from "mongoose";
 
 import { persistAuditLog } from "../../shared/audit/audit-log-recorder";
@@ -8,9 +10,11 @@ import { isDuplicateKeyError } from "../../shared/database";
 import { AuditLogModel } from "../audit-logs/audit-log.model";
 import { UserModel, type UserDocument } from "../users/user.model";
 import {
+  defaultProjectProgressTimelineStages,
   OVERALL_PROJECT_PROGRESS_KEY,
   ProjectProgressModel,
-  type ProjectProgressDocument
+  type ProjectProgressDocument,
+  type ProjectProgressTimelineStage
 } from "./project-progress.model";
 import {
   serializeProjectProgress,
@@ -60,6 +64,10 @@ export async function updateProjectProgress(
     projectProgress.note = body.note;
   } else if (Object.prototype.hasOwnProperty.call(body, "note")) {
     projectProgress.set("note", undefined);
+  }
+
+  if (body.timelineStages !== undefined) {
+    projectProgress.timelineStages = normalizeTimelineStages(body.timelineStages);
   }
 
   projectProgress.updatedBy = new Types.ObjectId(context.actor.id);
@@ -159,7 +167,8 @@ async function getOrCreateProjectProgress(): Promise<ProjectProgressDocument> {
   try {
     return await ProjectProgressModel.create({
       key: OVERALL_PROJECT_PROGRESS_KEY,
-      percentage: 0
+      percentage: 0,
+      timelineStages: defaultProjectProgressTimelineStages.map((stage) => ({ ...stage }))
     });
   } catch (error) {
     if (isDuplicateKeyError(error)) {
@@ -174,6 +183,17 @@ async function getOrCreateProjectProgress(): Promise<ProjectProgressDocument> {
 
     throw error;
   }
+}
+
+function normalizeTimelineStages(
+  timelineStages: UpdateProjectProgressBody["timelineStages"]
+): ProjectProgressTimelineStage[] {
+  return (timelineStages ?? []).map((stage) => ({
+    date: stage.date,
+    id: stage.id ?? randomUUID(),
+    label: stage.label,
+    status: stage.status
+  }));
 }
 
 async function loadUserReference(

@@ -1,14 +1,20 @@
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Calculator,
+  Check,
+  CalendarClock,
   CalendarDays,
   Gauge,
   History,
   Info,
   PencilLine,
+  Plus,
   Save,
   ShieldCheck,
+  Trash2,
   UserRound
 } from "lucide-react";
 import {
@@ -21,7 +27,13 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { api, type ProjectProgressRecord, type Session } from "../../api/client";
+import {
+  api,
+  type ProjectProgressRecord,
+  type ProjectProgressTimelineStage,
+  type ProjectProgressTimelineStageStatus,
+  type Session
+} from "../../api/client";
 import { useI18n } from "../../i18n";
 import type { AppLanguage } from "../../i18n/locale";
 
@@ -42,6 +54,14 @@ type ProjectProgressHistoryItem = {
   updatedBy: string;
 };
 
+const defaultTimelineStages: ProjectProgressTimelineStage[] = [
+  { date: "2026-01-10", id: "initiation", label: "Initiation", status: "done" },
+  { date: "2026-02-20", id: "planning", label: "Planning", status: "done" },
+  { date: "2026-05-15", id: "execution", label: "Execution", status: "active" },
+  { date: "2026-08-10", id: "testing", label: "Testing", status: "future" },
+  { date: "2026-10-30", id: "go-live", label: "Go-Live", status: "future" }
+];
+
 function ProjectProgressContentView({
   refreshSignal = 0,
   session
@@ -52,9 +72,13 @@ function ProjectProgressContentView({
   const { language } = useI18n();
   const navigate = useNavigate();
   const text = copy[language];
+  const timelineText = timelineCopy[language];
   const [state, setState] = useState<ProjectProgressState>({ status: "loading" });
   const [percentage, setPercentage] = useState(0);
   const [note, setNote] = useState("");
+  const [timelineStages, setTimelineStages] = useState<ProjectProgressTimelineStage[]>(
+    defaultTimelineStages
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -77,6 +101,7 @@ function ProjectProgressContentView({
         setState({ history, projectProgress, status: "ready" });
         setPercentage(projectProgress.percentage);
         setNote(projectProgress.note ?? "");
+        setTimelineStages(resolveTimelineStages(projectProgress));
       })
       .catch((error: unknown) => {
         if (!isMounted) {
@@ -106,21 +131,84 @@ function ProjectProgressContentView({
     setSaveSuccess("");
 
     try {
+      const nextTimelineStages = normalizeTimelineStages(timelineStages);
+
+      if (nextTimelineStages.length === 0) {
+        setSaveError(timelineText.timelineRequired);
+        return;
+      }
+
       const projectProgress = await api.updateProjectProgress({
         note,
-        percentage
+        percentage,
+        timelineStages: nextTimelineStages
       });
       const history = buildProjectProgressHistory(projectProgress, text.notRecorded);
 
       setState({ history, projectProgress, status: "ready" });
       setPercentage(projectProgress.percentage);
       setNote(projectProgress.note ?? "");
+      setTimelineStages(resolveTimelineStages(projectProgress));
       setSaveSuccess(text.saved);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : text.saveError);
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function updateTimelineStage(
+    id: string,
+    field: keyof Omit<ProjectProgressTimelineStage, "id">,
+    value: string
+  ) {
+    setTimelineStages((currentStages) =>
+      currentStages.map((stage) =>
+        stage.id === id
+          ? {
+              ...stage,
+              [field]:
+                field === "status" ? (value as ProjectProgressTimelineStageStatus) : value
+            }
+          : stage
+      )
+    );
+    setSaveSuccess("");
+  }
+
+  function addTimelineStage() {
+    setTimelineStages((currentStages) => [...currentStages, createTimelineStage()]);
+    setSaveSuccess("");
+  }
+
+  function removeTimelineStage(id: string) {
+    setTimelineStages((currentStages) =>
+      currentStages.length <= 1 ? currentStages : currentStages.filter((stage) => stage.id !== id)
+    );
+    setSaveSuccess("");
+  }
+
+  function moveTimelineStage(id: string, direction: -1 | 1) {
+    setTimelineStages((currentStages) => {
+      const currentIndex = currentStages.findIndex((stage) => stage.id === id);
+      const nextIndex = currentIndex + direction;
+
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= currentStages.length) {
+        return currentStages;
+      }
+
+      const nextStages = [...currentStages];
+      const [stage] = nextStages.splice(currentIndex, 1);
+
+      if (!stage) {
+        return currentStages;
+      }
+
+      nextStages.splice(nextIndex, 0, stage);
+
+      return nextStages;
+    });
+    setSaveSuccess("");
   }
 
   const currentProgress = state.status === "ready" ? state.projectProgress : undefined;
@@ -265,6 +353,17 @@ function ProjectProgressContentView({
             </aside>
           </section>
 
+          <ProjectProgressTimelineEditor
+            canEdit={canEdit}
+            disabled={!canEdit || state.status === "loading"}
+            onAdd={addTimelineStage}
+            onMove={moveTimelineStage}
+            onRemove={removeTimelineStage}
+            onUpdate={updateTimelineStage}
+            stages={timelineStages}
+            text={timelineText}
+          />
+
           <section className="project-progress-history-card">
             <header>
               <History size={18} strokeWidth={2.25} aria-hidden="true" />
@@ -343,6 +442,122 @@ function ProjectProgressSummaryItem({
   );
 }
 
+function ProjectProgressTimelineEditor({
+  canEdit,
+  disabled,
+  onAdd,
+  onMove,
+  onRemove,
+  onUpdate,
+  stages,
+  text
+}: {
+  canEdit: boolean;
+  disabled: boolean;
+  onAdd: () => void;
+  onMove: (id: string, direction: -1 | 1) => void;
+  onRemove: (id: string) => void;
+  onUpdate: (
+    id: string,
+    field: keyof Omit<ProjectProgressTimelineStage, "id">,
+    value: string
+  ) => void;
+  stages: ProjectProgressTimelineStage[];
+  text: (typeof timelineCopy)["en"];
+}) {
+  return (
+    <section className="project-progress-timeline-panel">
+      <header>
+        <span>
+          <CalendarClock size={18} strokeWidth={2.25} aria-hidden="true" />
+        </span>
+        <div>
+          <h3>{text.timelineTitle}</h3>
+          <p>{text.timelineSubtitle}</p>
+        </div>
+        <button disabled={!canEdit || stages.length >= 10} onClick={onAdd} type="button">
+          <Plus size={16} strokeWidth={2.35} aria-hidden="true" />
+          {text.timelineAdd}
+        </button>
+      </header>
+
+      <div className="project-progress-timeline-stage-list">
+        {stages.map((stage, index) => (
+          <article className="project-progress-timeline-stage-row" key={stage.id}>
+            <span className={`project-progress-timeline-dot is-${stage.status}`}>
+              {stage.status === "done" ? (
+                <Check size={15} strokeWidth={3} aria-hidden="true" />
+              ) : (
+                index + 1
+              )}
+            </span>
+
+            <label>
+              <span>{text.timelineStageLabel}</span>
+              <input
+                disabled={disabled}
+                maxLength={80}
+                onChange={(event) => onUpdate(stage.id, "label", event.target.value)}
+                value={stage.label}
+              />
+            </label>
+
+            <label>
+              <span>{text.timelineDateLabel}</span>
+              <input
+                disabled={disabled}
+                onChange={(event) => onUpdate(stage.id, "date", event.target.value)}
+                type="date"
+                value={stage.date}
+              />
+            </label>
+
+            <label>
+              <span>{text.timelineStatusLabel}</span>
+              <select
+                disabled={disabled}
+                onChange={(event) => onUpdate(stage.id, "status", event.target.value)}
+                value={stage.status}
+              >
+                <option value="done">{text.timelineDone}</option>
+                <option value="active">{text.timelineActive}</option>
+                <option value="future">{text.timelineFuture}</option>
+              </select>
+            </label>
+
+            <div className="project-progress-timeline-actions">
+              <button
+                aria-label={text.timelineMoveUp}
+                disabled={disabled || index === 0}
+                onClick={() => onMove(stage.id, -1)}
+                type="button"
+              >
+                <ArrowUp size={15} strokeWidth={2.3} aria-hidden="true" />
+              </button>
+              <button
+                aria-label={text.timelineMoveDown}
+                disabled={disabled || index === stages.length - 1}
+                onClick={() => onMove(stage.id, 1)}
+                type="button"
+              >
+                <ArrowDown size={15} strokeWidth={2.3} aria-hidden="true" />
+              </button>
+              <button
+                aria-label={text.timelineRemove}
+                disabled={disabled || stages.length <= 1}
+                onClick={() => onRemove(stage.id)}
+                type="button"
+              >
+                <Trash2 size={15} strokeWidth={2.3} aria-hidden="true" />
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function buildProjectProgressHistory(
   projectProgress: ProjectProgressRecord,
   notRecorded: string
@@ -372,6 +587,37 @@ function buildHistoryItemFromProgress(
     note: projectProgress.note ?? notRecorded,
     percentage: projectProgress.percentage,
     updatedBy: projectProgress.updatedBy?.fullName ?? notRecorded
+  };
+}
+
+function resolveTimelineStages(projectProgress: ProjectProgressRecord): ProjectProgressTimelineStage[] {
+  return projectProgress.timelineStages.length > 0
+    ? projectProgress.timelineStages
+    : defaultTimelineStages;
+}
+
+function normalizeTimelineStages(
+  stages: ProjectProgressTimelineStage[]
+): ProjectProgressTimelineStage[] {
+  return stages
+    .map((stage) => ({
+      date: stage.date.trim(),
+      id: stage.id,
+      label: stage.label.trim(),
+      status: stage.status
+    }))
+    .filter((stage) => stage.label.length > 0 && stage.date.length > 0);
+}
+
+function createTimelineStage(): ProjectProgressTimelineStage {
+  const date = new Date().toISOString().slice(0, 10);
+  const id = `stage-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    date,
+    id,
+    label: "New Stage",
+    status: "future"
   };
 }
 
@@ -413,6 +659,39 @@ function formatDateTime(
     year: "numeric"
   }).format(date);
 }
+
+const timelineCopy = {
+  ar: {
+    timelineActive: "Active",
+    timelineAdd: "Add stage",
+    timelineDateLabel: "Date",
+    timelineDone: "Done",
+    timelineFuture: "Future",
+    timelineMoveDown: "Move stage down",
+    timelineMoveUp: "Move stage up",
+    timelineRemove: "Remove stage",
+    timelineRequired: "At least one stage with a name and date is required.",
+    timelineStageLabel: "Stage",
+    timelineStatusLabel: "State",
+    timelineSubtitle: "Customize the stages and dates shown on the management dashboard progress line.",
+    timelineTitle: "Project Timeline"
+  },
+  en: {
+    timelineActive: "Active",
+    timelineAdd: "Add stage",
+    timelineDateLabel: "Date",
+    timelineDone: "Done",
+    timelineFuture: "Future",
+    timelineMoveDown: "Move stage down",
+    timelineMoveUp: "Move stage up",
+    timelineRemove: "Remove stage",
+    timelineRequired: "At least one stage with a name and date is required.",
+    timelineStageLabel: "Stage",
+    timelineStatusLabel: "State",
+    timelineSubtitle: "Customize the stages and dates shown on the management dashboard progress line.",
+    timelineTitle: "Project Timeline"
+  }
+} as const;
 
 const copy = {
   ar: {

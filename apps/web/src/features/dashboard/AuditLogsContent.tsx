@@ -67,6 +67,7 @@ const defaultFilters: AuditFilters = {
 
 const auditActions: AuditLogAction[] = [
   "create",
+  "delete",
   "update",
   "change_status",
   "assign",
@@ -997,6 +998,8 @@ function formatActionMessage(
       return `Added comment to ${formatEntityType(log.entityType)} "${targetName}"`;
     case "create":
       return `Created ${formatEntityType(log.entityType)} "${targetName}"`;
+    case "delete":
+      return `Deleted ${formatEntityType(log.entityType)} "${targetName}"`;
     case "login_failed":
       return "Failed login attempt detected";
     case "login_succeeded":
@@ -1409,17 +1412,18 @@ function formatKnownAuditValue(field: string, value: string): string {
     urgent: "Urgent"
   };
   const sprintAreaLabels: Record<string, string> = {
-    access: "Development Sprint",
-    development: "Development Sprint",
-    facility: "Facility Sprint",
-    hardware: "Facility Sprint",
-    infrastructure: "Infrastructure Sprint",
-    maintenance: "Facility Sprint",
-    network: "Infrastructure Sprint",
-    other: "Infrastructure Sprint",
-    server: "Infrastructure Sprint",
-    software: "Development Sprint",
-    support: "Facility Sprint"
+    access: "Development",
+    development: "Development",
+    facility: "Facilities",
+    hardware: "Facilities",
+    infrastructure: "Infrastructure",
+    master_data_collection: "Master Data Collection",
+    maintenance: "Facilities",
+    network: "Infrastructure",
+    other: "Master Data Collection",
+    server: "Infrastructure",
+    software: "Development",
+    support: "Facilities"
   };
 
   if (field.toLowerCase().includes("status")) {

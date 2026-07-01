@@ -30,6 +30,12 @@ export const defaultRoleSeeds: readonly DefaultRoleSeed[] = [
     name: "supervisor"
   },
   {
+    description: "Read-only management committee account for ERP project progress visibility.",
+    displayName: ROLE_DISPLAY_NAMES.management_committee,
+    isSystem: true,
+    name: "management_committee"
+  },
+  {
     description: "Department employee with access to assigned work and permitted request context.",
     displayName: ROLE_DISPLAY_NAMES.employee,
     isSystem: true,

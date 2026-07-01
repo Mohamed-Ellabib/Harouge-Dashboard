@@ -8,6 +8,8 @@ import {
   useNavigate
 } from "react-router-dom";
 import {
+  BarChart3,
+  Bell,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -17,14 +19,15 @@ import {
   ClipboardList,
   FileText,
   House,
+  LayoutGrid,
   LogOut,
+  Moon,
   Plus,
   ScrollText,
   Search,
-  Settings,
   ShieldCheck,
   SquareCheckBig,
-  UserCog,
+  Sun,
   UserPlus,
   Users,
   type LucideIcon
@@ -44,6 +47,8 @@ import {
 } from "../users/UsersContent";
 import { AuditLogsContent } from "./AuditLogsContent";
 import { DashboardContent } from "./DashboardContent";
+import { ManagementDashboardContent } from "./ManagementDashboardContent";
+import { ModulesContent } from "./ModulesContent";
 import { MyTasksContent } from "./MyTasksContent";
 import { ProjectProgressContent } from "./ProjectProgressContent";
 import { SprintAreaContent } from "./SprintAreaContent";
@@ -62,6 +67,8 @@ type DashboardShellProps = {
 type ShellPage =
   | "auditLogs"
   | "dashboard"
+  | "managementDashboard"
+  | "modules"
   | "myTasks"
   | "projectProgress"
   | "reports"
@@ -81,6 +88,9 @@ type PageChrome = {
 };
 
 type QuickActionModal = "addSprintItem" | "assignSprintItem" | "createUser" | null;
+type DashboardTheme = "dark" | "light";
+
+const dashboardThemeStorageKey = "itdcc.dashboardTheme";
 
 const adminNavigationItems: Array<{
   icon: LucideIcon;
@@ -89,23 +99,35 @@ const adminNavigationItems: Array<{
   path?: string;
 }> = [
   { icon: House, labelKey: "dashboard.navigation.dashboard", page: "dashboard", path: "/dashboard" },
+  {
+    icon: BarChart3,
+    labelKey: "dashboard.navigation.managementDashboard",
+    page: "managementDashboard",
+    path: "/management-dashboard"
+  },
   { icon: ClipboardList, labelKey: "dashboard.navigation.sprints", page: "sprints", path: "/sprints" },
   { icon: ClipboardCheck, labelKey: "dashboard.navigation.sprintItems", page: "sprintItems", path: "/sprint-items" },
+  { icon: LayoutGrid, labelKey: "dashboard.navigation.modules", page: "modules", path: "/modules" },
   { icon: Users, labelKey: "dashboard.navigation.team", page: "users", path: "/users" },
-  { icon: UserCog, labelKey: "dashboard.navigation.roles" },
-  { icon: ShieldCheck, labelKey: "dashboard.navigation.permissions" },
-  { icon: FileText, labelKey: "dashboard.navigation.auditLogs", page: "auditLogs", path: "/audit-logs" },
-  { icon: ScrollText, labelKey: "dashboard.navigation.reports", page: "reports", path: "/reports" },
-  { icon: Settings, labelKey: "dashboard.navigation.settings", page: "settings", path: "/settings" }
+  { icon: FileText, labelKey: "dashboard.navigation.auditLogs", page: "auditLogs", path: "/audit-logs" }
 ];
 
 const employeeNavigationItems: typeof adminNavigationItems = [
   { icon: SquareCheckBig, labelKey: "dashboard.navigation.myTasks", page: "myTasks", path: "/my-tasks" },
   { icon: ClipboardList, labelKey: "dashboard.navigation.sprints", page: "sprints", path: "/sprints" },
   { icon: ClipboardCheck, labelKey: "dashboard.navigation.sprintItems", page: "sprintItems", path: "/sprint-items" },
-  { icon: Users, labelKey: "dashboard.navigation.team", page: "users", path: "/users" },
-  { icon: ScrollText, labelKey: "dashboard.navigation.reports", page: "reports", path: "/reports" },
-  { icon: Settings, labelKey: "dashboard.navigation.settings", page: "settings", path: "/settings" }
+  { icon: Users, labelKey: "dashboard.navigation.team", page: "users", path: "/users" }
+];
+
+const managementNavigationItems: typeof adminNavigationItems = [
+  {
+    icon: House,
+    labelKey: "dashboard.navigation.dashboard",
+    page: "managementDashboard",
+    path: "/management-dashboard"
+  },
+  { icon: BarChart3, labelKey: "dashboard.navigation.sprints", page: "sprints", path: "/sprints" },
+  { icon: Users, labelKey: "dashboard.navigation.departments", page: "sprintItems", path: "/sprint-items" }
 ];
 
 const quickActions = [
@@ -136,14 +158,25 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
   const { direction, language, setLanguage, t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [quickActionModal, setQuickActionModal] = useState<QuickActionModal>(null);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [dataRefreshVersion, setDataRefreshVersion] = useState(api.getDataVersion());
+  const [theme, setTheme] = useState<DashboardTheme>("dark");
   const userMenuRef = useRef<HTMLDivElement>(null);
   const activePage = resolveActivePage(location.pathname);
+  const usesModulesPageTreatment =
+    activePage === "dashboard" ||
+    activePage === "sprints" ||
+    activePage === "sprintItems" ||
+    activePage === "users" ||
+    activePage === "reports" ||
+    activePage === "auditLogs";
+  const isManagementDashboardPage = activePage === "managementDashboard";
+  const isModulesPage = activePage === "modules";
+  const isShellSidebarCollapsed = isSidebarCollapsed;
   const pageChrome = resolvePageChrome(
     activePage,
     language,
@@ -165,12 +198,28 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
 
   const displayName = resolveDisplayName(session);
   const avatarInitials = resolveInitials(displayName, session.email);
+  const shellDisplayName = isManagementDashboardPage ? "Management Committee" : displayName;
+  const shellAvatarInitials = isManagementDashboardPage ? "MC" : avatarInitials;
+  const shellRoleLabel = isManagementDashboardPage
+    ? "Committee Member"
+    : resolveRoleLabel(session.roleCode, t);
   const CollapseIcon = direction === "rtl" ? ChevronRight : ChevronLeft;
   const isEmployee = session.roleCode === "employee";
-  const navigationItems = isEmployee ? employeeNavigationItems : adminNavigationItems;
+  const isManagementCommittee = session.roleCode === "management_committee";
+  const isManagementRole = session.roleCode === "it_manager" || session.roleCode === "supervisor";
+  const shouldRenderSidebar = !isManagementCommittee;
+  const navigationItems = isManagementDashboardPage
+    ? managementNavigationItems
+    : isEmployee
+      ? employeeNavigationItems
+      : isManagementRole
+        ? managementNavigationItems
+        : adminNavigationItems;
   const visibleQuickActions = quickActions.filter((action) =>
     session.permissionCodes.includes(action.permission)
   );
+  const isDarkMode = theme === "dark";
+  const ThemeIcon = isDarkMode ? Sun : Moon;
 
   useEffect(() => {
     if (!isUserMenuOpen) {
@@ -206,6 +255,11 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
     });
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(dashboardThemeStorageKey, theme);
+  }, [theme]);
+
   async function handleSignOut() {
     if (isSigningOut) {
       return;
@@ -231,10 +285,16 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
 
   return (
     <div
-      className={`dashboard-shell${isSidebarCollapsed ? " is-sidebar-collapsed" : ""}${
+      className={`dashboard-shell${isShellSidebarCollapsed ? " is-sidebar-collapsed" : ""}${
         activePage === "projectProgress" ? " is-project-progress-page" : ""
+      }${usesModulesPageTreatment ? " is-admin-dashboard-page" : ""
+      }${isManagementDashboardPage ? " is-management-dashboard-page" : ""
+      }${isModulesPage ? " is-modules-page" : ""
+      }${!shouldRenderSidebar ? " is-sidebar-hidden" : ""
       }`}
+      data-theme={theme}
     >
+      {shouldRenderSidebar ? (
       <aside className="dashboard-sidebar" aria-label={t("dashboard.aria.primaryNavigation")}>
         <div className="dashboard-sidebar-top">
           <img
@@ -243,12 +303,12 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
             alt="Harouge Operations"
           />
           <button
-            aria-expanded={!isSidebarCollapsed}
+            aria-expanded={!isShellSidebarCollapsed}
             className="dashboard-collapse-button"
             onClick={() => setIsSidebarCollapsed((current) => !current)}
             type="button"
             aria-label={
-              isSidebarCollapsed
+              isShellSidebarCollapsed
                 ? t("dashboard.userMenu.expandSidebar")
                 : t("dashboard.userMenu.collapseSidebar")
             }
@@ -284,22 +344,41 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           })}
         </nav>
 
-        <div className="dashboard-sidebar-footer">
-          <div className="dashboard-footer-rule" />
-          <div className="dashboard-internal">
-            <ShieldCheck size={20} strokeWidth={2.1} />
-            <strong>{t("dashboard.footer.internalUseOnly")}</strong>
+        {isManagementDashboardPage ? (
+          <div className="dashboard-sidebar-footer dashboard-management-profile">
+            <span className="dashboard-avatar">MC</span>
+            <div>
+              <strong>Management Committee</strong>
+              <p>Committee Member</p>
+            </div>
+            <ChevronDown size={15} strokeWidth={2.2} aria-hidden="true" />
           </div>
-          <p>
-            {t("dashboard.footer.company")}
-            <br />
-            {t("dashboard.footer.copyright")}
-          </p>
-        </div>
+        ) : (
+          <div className="dashboard-sidebar-footer">
+            <div className="dashboard-footer-rule" />
+            <div className="dashboard-internal">
+              <ShieldCheck size={20} strokeWidth={2.1} />
+              <strong>{t("dashboard.footer.internalUseOnly")}</strong>
+            </div>
+            <p>
+              {t("dashboard.footer.company")}
+              <br />
+              {t("dashboard.footer.copyright")}
+            </p>
+          </div>
+        )}
       </aside>
+      ) : null}
 
       <main className="dashboard-main">
         <header className="dashboard-topbar">
+          {isManagementDashboardPage ? (
+            <div className="dashboard-management-header-brand" aria-hidden="true">
+              <img src="/harouge-logo.svg" alt="" />
+              <span />
+            </div>
+          ) : null}
+
           <section className="dashboard-title-block" aria-label={t("dashboard.aria.currentPage")}>
             {breadcrumb.length > 0 ? (
               <nav className="dashboard-breadcrumb" aria-label="Breadcrumb">
@@ -345,6 +424,13 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
             </div>
           </section>
 
+          {isModulesPage ? (
+            <button className="dashboard-notification-button" type="button" aria-label="Notifications">
+              <Bell size={30} strokeWidth={2.15} aria-hidden="true" />
+              <span>3</span>
+            </button>
+          ) : null}
+
           <div className="dashboard-user-menu" ref={userMenuRef}>
             <button
               aria-controls="dashboard-user-menu"
@@ -354,10 +440,10 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
               onClick={() => setIsUserMenuOpen((current) => !current)}
               type="button"
             >
-              <span className="dashboard-avatar">{avatarInitials}</span>
+              <span className="dashboard-avatar">{shellAvatarInitials}</span>
               <span className="dashboard-user-meta">
-                <strong>{displayName}</strong>
-                <span>{resolveRoleLabel(session.roleCode, t)}</span>
+                <strong>{shellDisplayName}</strong>
+                <span>{shellRoleLabel}</span>
               </span>
               <ChevronDown
                 className="dashboard-user-chevron"
@@ -372,31 +458,42 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
                   <strong>{displayName}</strong>
                   <span>{session.email}</span>
                 </div>
-                <div
-                  className="dashboard-menu-language"
-                  role="group"
-                  aria-label={t("language.appLanguage")}
-                >
-                  <span>{t("dashboard.userMenu.language")}</span>
-                  <div className="dashboard-language-switch" dir="ltr">
-                    <button
-                      aria-label={t("language.english")}
-                      aria-pressed={language === "en"}
-                      onClick={() => setLanguage("en")}
-                      type="button"
-                    >
-                      EN
-                    </button>
-                    <button
-                      aria-label={t("language.arabic")}
-                      aria-pressed={language === "ar"}
-                      onClick={() => setLanguage("ar")}
-                      type="button"
-                    >
-                      AR
-                    </button>
+                {!isManagementCommittee ? (
+                  <div
+                    className="dashboard-menu-language"
+                    role="group"
+                    aria-label={t("language.appLanguage")}
+                  >
+                    <span>{t("dashboard.userMenu.language")}</span>
+                    <div className="dashboard-language-switch" dir="ltr">
+                      <button
+                        aria-label={t("language.english")}
+                        aria-pressed={language === "en"}
+                        onClick={() => setLanguage("en")}
+                        type="button"
+                      >
+                        EN
+                      </button>
+                      <button
+                        aria-label={t("language.arabic")}
+                        aria-pressed={language === "ar"}
+                        onClick={() => setLanguage("ar")}
+                        type="button"
+                      >
+                        AR
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : null}
+                <button
+                  className="dashboard-theme-toggle"
+                  onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+                  role="menuitem"
+                  type="button"
+                >
+                  <ThemeIcon size={17} strokeWidth={2.2} />
+                  <span>{isDarkMode ? "Light mode" : "Dark mode"}</span>
+                </button>
                 <button
                   className="dashboard-sign-out-button"
                   disabled={isSigningOut}
@@ -416,7 +513,9 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           </div>
         </header>
 
-        {activePage === "dashboard" ? (
+        {activePage === "managementDashboard" ? (
+          <ManagementDashboardContent refreshSignal={dataRefreshVersion} session={session} />
+        ) : activePage === "dashboard" ? (
           <>
             <section className="dashboard-hero" aria-label={t("dashboard.aria.currentPage")}>
               <div className="dashboard-welcome">
@@ -471,6 +570,8 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           )
         ) : activePage === "sprintItems" ? (
           <SprintItemsContent refreshSignal={dataRefreshVersion} session={session} />
+        ) : activePage === "modules" ? (
+          <ModulesContent refreshSignal={dataRefreshVersion} session={session} />
         ) : activePage === "reports" ? (
           <FuturePage
             message={
@@ -714,6 +815,10 @@ function buildVisibleTeamWorkload(users: UserRecord[], items: TaskReportRow[]) {
 }
 
 function resolveActivePage(pathname: string): ShellPage {
+  if (pathname === "/management-dashboard") {
+    return "managementDashboard";
+  }
+
   if (pathname === "/project-progress") {
     return "projectProgress";
   }
@@ -738,6 +843,10 @@ function resolveActivePage(pathname: string): ShellPage {
     return "sprintItems";
   }
 
+  if (pathname === "/modules") {
+    return "modules";
+  }
+
   if (pathname.startsWith("/sprints")) {
     return "sprints";
   }
@@ -752,6 +861,20 @@ function resolvePageChrome(
   pathname: string,
   roleCode: string
 ): PageChrome {
+  if (page === "managementDashboard") {
+    return language === "ar"
+      ? {
+          searchPlaceholder: "Search ERP progress, sprints, departments, or blockers...",
+          subtitle: "ERP Project Progress Overview",
+          title: "Management Dashboard"
+        }
+      : {
+          searchPlaceholder: "Search ERP progress, sprints, departments, or blockers...",
+          subtitle: "ERP Project Progress Overview",
+          title: "Management Dashboard"
+        };
+  }
+
   if (page === "myTasks") {
     return language === "ar"
       ? {
@@ -799,6 +922,17 @@ function resolvePageChrome(
           };
     }
 
+    const sprintDetailBreadcrumb =
+      roleCode === "management_committee"
+        ? [
+            { label: "Management Dashboard", path: "/management-dashboard" },
+            { label: t(area.labelKey) }
+          ]
+        : [
+            { label: t("dashboard.navigation.sprints"), path: "/sprints" },
+            { label: t(area.labelKey) }
+          ];
+
     return language === "ar"
       ? {
           searchPlaceholder: "ابحث في عناصر السبرنت...",
@@ -806,10 +940,7 @@ function resolvePageChrome(
           title: area ? t(area.labelKey) : t("dashboard.navigation.sprints")
         }
       : {
-          breadcrumb: [
-            { label: t("dashboard.navigation.sprints"), path: "/sprints" },
-            { label: t(area.labelKey) }
-          ],
+          breadcrumb: sprintDetailBreadcrumb,
           searchPlaceholder: "Search sprints by name, owner, or keywords...",
           subtitle: resolveSprintSubtitle(area.key),
           title: t(area.labelKey)
@@ -827,6 +958,20 @@ function resolvePageChrome(
           searchPlaceholder: "Search sprint items by title, ID, or keywords...",
           subtitle: "Manage and track all sprint items across the ERP program.",
           title: t("dashboard.navigation.sprintItems")
+        };
+  }
+
+  if (page === "modules") {
+    return language === "ar"
+      ? {
+          searchPlaceholder: "Search modules, departments, sub modules, or sprint items...",
+          subtitle: "Manage ERP departments and connected sprint item progress",
+          title: "Modules"
+        }
+      : {
+          searchPlaceholder: "Search modules, departments, sub modules, or sprint items...",
+          subtitle: "Manage ERP departments and connected sprint item progress",
+          title: "Modules"
         };
   }
 
@@ -913,6 +1058,8 @@ function resolveSprintSubtitle(areaKey: string): string {
       return "Track rooms, workstation readiness, training, rollout support, and facility delivery progress.";
     case "infrastructure":
       return "Track servers, network, hosting, backup, access, and security delivery progress.";
+    case "master_data_collection":
+      return "Track master data collection, validation, completion status, and remaining data gaps.";
     default:
       return "Track software modules, APIs, UI, integrations, testing, and delivery progress.";
   }
@@ -944,6 +1091,8 @@ function resolveRoleLabel(roleCode: string, t: (key: string) => string) {
       return t("dashboard.roles.superAdmin");
     case "it_manager":
       return t("dashboard.roles.itManager");
+    case "management_committee":
+      return t("dashboard.roles.managementCommittee");
     case "supervisor":
       return t("dashboard.roles.supervisor");
     case "employee":

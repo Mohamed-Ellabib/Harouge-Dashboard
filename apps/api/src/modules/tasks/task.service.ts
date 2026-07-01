@@ -3,12 +3,14 @@ import { Types } from "mongoose";
 import { persistAuditLog } from "../../shared/audit/audit-log-recorder";
 import type { AuditRequestContext } from "../../shared/audit/audit.types";
 import {
+  assertEnterpriseAdmin,
   assertCanMutateRequest,
   assertCanMutateTask,
   assertCanViewRequest,
   assertCanViewTask,
   buildRequestVisibilityFilter,
   buildTaskDirectVisibilityFilter,
+  hasProgramReadVisibility,
   isEnterpriseAdmin
 } from "../../shared/auth/access-policies";
 import type { AuthenticatedUserContext } from "../../shared/auth/auth-context";
@@ -60,12 +62,19 @@ export interface TaskUpdateListResult {
   pagination: PaginationMeta;
 }
 
+export interface DeleteTaskResult {
+  deletedTask: TaskDto;
+  deletedTaskUpdateCount: number;
+}
+
 const allowedTaskSortFields = [
   "taskCode",
   "title",
   "status",
   "priority",
   "category",
+  "mainModule",
+  "subModule",
   "dueDate",
   "lastProgressUpdateAt",
   "createdAt",
@@ -77,11 +86,12 @@ const allowedTaskUpdateSortFields = ["createdAt"] as const;
 const terminalTaskStatuses: readonly TaskStatus[] = ["completed", "cancelled"];
 
 const taskStatusTransitions: Record<TaskStatus, readonly TaskStatus[]> = {
-  blocked: ["in_progress", "waiting_review", "cancelled"],
+  assigned: ["in_progress", "blocked", "cancelled"],
+  blocked: ["assigned", "in_progress", "waiting_review", "cancelled"],
   cancelled: ["open", "in_progress"],
   completed: ["in_progress", "cancelled"],
   in_progress: ["blocked", "waiting_review", "completed", "cancelled"],
-  open: ["in_progress", "blocked", "cancelled"],
+  open: ["assigned", "in_progress", "blocked", "cancelled"],
   waiting_review: ["in_progress", "completed", "blocked", "cancelled"]
 };
 
@@ -144,11 +154,13 @@ export async function createTask(
           createdBy: new Types.ObjectId(actor.id),
           ...(body.description ? { description: body.description } : {}),
           ...(body.dueDate ? { dueDate: new Date(body.dueDate) } : {}),
+          ...(body.mainModule ? { mainModule: body.mainModule } : {}),
           priority: body.priority,
           progress: 0,
           ...(linkedRequest ? { requestId: linkedRequest._id } : {}),
           ...(body.startDate ? { startDate: new Date(body.startDate) } : {}),
           status: "open",
+          ...(body.subModule ? { subModule: body.subModule } : {}),
           taskCode: await generateTaskCode(),
           title: body.title
         });
@@ -204,6 +216,42 @@ export async function getTaskByIdForActor(
   return serializeTask(task);
 }
 
+export async function deleteTask(
+  id: string,
+  context: TaskActionContext
+): Promise<DeleteTaskResult> {
+  return runInTransaction(async () => {
+    const actor = getRequiredActor(context);
+    assertEnterpriseAdmin(actor, "Task deletion requires administrator access");
+
+    const task = await findTaskOrThrow(id);
+    const deletedTask = serializeTask(task);
+    const deletedTaskUpdates = await TaskUpdateModel.deleteMany({
+      taskId: task._id
+    });
+
+    await task.deleteOne();
+
+    await persistAuditLog({
+      action: "delete",
+      actorId: actor.id,
+      context: context.auditContext,
+      entityId: deletedTask.id,
+      entityType: "task",
+      newValue: {
+        deleted: true,
+        deletedTaskUpdateCount: deletedTaskUpdates.deletedCount ?? 0
+      },
+      oldValue: deletedTask
+    });
+
+    return {
+      deletedTask,
+      deletedTaskUpdateCount: deletedTaskUpdates.deletedCount ?? 0
+    };
+  });
+}
+
 export async function updateTask(
   id: string,
   body: UpdateTaskBody,
@@ -235,6 +283,8 @@ export async function updateTask(
       }
     }
 
+    applyOptionalStringUpdate(task, "mainModule", body, "mainModule");
+
     if (body.priority !== undefined) {
       task.priority = body.priority;
     }
@@ -250,6 +300,8 @@ export async function updateTask(
     if (body.title !== undefined) {
       task.title = body.title;
     }
+
+    applyOptionalStringUpdate(task, "subModule", body, "subModule");
 
     await task.save();
     const newValue = serializeTask(task);
@@ -385,10 +437,11 @@ export async function updateTaskProgress(
   context: TaskActionContext
 ): Promise<TaskDto> {
   return runInTransaction(async () => {
+    const actor = getRequiredActor(context);
     const task = await findTaskOrThrow(id);
     const linkedRequest = await findLinkedRequest(task);
-    assertCanMutateTask(task, context.actor, "progress", linkedRequest);
-    assertValidProgressUpdate(task, body.progress);
+    assertCanMutateTask(task, actor, "progress", linkedRequest);
+    assertValidProgressUpdate(task, body.progress, actor);
 
     const previousProgress = task.progress;
     const previousStatus = task.status;
@@ -397,18 +450,7 @@ export async function updateTaskProgress(
     task.progress = body.progress;
     task.lastProgressUpdateAt = new Date();
 
-    if (body.progress === 100 && task.status !== "cancelled") {
-      task.status = "completed";
-      task.completedAt = new Date();
-      task.reviewedBy = new Types.ObjectId(getRequiredActor(context).id);
-      task.set("blockedReason", undefined);
-    } else if (task.status === "open" && body.progress > 0) {
-      task.status = "in_progress";
-    }
-
-    if (task.status === "in_progress" && !task.startDate) {
-      task.startDate = new Date();
-    }
+    applyProgressDrivenStatus(task, body.progress, actor);
 
     if (
       previousProgress === task.progress &&
@@ -433,7 +475,7 @@ export async function updateTaskProgress(
 
     await persistAuditLog({
       action: "update",
-      actorId: context.actor?.id,
+      actorId: actor.id,
       context: context.auditContext,
       entityId: newValue.id,
       entityType: "task",
@@ -443,7 +485,7 @@ export async function updateTaskProgress(
 
     await persistAuditLog({
       action: "create",
-      actorId: context.actor?.id,
+      actorId: actor.id,
       context: context.auditContext,
       entityId: taskUpdate.id,
       entityType: "task_update",
@@ -523,12 +565,20 @@ function buildTaskFilter(query: TaskListQuery): Record<string, unknown> {
     filter.priority = query.priority;
   }
 
+  if (query.mainModule) {
+    filter.mainModule = query.mainModule;
+  }
+
   if (query.requestId) {
     filter.requestId = new Types.ObjectId(query.requestId);
   }
 
   if (query.status) {
     filter.status = query.status;
+  }
+
+  if (query.subModule) {
+    filter.subModule = query.subModule;
   }
 
   if (query.dateFrom || query.dateTo) {
@@ -570,7 +620,9 @@ function buildTaskFilter(query: TaskListQuery): Record<string, unknown> {
         { taskCode: regex },
         { title: regex },
         { description: regex },
-        { blockedReason: regex }
+        { blockedReason: regex },
+        { mainModule: regex },
+        { subModule: regex }
       ]
     });
   }
@@ -581,7 +633,7 @@ function buildTaskFilter(query: TaskListQuery): Record<string, unknown> {
 async function buildTaskVisibilityFilter(
   actor: AuthenticatedUserContext
 ): Promise<Record<string, unknown>> {
-  if (isEnterpriseAdmin(actor)) {
+  if (hasProgramReadVisibility(actor)) {
     return {};
   }
 
@@ -645,6 +697,22 @@ function addAndCondition(
   }
 
   filter.$and = [condition];
+}
+
+function applyOptionalStringUpdate<TField extends "mainModule" | "subModule">(
+  task: TaskDocument,
+  taskField: TField,
+  body: UpdateTaskBody,
+  bodyField: TField
+): void {
+  if (body[bodyField] !== undefined) {
+    task[taskField] = body[bodyField];
+    return;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(body, bodyField)) {
+    task.set(taskField, undefined);
+  }
 }
 
 async function findTaskOrThrow(id: string): Promise<TaskDocument> {
@@ -770,6 +838,14 @@ function assertValidTaskStatusTransition(
     );
   }
 
+  if (body.status === "assigned" && task.progress !== 0) {
+    throw new AppError(
+      400,
+      "task_assignment_requires_zero_progress",
+      "Assigned tasks must have progress 0"
+    );
+  }
+
   if (body.status === "waiting_review" && task.progress !== 100) {
     throw new AppError(
       400,
@@ -795,7 +871,53 @@ function assertValidTaskStatusTransition(
   }
 }
 
-function assertValidProgressUpdate(task: TaskDocument, progress: number): void {
+function applyProgressDrivenStatus(
+  task: TaskDocument,
+  progress: number,
+  actor: AuthenticatedUserContext
+): void {
+  if (task.status === "cancelled") {
+    return;
+  }
+
+  if (progress === 100) {
+    task.status = "completed";
+    task.completedAt = new Date();
+    task.reviewedBy = new Types.ObjectId(actor.id);
+    task.set("blockedReason", undefined);
+    return;
+  }
+
+  if (task.status === "completed" || task.status === "waiting_review") {
+    task.status = progress > 0 ? "in_progress" : "open";
+    clearTaskCompletion(task);
+  } else if ((task.status === "open" || task.status === "assigned") && progress > 0) {
+    task.status = "in_progress";
+  } else if (task.status === "in_progress" && progress === 0) {
+    task.status = "open";
+  }
+
+  clearTaskCompletion(task);
+
+  if (task.status === "in_progress" && !task.startDate) {
+    task.startDate = new Date();
+  }
+}
+
+function clearTaskCompletion(task: TaskDocument): void {
+  task.set("completedAt", undefined);
+  task.set("reviewedBy", undefined);
+}
+
+function assertValidProgressUpdate(
+  task: TaskDocument,
+  progress: number,
+  actor: AuthenticatedUserContext
+): void {
+  if (isEnterpriseAdmin(actor)) {
+    return;
+  }
+
   if (task.status === "completed" && progress !== 100) {
     throw new AppError(
       400,

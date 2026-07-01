@@ -15,6 +15,7 @@ export const AUDIT_ENTITY_TYPES = [
 
 export const AUDIT_ACTIONS = [
   "create",
+  "delete",
   "update",
   "change_status",
   "assign",

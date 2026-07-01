@@ -25,6 +25,7 @@ export interface DashboardTaskMetricsDto {
   averageProgress: number;
   blocked: number;
   byCategory: CountByValueDto[];
+  byMainModule: CountByValueDto[];
   byPriority: CountByValueDto[];
   byStatus: CountByValueDto[];
   completedThisWeek: number;
@@ -73,11 +74,14 @@ export interface DashboardFocusItemDto {
 export interface DashboardWorkQueueItemDto {
   assignees: DashboardUserReferenceDto[];
   assignedTo?: DashboardUserReferenceDto;
+  category: string;
   dueDate?: Date;
   id: string;
+  mainModule?: string;
   priority: string;
   progress: number;
   status: string;
+  subModule?: string;
   taskCode: string;
   title: string;
 }

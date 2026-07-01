@@ -25,6 +25,12 @@ export function isEnterpriseAdmin(
   return user?.roleKey === "super_admin" || user?.roleKey === "it_manager";
 }
 
+export function hasProgramReadVisibility(
+  user: AuthenticatedUserContext | undefined
+): boolean {
+  return isEnterpriseAdmin(user) || user?.roleKey === "management_committee";
+}
+
 export function assertEnterpriseAdmin(
   user: AuthenticatedUserContext | undefined,
   message = "Administrative access is required"
@@ -46,7 +52,7 @@ export function assertSuperAdmin(
 export function buildRequestVisibilityFilter(
   user: AuthenticatedUserContext
 ): Record<string, unknown> {
-  if (isEnterpriseAdmin(user)) {
+  if (hasProgramReadVisibility(user)) {
     return {};
   }
 
@@ -73,7 +79,7 @@ export function assertCanViewRequest(
     throw new AppError(401, "authentication_required", "Authentication is required");
   }
 
-  if (isEnterpriseAdmin(user)) {
+  if (hasProgramReadVisibility(user)) {
     return;
   }
 
@@ -135,6 +141,10 @@ export function assertCanUseInternalComments(
 export function buildTaskDirectVisibilityFilter(
   user: AuthenticatedUserContext
 ): Record<string, unknown> {
+  if (hasProgramReadVisibility(user)) {
+    return {};
+  }
+
   if (isEnterpriseAdmin(user)) {
     return {};
   }
@@ -159,7 +169,7 @@ export function assertCanViewTask(
     throw new AppError(401, "authentication_required", "Authentication is required");
   }
 
-  if (isEnterpriseAdmin(user)) {
+  if (hasProgramReadVisibility(user)) {
     return;
   }
 

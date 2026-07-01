@@ -9,6 +9,7 @@ import { getValidated } from "../../shared/validation/validate-request";
 import {
   changeTaskStatus,
   createTask,
+  deleteTask,
   getTaskByIdForActor,
   listTaskUpdates,
   listTasks,
@@ -60,6 +61,18 @@ export const getTaskController: RequestHandler = asyncHandler(
     });
 
     res.status(200).json(ok({ task }));
+  }
+);
+
+export const deleteTaskController: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const params = getValidated<TaskIdParams>(res, "params");
+    const result = await deleteTask(params.id, {
+      actor: getAuthUser(res),
+      auditContext: getAuditRequestContext(req)
+    });
+
+    res.status(200).json(ok(result));
   }
 );
 

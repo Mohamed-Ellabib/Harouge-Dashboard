@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleDot,
   Code2,
+  Database,
   Download,
   FileText,
   Filter,
@@ -102,13 +103,6 @@ type SprintFormState = {
   targetDate: string;
 };
 
-type MilestoneRow = {
-  area: SprintAreaDefinition;
-  dueDate?: string;
-  item: TaskReportRow;
-  status: "at_risk" | "in_progress" | "on_track";
-};
-
 type ActivityRow = {
   area: SprintAreaDefinition;
   actor?: DashboardUserReference;
@@ -135,12 +129,14 @@ const areaDescriptions: Record<AppLanguage, Record<SprintAreaKey, string>> = {
   ar: {
     development: "وحدات ERP، الواجهات، التكاملات، والاختبارات.",
     facility: "الغرف، جاهزية محطات العمل، مناطق التدريب، ودعم الإطلاق.",
-    infrastructure: "الخوادم، الشبكات، الاستضافة، النسخ الاحتياطي، والصلاحيات."
+    infrastructure: "الخوادم، الشبكات، الاستضافة، النسخ الاحتياطي، والصلاحيات.",
+    master_data_collection: "جمع البيانات الرئيسية، التحقق، ونسبة اكتمال البيانات."
   },
   en: {
     development: "ERP modules, APIs, UI, integrations, testing.",
     facility: "Rooms, workstation readiness, training areas, rollout support.",
-    infrastructure: "Servers, network, hosting, backup, access, security."
+    infrastructure: "Servers, network, hosting, backup, access, security.",
+    master_data_collection: "Master data collection, validation, completion, and readiness tracking."
   }
 };
 
@@ -374,7 +370,6 @@ function SprintsContentView({ refreshSignal = 0 }: { refreshSignal?: number }) {
     [items, ownersById, sprints]
   );
   const metrics = useMemo(() => buildSprintMetrics(summaries), [summaries]);
-  const milestones = useMemo(() => buildMilestones(items), [items]);
   const activities = useMemo(() => buildActivity(items), [items]);
   const DrillIcon = direction === "rtl" ? ChevronRight : ChevronRight;
   const isEmployee = session?.roleCode === "employee";
@@ -637,65 +632,7 @@ function SprintsContentView({ refreshSignal = 0 }: { refreshSignal?: number }) {
       </section>
 
       <div className="sprints-lower-grid">
-        <section className="sprints-panel">
-          <header className="sprints-panel-header">
-            <h2>
-              <Flag size={20} strokeWidth={2.1} aria-hidden="true" />
-              {pageCopy.milestone.title}
-            </h2>
-          </header>
-          <div className="sprints-milestone-table-scroll">
-            <table className="sprints-milestone-table">
-              <thead>
-                <tr>
-                  <th>{pageCopy.milestone.milestone}</th>
-                  <th>{pageCopy.milestone.sprint}</th>
-                  <th>{pageCopy.milestone.dueDate}</th>
-                  <th>{pageCopy.milestone.status}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {milestones.length > 0 ? (
-                  milestones.map((milestone) => (
-                    <tr key={milestone.item.id}>
-                      <td>{milestone.item.title}</td>
-                      <td>
-                        <span className={`sprints-sprint-badge sprints-sprint-${milestone.area.key}`}>
-                          {t(milestone.area.labelKey)}
-                        </span>
-                      </td>
-                      <td>
-                        <CalendarDays size={15} strokeWidth={2.15} aria-hidden="true" />
-                        {formatDate(milestone.dueDate, language)}
-                      </td>
-                      <td>
-                        <span className={`sprints-milestone-status sprints-milestone-${milestone.status}`}>
-                          {formatMilestoneStatus(milestone.status, language)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4}>{formatNoMilestonesMessage(language)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          <footer className="sprints-panel-footer">
-            <span>{formatMilestoneFooter(milestones.length, language)}</span>
-            <button
-              onClick={() => navigate("/sprint-items?focus=milestones&sort=dueDate&order=asc")}
-              type="button"
-            >
-              {pageCopy.actions.viewMilestones}
-              <ChevronRight size={15} strokeWidth={2.2} aria-hidden="true" />
-            </button>
-          </footer>
-        </section>
-
-        <section className="sprints-panel">
+        <section className="sprints-panel sprints-activity-panel">
           <header className="sprints-panel-header">
             <h2>
               <Activity size={20} strokeWidth={2.1} aria-hidden="true" />
@@ -1069,7 +1006,7 @@ function buildSprintSummaries(
     const blocked = areaItems.filter((item) => item.status === "blocked").length;
     const delayed = areaItems.filter(isDelayedSprintItem).length;
     const inProgress = areaItems.filter((item) =>
-      ["in_progress", "open", "waiting_review"].includes(item.status)
+      ["assigned", "in_progress", "open", "waiting_review"].includes(item.status)
     ).length;
     const dueThisWeek = areaItems.filter(isDueThisWeek).length;
     const progress =
@@ -1298,19 +1235,6 @@ function buildMetricCards(
   }>;
 }
 
-function buildMilestones(items: TaskReportRow[]): MilestoneRow[] {
-  return items
-    .filter((item) => Boolean(item.dueDate))
-    .sort((left, right) => new Date(left.dueDate ?? 0).getTime() - new Date(right.dueDate ?? 0).getTime())
-    .slice(0, 5)
-    .map((item) => ({
-      area: getSprintAreaByCategory(item.category) ?? sprintAreaDefinitions[0],
-      dueDate: item.dueDate,
-      item,
-      status: resolveMilestoneStatus(item)
-    }));
-}
-
 function formatMilestoneFooter(count: number, language: AppLanguage): string {
   if (count === 0) {
     return formatNoMilestonesMessage(language);
@@ -1364,18 +1288,6 @@ function resolveSprintStatus(
   }
 
   return "planned";
-}
-
-function resolveMilestoneStatus(item: TaskReportRow): MilestoneRow["status"] {
-  if (item.status === "blocked" || isDelayedSprintItem(item)) {
-    return "at_risk";
-  }
-
-  if (item.status === "completed") {
-    return "on_track";
-  }
-
-  return "in_progress";
 }
 
 function resolveOwner(items: TaskReportRow[]): DashboardUserReference | undefined {
@@ -1456,6 +1368,8 @@ function resolveAreaIcon(area: SprintAreaKey | SprintDisplayArea): LucideIcon {
       return Building2;
     case "infrastructure":
       return Server;
+    case "master_data_collection":
+      return Database;
     default:
       return Code2;
   }
@@ -1467,6 +1381,8 @@ function resolveAreaTone(key: SprintAreaKey): SprintDisplayArea["tone"] {
       return "green";
     case "infrastructure":
       return "purple";
+    case "master_data_collection":
+      return "orange";
     default:
       return "blue";
   }
@@ -1483,6 +1399,10 @@ function getAreaIconClass(area: SprintDisplayArea): string {
 
   if (!area.custom && area.key === "infrastructure") {
     return "sprints-area-infrastructure";
+  }
+
+  if (!area.custom && area.key === "master_data_collection") {
+    return "sprints-area-master-data";
   }
 
   return `sprints-area-tone-${area.tone}`;
@@ -1528,19 +1448,6 @@ function formatSprintStatus(status: SprintStatus, language: AppLanguage): string
   }
 }
 
-function formatMilestoneStatus(status: MilestoneRow["status"], language: AppLanguage): string {
-  const pageCopy = copy[language];
-
-  switch (status) {
-    case "at_risk":
-      return pageCopy.statuses.atRisk;
-    case "on_track":
-      return pageCopy.statuses.onTrack;
-    default:
-      return pageCopy.statuses.inProgress;
-  }
-}
-
 function formatActivityMessage(
   activity: ActivityRow,
   language: AppLanguage,
@@ -1576,6 +1483,8 @@ function formatSprintItemCode(item: TaskReportRow): string {
       ? "FAC"
       : area?.key === "infrastructure"
         ? "INF"
+        : area?.key === "master_data_collection"
+          ? "MDC"
         : "DEV";
   const numericPart = item.taskCode.match(/\d+/g)?.at(-1);
 

@@ -33,6 +33,23 @@ function ProtectedHomePage() {
     return <Navigate replace to="/my-tasks" />;
   }
 
+  if (
+    (session.roleCode === "it_manager" ||
+      session.roleCode === "management_committee" ||
+      session.roleCode === "supervisor") &&
+    location.pathname === "/dashboard"
+  ) {
+    return <Navigate replace to="/management-dashboard" />;
+  }
+
+  if (
+    session.roleCode === "management_committee" &&
+    location.pathname !== "/management-dashboard" &&
+    !location.pathname.startsWith("/sprints/")
+  ) {
+    return <Navigate replace to="/management-dashboard" />;
+  }
+
   return <DashboardShell onSignOut={logout} session={session} />;
 }
 
@@ -50,6 +67,10 @@ export const router = createBrowserRouter([
     element: <ProtectedHomePage />
   },
   {
+    path: "/management-dashboard",
+    element: <ProtectedHomePage />
+  },
+  {
     path: "/project-progress",
     element: <ProtectedHomePage />
   },
@@ -63,6 +84,10 @@ export const router = createBrowserRouter([
   },
   {
     path: "/sprint-items",
+    element: <ProtectedHomePage />
+  },
+  {
+    path: "/modules",
     element: <ProtectedHomePage />
   },
   {

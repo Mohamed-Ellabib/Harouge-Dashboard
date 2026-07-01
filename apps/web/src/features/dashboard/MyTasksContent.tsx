@@ -71,7 +71,13 @@ type SelectedTaskState = {
   updates: TaskUpdateRecord[];
 };
 
-const activeTaskStatuses: TaskStatus[] = ["open", "in_progress", "blocked", "waiting_review"];
+const activeTaskStatuses: TaskStatus[] = [
+  "open",
+  "assigned",
+  "in_progress",
+  "blocked",
+  "waiting_review"
+];
 const myTasksPageSize = 6;
 
 const initialProgressForm: ProgressFormState = {
@@ -212,7 +218,13 @@ function MyTasksContentView({
     const report = progressForm.report.trim();
     const currentProgress = selectedTask.details?.progress ?? selectedTask.item.progress;
     const currentStatus = selectedTask.details?.status ?? selectedTask.item.status;
-    const nextStatus = progress === 100 ? "completed" : progressForm.status;
+    const nextStatus: TaskStatus =
+      progress === 100
+        ? "completed"
+        : progress > 0 &&
+            (progressForm.status === "assigned" || progressForm.status === "open")
+          ? "in_progress"
+          : progressForm.status;
 
     if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
       setProgressError(text.validation.progress);
@@ -388,6 +400,7 @@ function MyTasksContentView({
                   <tr>
                     <th>{text.table.task}</th>
                     <th>{text.table.sprint}</th>
+                    <th>{text.table.module}</th>
                     <th>{text.table.dueDate}</th>
                     <th>{text.table.progress}</th>
                     <th>{text.table.status}</th>
@@ -398,7 +411,7 @@ function MyTasksContentView({
                 <tbody>
                   {state.status === "loading" ? (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <p className="my-tasks-table-state">{text.loading}</p>
                       </td>
                     </tr>
@@ -406,7 +419,7 @@ function MyTasksContentView({
 
                   {state.status === "error" ? (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <p className="my-tasks-table-state">{state.message}</p>
                       </td>
                     </tr>
@@ -414,7 +427,7 @@ function MyTasksContentView({
 
                   {state.status === "ready" && visibleItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <section className="my-tasks-empty">
                           <ClipboardCheck size={32} strokeWidth={1.9} aria-hidden="true" />
                           <h3>{text.emptyTitle}</h3>
@@ -622,6 +635,11 @@ function MyTaskTableRow({
           <strong>{areaLabel}</strong>
           <span>{formatSprintAreaSubLabel(item.category, language)}</span>
         </div>
+      </td>
+      <td>
+        <span className="my-task-module-cell" title={formatTaskModule(item) ?? "-"}>
+          {formatTaskModule(item) ?? "-"}
+        </span>
       </td>
       <td>
         <div className={`my-task-date-cell ${dueState.tone === "late" ? "is-late" : ""}`}>
@@ -1095,6 +1113,8 @@ function toProgressForm(item: TaskReportRow, details?: TaskRecord): ProgressForm
 
 function getEmployeeStatusOptions(status: TaskStatus): TaskStatus[] {
   switch (status) {
+    case "assigned":
+      return ["assigned", "in_progress", "blocked", "completed"];
     case "blocked":
       return ["blocked", "in_progress", "completed"];
     case "cancelled":
@@ -1103,7 +1123,7 @@ function getEmployeeStatusOptions(status: TaskStatus): TaskStatus[] {
     case "waiting_review":
       return ["waiting_review", "in_progress", "completed", "blocked"];
     case "open":
-      return ["in_progress", "blocked", "completed"];
+      return ["open", "assigned", "in_progress", "blocked", "completed"];
     default:
       return ["in_progress", "blocked", "completed"];
   }
@@ -1139,16 +1159,20 @@ function formatSprintArea(category: string, language: AppLanguage): string {
       development: "سبرنت التطوير",
       facility: "سبرنت المرافق",
       infrastructure: "سبرنت البنية التحتية"
+      ,master_data_collection: "Master Data Collection"
     },
     en: {
-      development: "Development Sprint",
-      facility: "Facility Sprint",
-      infrastructure: "Infrastructure Sprint"
+      development: "Development",
+      facility: "Facilities",
+      infrastructure: "Infrastructure",
+      master_data_collection: "Master Data Collection"
     }
   };
   const area =
     category === "software" || category === "access"
       ? "development"
+      : category === "other"
+        ? "master_data_collection"
       : category === "hardware" || category === "maintenance" || category === "support"
         ? "facility"
         : "infrastructure";
@@ -1183,9 +1207,24 @@ function formatSprintAreaSubLabel(category: string, language: AppLanguage): stri
   return labels[language][category as keyof typeof labels.en] ?? category;
 }
 
+function formatTaskModule(
+  item: Pick<TaskReportRow, "mainModule" | "subModule">
+): string | undefined {
+  if (!item.mainModule && !item.subModule) {
+    return undefined;
+  }
+
+  if (!item.mainModule) {
+    return item.subModule;
+  }
+
+  return item.subModule ? `${item.mainModule} / ${item.subModule}` : item.mainModule;
+}
+
 function formatStatus(status: TaskStatus, language: AppLanguage): string {
   const labels: Record<AppLanguage, Record<TaskStatus, string>> = {
     ar: {
+      assigned: "مسند",
       blocked: "محجوب",
       cancelled: "ملغي",
       completed: "مكتمل",
@@ -1194,6 +1233,7 @@ function formatStatus(status: TaskStatus, language: AppLanguage): string {
       waiting_review: "بانتظار المراجعة"
     },
     en: {
+      assigned: "Assigned",
       blocked: "Blocked",
       cancelled: "Cancelled",
       completed: "Completed",
@@ -1433,6 +1473,7 @@ function getArabicMyTasksUiCopy() {
     table: {
       action: "الإجراء",
       dueDate: "تاريخ الاستحقاق",
+      module: "Module",
       moreActions: "مزيد من الإجراءات",
       next: "التالي",
       open: "فتح",
@@ -1557,6 +1598,7 @@ function getMyTasksUiCopy(language: AppLanguage) {
     table: {
       action: "Action",
       dueDate: "Due Date",
+      module: "Module",
       moreActions: "More actions",
       next: "Next page",
       open: "Open",

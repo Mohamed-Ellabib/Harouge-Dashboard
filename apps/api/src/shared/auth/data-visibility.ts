@@ -2,7 +2,7 @@ import { ItRequestModel } from "../../modules/it-requests/request.model";
 import {
   buildRequestVisibilityFilter,
   buildTaskDirectVisibilityFilter,
-  isEnterpriseAdmin
+  hasProgramReadVisibility
 } from "./access-policies";
 import type { AuthenticatedUserContext } from "./auth-context";
 
@@ -29,7 +29,7 @@ export function combineMongoFilters(
 export async function buildTaskVisibilityFilterForActor(
   actor: AuthenticatedUserContext
 ): Promise<Record<string, unknown>> {
-  if (isEnterpriseAdmin(actor)) {
+  if (hasProgramReadVisibility(actor)) {
     return {};
   }
 

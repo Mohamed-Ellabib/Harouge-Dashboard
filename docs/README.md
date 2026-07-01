@@ -39,6 +39,9 @@ This folder is the system knowledge base. It should be kept current as the proje
 33. `32-stage-10-5-pre-dashboard-hardening.md`
 34. `33-stage-11-dashboard-reports-api.md`
 35. `34-stage-12-sign-in-page.md`
+36. `35-current-project-state.md`
+37. `36-render-deployment.md`
+38. `37-codex-session-continuity.md`
 
 ## Supporting Docs
 
@@ -68,6 +71,9 @@ This folder is the system knowledge base. It should be kept current as the proje
 - `32-stage-10-5-pre-dashboard-hardening.md`
 - `33-stage-11-dashboard-reports-api.md`
 - `34-stage-12-sign-in-page.md`
+- `35-current-project-state.md`
+- `36-render-deployment.md`
+- `37-codex-session-continuity.md`
 - `templates/it-request-template.md`
 - `templates/task-template.md`
 

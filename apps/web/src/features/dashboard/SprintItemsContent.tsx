@@ -2,10 +2,12 @@ import {
   AlertCircle,
   Ban,
   Bookmark,
+  Building2,
   CalendarDays,
   CheckCircle2,
   ChevronsUpDown,
   CircleDot,
+  Clock3,
   ClipboardCheck,
   ClipboardPlus,
   Download,
@@ -13,7 +15,6 @@ import {
   Filter,
   Flag,
   Hash,
-  Layers3,
   ListChecks,
   LoaderCircle,
   LockKeyhole,
@@ -61,6 +62,12 @@ import {
   type SprintAreaKey,
   sprintAreaDefinitions
 } from "./sprintAreas";
+import {
+  getCompanyMainModules,
+  getSubModuleOptions,
+  manualSubModuleValue,
+  subscribeToTaskModuleCatalogChanges
+} from "./taskModules";
 
 type SprintItemsState =
   | { items: TaskReportRow[]; metrics: SprintItemsMetrics; pagination: PaginationMeta; status: "ready" }
@@ -78,13 +85,16 @@ type SprintItemsMetrics = {
 type SprintItemsFilters = {
   assignee: string;
   focus: "all" | "milestones" | "urgent";
+  mainModule: string;
   priority: string;
   search: string;
   sprint: string;
   status: string;
+  subModule: string;
 };
 
 type SprintItemCreateStatus = Exclude<TaskStatus, "cancelled">;
+type SubModuleEntryMode = "manual" | "suggested";
 
 type CreateSprintItemFormState = {
   assigneeIds: string[];
@@ -92,7 +102,9 @@ type CreateSprintItemFormState = {
   category: TaskCategory | "";
   description: string;
   dueDate: string;
+  dueTime: string;
   highVisibility: boolean;
+  mainModule: string;
   notifyLater: boolean;
   progress: string;
   priority: TaskPriority | "";
@@ -100,7 +112,10 @@ type CreateSprintItemFormState = {
   sprintArea: SprintAreaKey | "";
   sprintCode: string;
   startDate: string;
+  startTime: string;
   status: SprintItemCreateStatus | "";
+  subModule: string;
+  subModuleMode: SubModuleEntryMode;
   title: string;
 };
 
@@ -110,12 +125,17 @@ type SprintItemEditFormState = {
   category: TaskCategory | "";
   description: string;
   dueDate: string;
+  dueTime: string;
+  mainModule: string;
   note: string;
   priority: TaskPriority | "";
   progress: string;
   sprintArea: SprintAreaKey | "";
   startDate: string;
+  startTime: string;
   status: TaskStatus;
+  subModule: string;
+  subModuleMode: SubModuleEntryMode;
   title: string;
 };
 
@@ -136,11 +156,14 @@ type SprintItemsSortField =
   | "assignee"
   | "dueDate"
   | "id"
+  | "module"
   | "priority"
   | "sprint"
   | "status"
   | "title"
   | "updated";
+
+const SPRINT_ITEM_DESCRIPTION_MAX_LENGTH = 3000;
 
 type SprintItemsSortState = {
   field: SprintItemsSortField;
@@ -164,9 +187,11 @@ type SprintItemsCopy = {
   empty: string;
   filters: {
     allAssignees: string;
+    allMainModules?: string;
     allPriorities: string;
     allSprints: string;
     allStatuses: string;
+    allSubModules?: string;
     dueDateRange: string;
     search: string;
   };
@@ -189,6 +214,7 @@ type SprintItemsCopy = {
     assignee: string;
     dueDate: string;
     id: string;
+    module: string;
     priority: string;
     sprint: string;
     status: string;
@@ -202,10 +228,12 @@ const pageSize = 8;
 const initialFilters: SprintItemsFilters = {
   assignee: "all",
   focus: "all",
+  mainModule: "all",
   priority: "all",
   search: "",
   sprint: "all",
-  status: "all"
+  status: "all",
+  subModule: "all"
 };
 
 const sprintItemFilterValues = {
@@ -242,7 +270,9 @@ const initialCreateSprintItemForm: CreateSprintItemFormState = {
   category: "",
   description: "",
   dueDate: "",
+  dueTime: "17:00",
   highVisibility: false,
+  mainModule: "",
   notifyLater: false,
   progress: "0",
   priority: "",
@@ -250,7 +280,10 @@ const initialCreateSprintItemForm: CreateSprintItemFormState = {
   sprintArea: "",
   sprintCode: "",
   startDate: "",
+  startTime: "09:00",
   status: "",
+  subModule: "",
+  subModuleMode: "suggested",
   title: ""
 };
 
@@ -260,12 +293,17 @@ const initialSprintItemEditForm: SprintItemEditFormState = {
   category: "",
   description: "",
   dueDate: "",
+  dueTime: "17:00",
+  mainModule: "",
   note: "",
   priority: "",
   progress: "0",
   sprintArea: "",
   startDate: "",
+  startTime: "09:00",
   status: "open",
+  subModule: "",
+  subModuleMode: "suggested",
   title: ""
 };
 
@@ -276,6 +314,7 @@ const initialAssignSprintItemForm: AssignSprintItemFormState = {
 
 const createStatusOptions: SprintItemCreateStatus[] = [
   "open",
+  "assigned",
   "in_progress",
   "blocked",
   "waiting_review",
@@ -284,6 +323,7 @@ const createStatusOptions: SprintItemCreateStatus[] = [
 
 const editStatusOptions: TaskStatus[] = [
   "open",
+  "assigned",
   "in_progress",
   "blocked",
   "waiting_review",
@@ -327,6 +367,7 @@ const copy: Record<AppLanguage, SprintItemsCopy> = {
     },
     pagination: "عرض {from} إلى {to} من {total} عنصر سبرنت",
     table: {
+      module: "Module",
       actions: "الإجراءات",
       assignee: "المسؤول",
       dueDate: "تاريخ الاستحقاق",
@@ -375,6 +416,7 @@ const copy: Record<AppLanguage, SprintItemsCopy> = {
       assignee: "Assignee",
       dueDate: "Due Date",
       id: "ID",
+      module: "Module",
       priority: "Priority",
       sprint: "Sprint",
       status: "Status",
@@ -393,6 +435,8 @@ function SprintItemsContentView({
 }) {
   const { language, t } = useI18n();
   const pageCopy = copy[language];
+  const mainModuleFilterLabel = pageCopy.filters.allMainModules ?? "All Main Modules";
+  const subModuleFilterLabel = pageCopy.filters.allSubModules ?? "All Sub Modules";
   const [searchParams, setSearchParams] = useSearchParams();
   const [state, setState] = useState<SprintItemsState>({ status: "loading" });
   const [filters, setFilters] = useState<SprintItemsFilters>(() =>
@@ -428,12 +472,25 @@ function SprintItemsContentView({
   );
   const [assignError, setAssignError] = useState<string | null>(null);
   const [isAssigningItem, setIsAssigningItem] = useState(false);
+  const [moduleCatalogVersion, setModuleCatalogVersion] = useState(0);
   const isEmployee = session.roleCode === "employee";
   const canCreateSprintItem = !isEmployee && session.permissionCodes.includes("tasks:create");
   const canAssignSprintItems = !isEmployee && session.permissionCodes.includes("tasks:assign");
+  const canDeleteSprintItems = canPermanentlyDeleteSprintItems(session);
   const canManageSprintItems =
     session.permissionCodes.includes("tasks:update") ||
     canAssignSprintItems;
+  const mainModuleOptions = useMemo(
+    () => getCompanyMainModules(),
+    [moduleCatalogVersion]
+  );
+
+  useEffect(
+    () => subscribeToTaskModuleCatalogChanges(() =>
+      setModuleCatalogVersion((current) => current + 1)
+    ),
+    []
+  );
 
   useEffect(() => {
     if (!canCreateSprintItem && !canManageSprintItems) {
@@ -464,15 +521,21 @@ function SprintItemsContentView({
 
   useEffect(() => {
     let isMounted = true;
+    const moduleParams = getModuleTaskReportParams(filters);
 
     setState((current) => (current.status === "ready" ? current : { status: "loading" }));
 
     Promise.all([
-      api.getTaskReport({ limit: 100, sortBy: "lastProgressUpdateAt", sortOrder: "desc" }),
-      api.getTaskReport({ limit: 1, status: "completed" }),
-      api.getTaskReport({ limit: 1, status: "in_progress" }),
-      api.getTaskReport({ limit: 1, status: "waiting_review" }),
-      api.getTaskReport({ limit: 1, status: "blocked" })
+      api.getTaskReport({
+        ...moduleParams,
+        limit: 100,
+        sortBy: "lastProgressUpdateAt",
+        sortOrder: "desc"
+      }),
+      api.getTaskReport({ ...moduleParams, limit: 1, status: "completed" }),
+      api.getTaskReport({ ...moduleParams, limit: 1, status: "in_progress" }),
+      api.getTaskReport({ ...moduleParams, limit: 1, status: "waiting_review" }),
+      api.getTaskReport({ ...moduleParams, limit: 1, status: "blocked" })
     ])
       .then(([allItems, completed, inProgress, review, blocked]) => {
         if (!isMounted) {
@@ -509,7 +572,7 @@ function SprintItemsContentView({
     return () => {
       isMounted = false;
     };
-  }, [refreshSignal, reloadKey]);
+  }, [filters.mainModule, filters.subModule, refreshSignal, reloadKey]);
 
   const allItems = state.status === "ready" ? state.items : [];
   const metrics =
@@ -517,6 +580,10 @@ function SprintItemsContentView({
       ? state.metrics
       : { blocked: 0, completed: 0, inProgress: 0, review: 0, total: 0 };
   const assignees = useMemo(() => getAssigneeOptions(allItems), [allItems]);
+  const subModuleFilterOptions = useMemo(
+    () => getSubModuleFilterOptions(allItems, filters.mainModule),
+    [allItems, filters.mainModule]
+  );
   const filteredItems = useMemo(
     () => applyFilters(allItems, filters),
     [allItems, filters]
@@ -613,7 +680,12 @@ function SprintItemsContentView({
     key: TKey,
     value: SprintItemsFilters[TKey]
   ) {
-    setFilters((current) => ({ ...current, focus: "all", [key]: value }));
+    setFilters((current) => ({
+      ...current,
+      focus: "all",
+      [key]: value,
+      ...(key === "mainModule" ? { subModule: "all" } : {})
+    }));
     setPage(1);
   }
 
@@ -706,7 +778,7 @@ function SprintItemsContentView({
   ) {
     const rect = event.currentTarget.getBoundingClientRect();
     const menuWidth = 164;
-    const menuHeight = 142;
+    const menuHeight = canDeleteSprintItems ? 176 : 142;
     const gap = 8;
     const left =
       language === "ar"
@@ -758,6 +830,38 @@ function SprintItemsContentView({
     }
   }
 
+  async function deleteSprintItem(item: TaskReportRow) {
+    setOpenActionMenu(null);
+
+    const confirmed = window.confirm(
+      language === "ar"
+        ? "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+        : "Delete this sprint item permanently? This removes the task and its progress history from the system. This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteSprintItem(item.id);
+
+      if (selectedItem?.id === item.id) {
+        closeUpdateModal();
+      }
+
+      setReloadKey((current) => current + 1);
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : language === "ar"
+            ? "Sprint item could not be deleted."
+            : "Sprint item could not be deleted."
+      );
+    }
+  }
+
   function updateAssignForm<TKey extends keyof AssignSprintItemFormState>(
     key: TKey,
     value: AssignSprintItemFormState[TKey]
@@ -785,6 +889,15 @@ function SprintItemsContentView({
     value: CreateSprintItemFormState[TKey]
   ) {
     setCreateForm((current) => {
+      if (key === "mainModule") {
+        return {
+          ...current,
+          mainModule: value as string,
+          subModule: "",
+          subModuleMode: "suggested"
+        };
+      }
+
       if (key !== "sprintArea") {
         return { ...current, [key]: value };
       }
@@ -832,10 +945,16 @@ function SprintItemsContentView({
         ...(createForm.description.trim()
           ? { description: createForm.description.trim() }
           : {}),
-        dueDate: toDateTimeIso(createForm.dueDate, "17:00"),
+        dueDate: toDateTimeIso(createForm.dueDate, createForm.dueTime),
+        ...(createForm.mainModule.trim()
+          ? { mainModule: createForm.mainModule.trim() }
+          : {}),
         priority: createForm.priority || "medium",
         ...(createForm.startDate
-          ? { startDate: toDateTimeIso(createForm.startDate, "09:00") }
+          ? { startDate: toDateTimeIso(createForm.startDate, createForm.startTime) }
+          : {}),
+        ...(createForm.subModule.trim()
+          ? { subModule: createForm.subModule.trim() }
           : {}),
         title: createForm.title.trim()
       };
@@ -939,6 +1058,7 @@ function SprintItemsContentView({
     }
 
     if (
+      !canFullyEdit &&
       (updateForm.status === "completed" || updateForm.status === "waiting_review") &&
       progress !== 100
     ) {
@@ -959,12 +1079,14 @@ function SprintItemsContentView({
           category: updateForm.category || getDefaultCategoryForArea(updateForm.sprintArea),
           description: updateForm.description.trim(),
           dueDate: updateForm.dueDate
-            ? toDateTimeIso(updateForm.dueDate, "17:00")
+            ? toDateTimeIso(updateForm.dueDate, updateForm.dueTime)
             : null,
+          mainModule: updateForm.mainModule.trim(),
           priority: updateForm.priority || "medium",
           startDate: updateForm.startDate
-            ? toDateTimeIso(updateForm.startDate, "09:00")
+            ? toDateTimeIso(updateForm.startDate, updateForm.startTime)
             : null,
+          subModule: updateForm.subModule.trim(),
           title: updateForm.title.trim()
         };
         await api.updateSprintItem(selectedItem.id, metadataPayload);
@@ -1152,6 +1274,36 @@ function SprintItemsContentView({
                 ))}
               </select>
             </label>
+            <label>
+              <span className="sr-only">{mainModuleFilterLabel}</span>
+              <select
+                aria-label={mainModuleFilterLabel}
+                onChange={(event) => updateFilter("mainModule", event.target.value)}
+                value={filters.mainModule}
+              >
+                <option value="all">{mainModuleFilterLabel}</option>
+                {mainModuleOptions.map((mainModule) => (
+                  <option key={mainModule} value={mainModule}>
+                    {mainModule}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">{subModuleFilterLabel}</span>
+              <select
+                aria-label={subModuleFilterLabel}
+                onChange={(event) => updateFilter("subModule", event.target.value)}
+                value={filters.subModule}
+              >
+                <option value="all">{subModuleFilterLabel}</option>
+                {subModuleFilterOptions.map((subModule) => (
+                  <option key={subModule} value={subModule}>
+                    {subModule}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               className={`sprint-items-date-filter${filters.focus === "milestones" ? " is-active" : ""}`}
               onClick={() =>
@@ -1219,6 +1371,12 @@ function SprintItemsContentView({
                   order={sort.order}
                 />
                 <SortableHeader
+                  active={sort.field === "module"}
+                  label={pageCopy.table.module}
+                  onSort={() => updateSort("module")}
+                  order={sort.order}
+                />
+                <SortableHeader
                   active={sort.field === "assignee"}
                   label={pageCopy.table.assignee}
                   onSort={() => updateSort("assignee")}
@@ -1254,17 +1412,17 @@ function SprintItemsContentView({
             <tbody>
               {state.status === "loading" ? (
                 <tr>
-                  <td colSpan={10}>{pageCopy.loading}</td>
+                  <td colSpan={11}>{pageCopy.loading}</td>
                 </tr>
               ) : null}
               {state.status === "error" ? (
                 <tr>
-                  <td colSpan={10}>{state.message}</td>
+                  <td colSpan={11}>{state.message}</td>
                 </tr>
               ) : null}
               {state.status === "ready" && visibleItems.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>{pageCopy.empty}</td>
+                  <td colSpan={11}>{pageCopy.empty}</td>
                 </tr>
               ) : null}
               {state.status === "ready"
@@ -1272,6 +1430,7 @@ function SprintItemsContentView({
                     <SprintItemRow
                       canAssign={canAssignSprintItems && isAssignableSprintItem(item)}
                       canCancel={canFullyEditSprintItem(item, session) && isCancellableSprintItem(item)}
+                      canDelete={canDeleteSprintItems}
                       canUpdate={canUpdateSprintItem(item, session)}
                       canView={canViewSprintItem(item, session)}
                       item={item}
@@ -1291,6 +1450,7 @@ function SprintItemsContentView({
           <SprintItemFloatingActionMenu
             canAssign={canAssignSprintItems && isAssignableSprintItem(openActionMenuItem)}
             canCancel={canFullyEditSprintItem(openActionMenuItem, session) && isCancellableSprintItem(openActionMenuItem)}
+            canDelete={canDeleteSprintItems}
             canUpdate={canUpdateSprintItem(openActionMenuItem, session)}
             canView={canViewSprintItem(openActionMenuItem, session)}
             item={openActionMenuItem}
@@ -1298,6 +1458,7 @@ function SprintItemsContentView({
             left={openActionMenu.left}
             onAssign={openAssignModal}
             onCancel={cancelSprintItem}
+            onDelete={deleteSprintItem}
             onEdit={(selectedItem) => openUpdateModal(selectedItem, "edit")}
             onView={(selectedItem) => openUpdateModal(selectedItem, "view")}
             top={openActionMenu.top}
@@ -1353,6 +1514,7 @@ function SprintItemsContentView({
           form={createForm}
           isSubmitting={isCreatingItem}
           language={language}
+          mainModuleOptions={mainModuleOptions}
           onClose={closeCreateModal}
           onSubmit={handleCreateSprintItem}
           onUpdate={updateCreateForm}
@@ -1385,11 +1547,23 @@ function SprintItemsContentView({
           isSubmitting={isUpdatingItem}
           item={selectedItem}
           language={language}
+          mainModuleOptions={mainModuleOptions}
           mode={selectedItemMode}
           onClose={closeUpdateModal}
           onSubmit={handleUpdateItem}
           onUpdate={(key, value) => {
-            setUpdateForm((current) => ({ ...current, [key]: value }));
+            setUpdateForm((current) => {
+              if (key === "mainModule") {
+                return {
+                  ...current,
+                  mainModule: value as string,
+                  subModule: "",
+                  subModuleMode: "suggested"
+                };
+              }
+
+              return { ...current, [key]: value };
+            });
             setUpdateError(null);
           }}
           t={t}
@@ -1430,6 +1604,18 @@ export function SprintItemsQuickActionModal({
   );
   const [assignError, setAssignError] = useState<string | null>(null);
   const [isAssigningItem, setIsAssigningItem] = useState(false);
+  const [moduleCatalogVersion, setModuleCatalogVersion] = useState(0);
+  const mainModuleOptions = useMemo(
+    () => getCompanyMainModules(),
+    [moduleCatalogVersion]
+  );
+
+  useEffect(
+    () => subscribeToTaskModuleCatalogChanges(() =>
+      setModuleCatalogVersion((current) => current + 1)
+    ),
+    []
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -1496,6 +1682,15 @@ export function SprintItemsQuickActionModal({
     value: CreateSprintItemFormState[TKey]
   ) {
     setCreateForm((current) => {
+      if (key === "mainModule") {
+        return {
+          ...current,
+          mainModule: value as string,
+          subModule: "",
+          subModuleMode: "suggested"
+        };
+      }
+
       if (key !== "sprintArea") {
         return { ...current, [key]: value };
       }
@@ -1561,10 +1756,16 @@ export function SprintItemsQuickActionModal({
         ...(createForm.description.trim()
           ? { description: createForm.description.trim() }
           : {}),
-        dueDate: toDateTimeIso(createForm.dueDate, "17:00"),
+        dueDate: toDateTimeIso(createForm.dueDate, createForm.dueTime),
+        ...(createForm.mainModule.trim()
+          ? { mainModule: createForm.mainModule.trim() }
+          : {}),
         priority: createForm.priority || "medium",
         ...(createForm.startDate
-          ? { startDate: toDateTimeIso(createForm.startDate, "09:00") }
+          ? { startDate: toDateTimeIso(createForm.startDate, createForm.startTime) }
+          : {}),
+        ...(createForm.subModule.trim()
+          ? { subModule: createForm.subModule.trim() }
           : {}),
         title: createForm.title.trim()
       };
@@ -1648,6 +1849,7 @@ export function SprintItemsQuickActionModal({
         form={createForm}
         isSubmitting={isCreatingItem}
         language={language}
+        mainModuleOptions={mainModuleOptions}
         onClose={isCreatingItem ? () => undefined : onClose}
         onSubmit={handleCreateSprintItem}
         onUpdate={updateCreateForm}
@@ -1688,6 +1890,7 @@ function CreateSprintItemModal({
   form,
   isSubmitting,
   language,
+  mainModuleOptions,
   onClose,
   onSubmit,
   onUpdate,
@@ -1698,6 +1901,7 @@ function CreateSprintItemModal({
   form: CreateSprintItemFormState;
   isSubmitting: boolean;
   language: AppLanguage;
+  mainModuleOptions: string[];
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onUpdate: <TKey extends keyof CreateSprintItemFormState>(
@@ -1707,10 +1911,11 @@ function CreateSprintItemModal({
   t: (key: string) => string;
 }) {
   const text = getCreateSprintItemCopy(language);
+  const moduleCopy = getModuleFieldCopy(language);
   const users = assignableUsers.status === "ready" ? assignableUsers.users : [];
-  const categoryOptions = getCategoryOptionsForArea(form.sprintArea);
   const progress = clampProgress(form.progress);
   const isBlocked = form.status === "blocked";
+  const subModuleOptions = getSubModuleOptions(form.mainModule);
 
   return (
     <div className="sprint-items-modal-backdrop" role="presentation">
@@ -1739,7 +1944,7 @@ function CreateSprintItemModal({
         </header>
 
         <div className="sprint-items-create-grid">
-          <section className="sprint-items-create-section">
+          <section className="sprint-items-create-section is-item-info">
             <h3>
               <span>1</span>
               {text.sections.itemInfo}
@@ -1778,6 +1983,60 @@ function CreateSprintItemModal({
                 </select>
               </CreateSprintItemField>
 
+              <CreateSprintItemField icon={Building2} label={moduleCopy.mainModule}>
+                <select
+                  onChange={(event) => onUpdate("mainModule", event.target.value)}
+                  value={form.mainModule}
+                >
+                  <option value="">{moduleCopy.mainModulePlaceholder}</option>
+                  {mainModuleOptions.map((mainModule) => (
+                    <option key={mainModule} value={mainModule}>
+                      {mainModule}
+                    </option>
+                  ))}
+                </select>
+              </CreateSprintItemField>
+
+              <CreateSprintItemField icon={ListChecks} label={moduleCopy.subModule}>
+                <select
+                  disabled={!form.mainModule}
+                  onChange={(event) => {
+                    if (event.target.value === manualSubModuleValue) {
+                      onUpdate("subModuleMode", "manual");
+                      onUpdate("subModule", "");
+                      return;
+                    }
+
+                    onUpdate("subModuleMode", "suggested");
+                    onUpdate("subModule", event.target.value);
+                  }}
+                  value={
+                    form.subModuleMode === "manual"
+                      ? manualSubModuleValue
+                      : form.subModule
+                  }
+                >
+                  <option value="">{moduleCopy.subModulePlaceholder}</option>
+                  {subModuleOptions.map((subModule) => (
+                    <option key={subModule} value={subModule}>
+                      {subModule}
+                    </option>
+                  ))}
+                  <option value={manualSubModuleValue}>
+                    {moduleCopy.manualSubModule}
+                  </option>
+                </select>
+                {form.subModuleMode === "manual" ? (
+                  <input
+                    disabled={!form.mainModule}
+                    maxLength={120}
+                    onChange={(event) => onUpdate("subModule", event.target.value)}
+                    placeholder={moduleCopy.manualSubModulePlaceholder}
+                    value={form.subModule}
+                  />
+                ) : null}
+              </CreateSprintItemField>
+
               <CreateSprintItemField icon={Hash} label={text.fields.code}>
                 <input
                   onChange={(event) => onUpdate("sprintCode", event.target.value)}
@@ -1788,31 +2047,31 @@ function CreateSprintItemModal({
               </CreateSprintItemField>
 
               <CreateSprintItemField
-                className="is-tall"
+                className="is-tall is-description"
                 icon={ListChecks}
                 label={text.fields.description}
               >
                 <textarea
-                  maxLength={500}
+                  maxLength={SPRINT_ITEM_DESCRIPTION_MAX_LENGTH}
                   onChange={(event) => onUpdate("description", event.target.value)}
                   placeholder={text.placeholders.description}
                   value={form.description}
                 />
                 <span className="sprint-items-create-counter">
-                  {form.description.length} / 500
+                  {form.description.length} / {SPRINT_ITEM_DESCRIPTION_MAX_LENGTH}
                 </span>
               </CreateSprintItemField>
             </div>
           </section>
 
-          <section className="sprint-items-create-section">
+          <section className="sprint-items-create-section is-assignment">
             <h3>
               <span>2</span>
               {text.sections.assignment}
             </h3>
             <div className="sprint-items-create-section-grid">
               <CreateSprintItemField
-                className="is-wide"
+                className="is-assignee"
                 icon={ClipboardCheck}
                 label={text.fields.assignee}
               >
@@ -1847,6 +2106,29 @@ function CreateSprintItemModal({
                 </select>
               </CreateSprintItemField>
 
+              <CreateSprintItemField icon={CalendarDays} label={text.fields.startDate}>
+                <input
+                  max={form.dueDate || undefined}
+                  onChange={(event) => onUpdate("startDate", event.target.value)}
+                  type="date"
+                  value={form.startDate}
+                />
+              </CreateSprintItemField>
+
+              <CreateSprintItemField icon={Clock3} label={text.fields.startTime}>
+                <input
+                  disabled={!form.startDate}
+                  max={
+                    form.startDate && form.dueDate === form.startDate
+                      ? form.dueTime || undefined
+                      : undefined
+                  }
+                  onChange={(event) => onUpdate("startTime", event.target.value)}
+                  type="time"
+                  value={form.startTime}
+                />
+              </CreateSprintItemField>
+
               <CreateSprintItemField icon={CalendarDays} label={text.fields.dueDate} required>
                 <input
                   min={form.startDate || undefined}
@@ -1856,12 +2138,16 @@ function CreateSprintItemModal({
                 />
               </CreateSprintItemField>
 
-              <CreateSprintItemField icon={CalendarDays} label={text.fields.startDate}>
+              <CreateSprintItemField icon={Clock3} label={text.fields.dueTime} required>
                 <input
-                  max={form.dueDate || undefined}
-                  onChange={(event) => onUpdate("startDate", event.target.value)}
-                  type="date"
-                  value={form.startDate}
+                  min={
+                    form.startDate && form.dueDate === form.startDate
+                      ? form.startTime || undefined
+                      : undefined
+                  }
+                  onChange={(event) => onUpdate("dueTime", event.target.value)}
+                  type="time"
+                  value={form.dueTime}
                 />
               </CreateSprintItemField>
             </div>
@@ -1914,8 +2200,12 @@ function CreateSprintItemModal({
                 </div>
               </label>
 
-              <CreateSprintItemField icon={LockKeyhole} label={text.fields.blockedReason}>
-                <input
+              <CreateSprintItemField
+                className="is-tall is-blocked-reason"
+                icon={LockKeyhole}
+                label={text.fields.blockedReason}
+              >
+                <textarea
                   disabled={!isBlocked}
                   onChange={(event) => onUpdate("blockedReason", event.target.value)}
                   placeholder={
@@ -1925,23 +2215,6 @@ function CreateSprintItemModal({
                   }
                   value={form.blockedReason}
                 />
-              </CreateSprintItemField>
-
-              <CreateSprintItemField icon={Layers3} label={text.fields.category}>
-                <select
-                  disabled={!form.sprintArea}
-                  onChange={(event) =>
-                    onUpdate("category", event.target.value as TaskCategory | "")
-                  }
-                  value={form.category}
-                >
-                  <option value="">{text.placeholders.category}</option>
-                  {categoryOptions.map((category) => (
-                    <option key={category} value={category}>
-                      {formatCategory(category, language)}
-                    </option>
-                  ))}
-                </select>
               </CreateSprintItemField>
             </div>
           </section>
@@ -2178,14 +2451,7 @@ function MultiAssigneePicker({
   selectedIds: string[];
   users: UserRecord[];
 }) {
-  function toggleUser(userId: string, checked: boolean) {
-    if (checked) {
-      onChange([...selectedIds, userId].filter(uniqueString));
-      return;
-    }
-
-    onChange(selectedIds.filter((selectedId) => selectedId !== userId));
-  }
+  const [isOpen, setIsOpen] = useState(false);
 
   if (users.length === 0) {
     return (
@@ -2195,20 +2461,58 @@ function MultiAssigneePicker({
     );
   }
 
+  const selectedUsers = users.filter((user) => selectedIds.includes(user.id));
+  const selectedLabel =
+    selectedUsers.length > 0
+      ? selectedUsers.map((user) => user.fullName).join(", ")
+      : emptyText;
+
+  function toggleUser(userId: string, checked: boolean) {
+    if (checked) {
+      onChange([...selectedIds, userId].filter(uniqueString));
+      return;
+    }
+
+    onChange(selectedIds.filter((selectedId) => selectedId !== userId));
+  }
+
   return (
-    <div className="sprint-items-assignee-picker" aria-label={emptyText}>
-      {users.map((user) => (
-        <label key={user.id}>
-          <input
-            checked={selectedIds.includes(user.id)}
-            disabled={disabled}
-            onChange={(event) => toggleUser(user.id, event.target.checked)}
-            type="checkbox"
-          />
-          <span>{resolveInitials(user)}</span>
-          <b>{user.fullName}</b>
-        </label>
-      ))}
+    <div
+      className={`sprint-items-assignee-picker${isOpen ? " is-open" : ""}`}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        aria-label={emptyText}
+        aria-expanded={isOpen}
+        className="sprint-items-assignee-trigger"
+        disabled={disabled}
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        <span>{selectedLabel}</span>
+        <ChevronsUpDown size={15} strokeWidth={2.2} aria-hidden="true" />
+      </button>
+
+      {isOpen ? (
+        <div className="sprint-items-assignee-menu">
+          {users.map((user) => (
+            <label key={user.id}>
+              <input
+                checked={selectedIds.includes(user.id)}
+                onChange={(event) => toggleUser(user.id, event.target.checked)}
+                type="checkbox"
+              />
+              <span>{resolveInitials(user)}</span>
+              <b>{user.fullName}</b>
+              {user.jobTitle ? <small>{user.jobTitle}</small> : null}
+            </label>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2216,6 +2520,7 @@ function MultiAssigneePicker({
 function SprintItemRow({
   canAssign,
   canCancel,
+  canDelete,
   canUpdate,
   canView,
   item,
@@ -2226,6 +2531,7 @@ function SprintItemRow({
 }: {
   canAssign: boolean;
   canCancel: boolean;
+  canDelete: boolean;
   canUpdate: boolean;
   canView: boolean;
   item: TaskReportRow;
@@ -2240,6 +2546,8 @@ function SprintItemRow({
   const assignees = getAssignedUsers(item);
   const leadAssignee = assignees[0] ?? item.createdBy;
   const sprintItemCode = formatSprintItemCode(item);
+  const moduleLabel = formatTaskModule(item);
+  const subtitle = item.request?.title ?? formatCategory(item.category, language);
 
   return (
     <tr>
@@ -2252,14 +2560,17 @@ function SprintItemRow({
       <td>
         <div className="sprint-items-title-cell">
           <strong title={item.title}>{item.title}</strong>
-          <span title={item.request?.title ?? formatCategory(item.category, language)}>
-            {item.request?.title ?? formatCategory(item.category, language)}
-          </span>
+          <span title={subtitle}>{subtitle}</span>
         </div>
       </td>
       <td>
         <span className={`sprint-items-sprint-badge sprint-items-sprint-${areaKey}`}>
           {area ? t(area.labelKey) : formatCategory(item.category, language)}
+        </span>
+      </td>
+      <td>
+        <span className="sprint-items-module-cell" title={moduleLabel ?? "-"}>
+          {moduleLabel ?? "-"}
         </span>
       </td>
       <td>
@@ -2310,7 +2621,7 @@ function SprintItemRow({
               <Eye size={16} strokeWidth={2.1} />
             </button>
           ) : null}
-          {canView || canUpdate || canAssign || canCancel ? (
+          {canView || canUpdate || canAssign || canCancel || canDelete ? (
             <button
               aria-label={copy[language].actions.more}
               aria-haspopup="menu"
@@ -2330,6 +2641,7 @@ function SprintItemRow({
 function SprintItemFloatingActionMenu({
   canAssign,
   canCancel,
+  canDelete,
   canUpdate,
   canView,
   item,
@@ -2337,12 +2649,14 @@ function SprintItemFloatingActionMenu({
   left,
   onAssign,
   onCancel,
+  onDelete,
   onEdit,
   onView,
   top
 }: {
   canAssign: boolean;
   canCancel: boolean;
+  canDelete: boolean;
   canUpdate: boolean;
   canView: boolean;
   item: TaskReportRow;
@@ -2350,6 +2664,7 @@ function SprintItemFloatingActionMenu({
   left: number;
   onAssign: (item: TaskReportRow) => void;
   onCancel: (item: TaskReportRow) => void;
+  onDelete: (item: TaskReportRow) => void;
   onEdit: (item: TaskReportRow) => void;
   onView: (item: TaskReportRow) => void;
   top: number;
@@ -2387,8 +2702,19 @@ function SprintItemFloatingActionMenu({
           role="menuitem"
           type="button"
         >
-          <Trash2 size={14} strokeWidth={2.2} />
+          <Ban size={14} strokeWidth={2.2} />
           {labels.cancel}
+        </button>
+      ) : null}
+      {canDelete ? (
+        <button
+          className="is-danger"
+          onClick={() => onDelete(item)}
+          role="menuitem"
+          type="button"
+        >
+          <Trash2 size={14} strokeWidth={2.2} />
+          {labels.delete ?? "Delete"}
         </button>
       ) : null}
     </div>
@@ -2404,6 +2730,7 @@ function SprintItemUpdateModal({
   isSubmitting,
   item,
   language,
+  mainModuleOptions,
   mode,
   onClose,
   onSubmit,
@@ -2418,6 +2745,7 @@ function SprintItemUpdateModal({
   isSubmitting: boolean;
   item: TaskReportRow;
   language: AppLanguage;
+  mainModuleOptions: string[];
   mode: SprintItemModalMode;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -2428,9 +2756,16 @@ function SprintItemUpdateModal({
   t: (key: string) => string;
 }) {
   const labels = getSprintItemEditCopy(language);
+  const moduleCopy = getModuleFieldCopy(language);
   const users = assignableUsers.status === "ready" ? assignableUsers.users : [];
   const categoryOptions = getCategoryOptionsForArea(form.sprintArea);
-  const limitedStatusOptions: TaskStatus[] = ["in_progress", "completed"];
+  const subModuleOptions = getSubModuleOptions(form.mainModule);
+  const limitedStatusOptions: TaskStatus[] =
+    form.status === "assigned"
+      ? ["assigned", "in_progress", "completed"]
+      : form.status === "open"
+        ? ["open", "in_progress", "completed"]
+      : ["in_progress", "completed"];
   const isViewMode = mode === "view";
   const showFullFields = isViewMode || canFullyEdit;
   const statusOptions = showFullFields ? editStatusOptions : limitedStatusOptions;
@@ -2575,6 +2910,63 @@ function SprintItemUpdateModal({
             </label>
 
             <label className="sprint-items-update-field">
+              <span>{moduleCopy.mainModule}</span>
+              <select
+                disabled={isViewMode || isSubmitting}
+                onChange={(event) => onUpdate("mainModule", event.target.value)}
+                value={form.mainModule}
+              >
+                <option value="">{moduleCopy.mainModulePlaceholder}</option>
+                {mainModuleOptions.map((mainModule) => (
+                  <option key={mainModule} value={mainModule}>
+                    {mainModule}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="sprint-items-update-field">
+              <span>{moduleCopy.subModule}</span>
+              <select
+                disabled={isViewMode || isSubmitting || !form.mainModule}
+                onChange={(event) => {
+                  if (event.target.value === manualSubModuleValue) {
+                    onUpdate("subModuleMode", "manual");
+                    onUpdate("subModule", "");
+                    return;
+                  }
+
+                  onUpdate("subModuleMode", "suggested");
+                  onUpdate("subModule", event.target.value);
+                }}
+                value={
+                  form.subModuleMode === "manual"
+                    ? manualSubModuleValue
+                    : form.subModule
+                }
+              >
+                <option value="">{moduleCopy.subModulePlaceholder}</option>
+                {subModuleOptions.map((subModule) => (
+                  <option key={subModule} value={subModule}>
+                    {subModule}
+                  </option>
+                ))}
+                <option value={manualSubModuleValue}>
+                  {moduleCopy.manualSubModule}
+                </option>
+              </select>
+              {form.subModuleMode === "manual" ? (
+                <input
+                  disabled={isViewMode || isSubmitting || !form.mainModule}
+                  maxLength={120}
+                  onChange={(event) => onUpdate("subModule", event.target.value)}
+                  placeholder={moduleCopy.manualSubModulePlaceholder}
+                  value={form.subModule}
+                />
+              ) : null}
+            </label>
+
+            <label className="sprint-items-update-field">
               <span>{labels.fields.startDate}</span>
               <input
                 disabled={isViewMode || isSubmitting}
@@ -2586,6 +2978,21 @@ function SprintItemUpdateModal({
             </label>
 
             <label className="sprint-items-update-field">
+              <span>{labels.fields.startTime}</span>
+              <input
+                disabled={isViewMode || isSubmitting || !form.startDate}
+                max={
+                  form.startDate && form.dueDate === form.startDate
+                    ? form.dueTime || undefined
+                    : undefined
+                }
+                onChange={(event) => onUpdate("startTime", event.target.value)}
+                type="time"
+                value={form.startTime}
+              />
+            </label>
+
+            <label className="sprint-items-update-field">
               <span>{labels.fields.dueDate}</span>
               <input
                 disabled={isViewMode || isSubmitting}
@@ -2593,6 +3000,21 @@ function SprintItemUpdateModal({
                 onChange={(event) => onUpdate("dueDate", event.target.value)}
                 type="date"
                 value={form.dueDate}
+              />
+            </label>
+
+            <label className="sprint-items-update-field">
+              <span>{labels.fields.dueTime}</span>
+              <input
+                disabled={isViewMode || isSubmitting}
+                min={
+                  form.startDate && form.dueDate === form.startDate
+                    ? form.startTime || undefined
+                    : undefined
+                }
+                onChange={(event) => onUpdate("dueTime", event.target.value)}
+                type="time"
+                value={form.dueTime}
               />
             </label>
           </div>
@@ -2747,6 +3169,71 @@ function buildMetricCards(metrics: SprintItemsMetrics, pageCopy: SprintItemsCopy
   }>;
 }
 
+function getModuleFieldCopy(language: AppLanguage) {
+  if (language === "ar") {
+    return {
+      mainModule: "Main Module",
+      mainModulePlaceholder: "Select department",
+      manualSubModule: "Enter manually",
+      manualSubModulePlaceholder: "Enter sub module",
+      subModule: "Sub Module",
+      subModulePlaceholder: "Select sub module"
+    };
+  }
+
+  return {
+    mainModule: "Main Module",
+    mainModulePlaceholder: "Select department",
+    manualSubModule: "Enter manually",
+    manualSubModulePlaceholder: "Enter sub module",
+    subModule: "Sub Module",
+    subModulePlaceholder: "Select sub module"
+  };
+}
+
+function getModuleTaskReportParams(filters: SprintItemsFilters): {
+  mainModule?: string;
+  subModule?: string;
+} {
+  return {
+    ...(filters.mainModule !== "all" ? { mainModule: filters.mainModule } : {}),
+    ...(filters.subModule !== "all" ? { subModule: filters.subModule } : {})
+  };
+}
+
+function getSubModuleEntryMode(
+  mainModule: string,
+  subModule: string
+): SubModuleEntryMode {
+  if (!subModule) {
+    return "suggested";
+  }
+
+  return getSubModuleOptions(mainModule).includes(subModule)
+    ? "suggested"
+    : "manual";
+}
+
+function getSubModuleFilterOptions(
+  items: TaskReportRow[],
+  mainModuleFilter: string
+): string[] {
+  const suggestedOptions =
+    mainModuleFilter !== "all" ? getSubModuleOptions(mainModuleFilter) : [];
+  const existingOptions = items
+    .map((item) => item.subModule)
+    .filter((value): value is string => Boolean(value));
+
+  return [...suggestedOptions, ...existingOptions]
+    .filter(uniqueString)
+    .sort((left, right) =>
+      left.localeCompare(right, undefined, {
+        numeric: true,
+        sensitivity: "base"
+      })
+    );
+}
+
 function getCreateSprintItemCopy(language: AppLanguage) {
   if (language === "ar") {
     return {
@@ -2761,10 +3248,12 @@ function getCreateSprintItemCopy(language: AppLanguage) {
         code: "معرف / رمز عنصر السبرنت",
         description: "الوصف",
         dueDate: "تاريخ الاستحقاق",
+        dueTime: "وقت الاستحقاق",
         priority: "الأولوية",
         progress: "التقدم الأولي",
         sprintArea: "مجال السبرنت",
         startDate: "تاريخ البداية",
+        startTime: "وقت البداية",
         status: "الحالة",
         title: "عنوان عنصر السبرنت"
       },
@@ -2798,15 +3287,16 @@ function getCreateSprintItemCopy(language: AppLanguage) {
       title: "إنشاء عنصر سبرنت جديد",
       validation: {
         assignee: "اختر المستخدم المسند إليه.",
+        assignedRequiresAssignee: "اختر مستخدما واحدا على الأقل عند اختيار حالة مسند.",
         blockedReason: "اكتب سبب الحظر عند اختيار حالة محجوب.",
         dueDate: "اختر تاريخ الاستحقاق.",
         fullProgress: "يجب أن يكون التقدم 100% للحالة مكتمل أو مراجعة.",
-        openProgress: "الحالة قيد الانتظار يجب أن تبدأ بتقدم 0%.",
+        openProgress: "حالة قيد الانتظار أو مسند يجب أن تبدأ بتقدم 0%.",
         priority: "اختر الأولوية.",
         progress: "أدخل نسبة تقدم صحيحة بين 0 و 100.",
         requireReview: "لا يمكن إنشاء عنصر مكتمل إذا كان يتطلب مراجعة قبل الاكتمال. اختر مراجعة.",
         sprintArea: "اختر مجال السبرنت.",
-        startAfterDue: "تاريخ البداية يجب أن يكون قبل تاريخ الاستحقاق.",
+        startAfterDue: "تاريخ ووقت البداية يجب أن يكونا قبل تاريخ ووقت الاستحقاق.",
         status: "اختر الحالة.",
         title: "أدخل عنوان عنصر السبرنت."
       }
@@ -2825,10 +3315,12 @@ function getCreateSprintItemCopy(language: AppLanguage) {
       code: "Sprint Item ID / Code",
       description: "Description",
       dueDate: "Due Date",
+      dueTime: "Due Time",
       priority: "Priority",
       progress: "Initial Progress",
       sprintArea: "Sprint Area",
       startDate: "Start Date",
+      startTime: "Start Time",
       status: "Status",
       title: "Sprint Item Title"
     },
@@ -2862,15 +3354,16 @@ function getCreateSprintItemCopy(language: AppLanguage) {
     title: "Create New Sprint Item",
     validation: {
       assignee: "Select at least one assignee.",
+      assignedRequiresAssignee: "Select at least one assignee when status is Assigned.",
       blockedReason: "Enter a blocked reason when status is Blocked.",
       dueDate: "Select the due date.",
       fullProgress: "Progress must be 100% for Review or Completed status.",
-      openProgress: "To Do items must start at 0% progress.",
+      openProgress: "To Do or Assigned items must start at 0% progress.",
       priority: "Select the priority.",
       progress: "Enter a valid progress value between 0 and 100.",
       requireReview: "A completed item cannot require review before completion. Choose Review instead.",
       sprintArea: "Select the sprint area.",
-      startAfterDue: "Start date must be before or equal to due date.",
+      startAfterDue: "Start date and time must be before or equal to due date and time.",
       status: "Select the status.",
       title: "Enter the sprint item title."
     }
@@ -2933,7 +3426,13 @@ function getAssignSprintItemCopy(language: AppLanguage) {
   };
 }
 
-function getSprintItemRowActionCopy(language: AppLanguage) {
+function getSprintItemRowActionCopy(language: AppLanguage): {
+  assign: string;
+  cancel: string;
+  delete?: string;
+  edit: string;
+  view: string;
+} {
   return language === "ar"
     ? {
         assign: "إسناد",
@@ -2944,6 +3443,7 @@ function getSprintItemRowActionCopy(language: AppLanguage) {
     : {
         assign: "Assign",
         cancel: "Cancel",
+        delete: "Delete",
         edit: "Edit",
         view: "View"
       };
@@ -2959,9 +3459,11 @@ function getSprintItemEditCopy(language: AppLanguage) {
         category: "التصنيف",
         description: "الوصف",
         dueDate: "تاريخ الاستحقاق",
+        dueTime: "وقت الاستحقاق",
         priority: "الأولوية",
         sprintArea: "مجال السبرنت",
         startDate: "تاريخ البداية",
+        startTime: "وقت البداية",
         title: "عنوان عنصر السبرنت"
       },
       fullSubtitle: "يمكنك تعديل كل تفاصيل عنصر السبرنت، المسؤول، الحالة، والتواريخ.",
@@ -2983,13 +3485,14 @@ function getSprintItemEditCopy(language: AppLanguage) {
       subtitle: "يمكنك تحديث التقدم أو وضع العنصر كمكتمل إذا كان مسنداً لك.",
       title: "تعديل عنصر السبرنت",
       validation: {
+        assignedProgress: "يجب أن تكون نسبة التقدم 0% عند اختيار حالة مسند.",
         blockedReason: "اكتب سبب الحظر عند اختيار حالة محجوب.",
         category: "اختر التصنيف.",
         fullProgress: "يجب أن يكون التقدم 100% قبل إكمال عنصر السبرنت.",
         priority: "اختر الأولوية.",
         progress: "أدخل نسبة تقدم صحيحة بين 0 و 100.",
         sprintArea: "اختر مجال السبرنت.",
-        startAfterDue: "تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ الاستحقاق.",
+        startAfterDue: "تاريخ ووقت البداية يجب أن يكونا قبل أو يساويا تاريخ ووقت الاستحقاق.",
         title: "أدخل عنوان عنصر السبرنت."
       }
     };
@@ -3003,9 +3506,11 @@ function getSprintItemEditCopy(language: AppLanguage) {
       category: "Category",
       description: "Description",
       dueDate: "Due Date",
+      dueTime: "Due Time",
       priority: "Priority",
       sprintArea: "Sprint Area",
       startDate: "Start Date",
+      startTime: "Start Time",
       title: "Sprint Item Title"
     },
     fullSubtitle: "Edit all sprint item details, assignee, status, progress, and dates.",
@@ -3027,13 +3532,14 @@ function getSprintItemEditCopy(language: AppLanguage) {
     subtitle: "Update progress or mark this assigned item as completed.",
     title: "Edit Sprint Item",
     validation: {
+      assignedProgress: "Assigned items must stay at 0% progress until work starts.",
       blockedReason: "Enter a blocked reason when status is Blocked.",
       category: "Select the category.",
       fullProgress: "Progress must be 100% before completing the sprint item.",
       priority: "Select the priority.",
       progress: "Enter a valid progress value between 0 and 100.",
       sprintArea: "Select the sprint area.",
-      startAfterDue: "Start date must be before or equal to due date.",
+      startAfterDue: "Start date and time must be before or equal to due date and time.",
       title: "Enter the sprint item title."
     }
   };
@@ -3074,6 +3580,13 @@ function isCancellableSprintItem(item: TaskReportRow): boolean {
   return item.status !== "completed" && item.status !== "cancelled";
 }
 
+function canPermanentlyDeleteSprintItems(session: Session): boolean {
+  return (
+    (session.roleCode === "super_admin" || session.roleCode === "it_manager") &&
+    session.permissionCodes.includes("tasks:update")
+  );
+}
+
 function canFullyEditSprintItem(item: TaskReportRow, session: Session): boolean {
   if (
     session.roleCode === "super_admin" ||
@@ -3098,6 +3611,8 @@ function toSprintItemEditForm(
 ): SprintItemEditFormState {
   const category = details?.category ?? item.category;
   const area = getSprintAreaByCategory(category);
+  const mainModule = details?.mainModule ?? item.mainModule ?? "";
+  const subModule = details?.subModule ?? item.subModule ?? "";
 
   return {
     assigneeIds: details?.assigneeIds ?? getAssignedUserIds(item),
@@ -3105,12 +3620,17 @@ function toSprintItemEditForm(
     category,
     description: details?.description ?? "",
     dueDate: toDateInputValue(details?.dueDate ?? item.dueDate),
+    dueTime: toTimeInputValue(details?.dueDate ?? item.dueDate, "17:00"),
+    mainModule,
     note: "",
     priority: details?.priority ?? (item.priority as TaskPriority),
     progress: String(details?.progress ?? item.progress),
     sprintArea: area?.key ?? "",
     startDate: toDateInputValue(details?.startDate ?? item.startDate),
+    startTime: toTimeInputValue(details?.startDate ?? item.startDate, "09:00"),
     status: details?.status ?? item.status,
+    subModule,
+    subModuleMode: getSubModuleEntryMode(mainModule, subModule),
     title: details?.title ?? item.title
   };
 }
@@ -3145,7 +3665,15 @@ function validateSprintItemEditForm(
     return labels.validation.progress;
   }
 
-  if ((form.status === "completed" || form.status === "waiting_review") && progress !== 100) {
+  if (form.status === "assigned" && progress !== 0) {
+    return labels.validation.assignedProgress;
+  }
+
+  if (
+    !canFullyEdit &&
+    (form.status === "completed" || form.status === "waiting_review") &&
+    progress !== 100
+  ) {
     return labels.validation.fullProgress;
   }
 
@@ -3153,7 +3681,7 @@ function validateSprintItemEditForm(
     return labels.validation.blockedReason;
   }
 
-  if (form.startDate && form.dueDate && form.startDate > form.dueDate) {
+  if (!dateTimeRangeIsOrdered(form.startDate, form.startTime, form.dueDate, form.dueTime)) {
     return labels.validation.startAfterDue;
   }
 
@@ -3195,8 +3723,12 @@ function validateCreateSprintItemForm(
     return text.progress;
   }
 
-  if (form.status === "open" && progress > 0) {
+  if ((form.status === "open" || form.status === "assigned") && progress > 0) {
     return text.openProgress;
+  }
+
+  if (form.status === "assigned" && form.assigneeIds.length === 0) {
+    return text.assignedRequiresAssignee;
   }
 
   if ((form.status === "completed" || form.status === "waiting_review") && progress !== 100) {
@@ -3211,7 +3743,7 @@ function validateCreateSprintItemForm(
     return text.requireReview;
   }
 
-  if (form.startDate && form.dueDate && form.startDate > form.dueDate) {
+  if (!dateTimeRangeIsOrdered(form.startDate, form.startTime, form.dueDate, form.dueTime)) {
     return text.startAfterDue;
   }
 
@@ -3246,7 +3778,9 @@ function getCategoryOptionsForArea(areaKey: SprintAreaKey | ""): TaskCategory[] 
 }
 
 function toDateTimeIso(dateValue: string, timeValue: string): string {
-  return new Date(`${dateValue}T${timeValue}:00`).toISOString();
+  const normalizedTime = timeValue || "17:00";
+
+  return new Date(`${dateValue}T${normalizedTime}:00`).toISOString();
 }
 
 function toDateInputValue(value: string | undefined): string {
@@ -3261,6 +3795,43 @@ function toDateInputValue(value: string | undefined): string {
   }
 
   return date.toISOString().slice(0, 10);
+}
+
+function toTimeInputValue(value: string | undefined, fallback: string): string {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+}
+
+function dateTimeRangeIsOrdered(
+  startDate: string,
+  startTime: string,
+  dueDate: string,
+  dueTime: string
+): boolean {
+  if (!startDate || !dueDate) {
+    return true;
+  }
+
+  const startTimestamp = Date.parse(`${startDate}T${startTime || "09:00"}:00`);
+  const dueTimestamp = Date.parse(`${dueDate}T${dueTime || "17:00"}:00`);
+
+  if (Number.isNaN(startTimestamp) || Number.isNaN(dueTimestamp)) {
+    return true;
+  }
+
+  return startTimestamp <= dueTimestamp;
 }
 
 function buildCreateSprintItemNote(form: CreateSprintItemFormState): string | undefined {
@@ -3296,6 +3867,7 @@ function readSprintItemsFiltersFromSearchParams(
       sprintItemFilterValues.focus,
       initialFilters.focus
     ),
+    mainModule: searchParams.get("mainModule") || initialFilters.mainModule,
     priority: readSprintItemFilterValue(
       searchParams,
       "priority",
@@ -3314,7 +3886,8 @@ function readSprintItemsFiltersFromSearchParams(
       "status",
       sprintItemFilterValues.status,
       initialFilters.status
-    )
+    ),
+    subModule: searchParams.get("subModule") || initialFilters.subModule
   };
 }
 
@@ -3355,10 +3928,12 @@ function areSprintItemsFiltersEqual(
   return (
     left.assignee === right.assignee &&
     left.focus === right.focus &&
+    left.mainModule === right.mainModule &&
     left.priority === right.priority &&
     left.search === right.search &&
     left.sprint === right.sprint &&
-    left.status === right.status
+    left.status === right.status &&
+    left.subModule === right.subModule
   );
 }
 
@@ -3404,6 +3979,14 @@ function applyFilters(items: TaskReportRow[], filters: SprintItemsFilters): Task
       return false;
     }
 
+    if (filters.mainModule !== "all" && item.mainModule !== filters.mainModule) {
+      return false;
+    }
+
+    if (filters.subModule !== "all" && item.subModule !== filters.subModule) {
+      return false;
+    }
+
     if (!search) {
       return true;
     }
@@ -3413,6 +3996,8 @@ function applyFilters(items: TaskReportRow[], filters: SprintItemsFilters): Task
       item.taskCode,
       item.title,
       item.request?.title,
+      item.mainModule,
+      item.subModule,
       item.priority,
       item.status,
       ...assignees.map((assignee) => assignee.fullName),
@@ -3459,6 +4044,8 @@ function compareSprintItemByField(
       return compareOptionalTimes(left.dueDate, right.dueDate, direction);
     case "id":
       return compareStrings(formatSprintItemCode(left), formatSprintItemCode(right), direction);
+    case "module":
+      return compareStrings(formatTaskModule(left), formatTaskModule(right), direction);
     case "priority":
       return compareNumbers(getPriorityRank(left.priority), getPriorityRank(right.priority), direction);
     case "sprint":
@@ -3540,11 +4127,12 @@ function getPriorityRank(priority: string): number {
 function getStatusRank(status: TaskStatus): number {
   const ranks: Record<TaskStatus, number> = {
     open: 1,
-    in_progress: 2,
-    waiting_review: 3,
-    blocked: 4,
-    completed: 5,
-    cancelled: 6
+    assigned: 2,
+    in_progress: 3,
+    waiting_review: 4,
+    blocked: 5,
+    completed: 6,
+    cancelled: 7
   };
 
   return ranks[status];
@@ -3552,6 +4140,22 @@ function getStatusRank(status: TaskStatus): number {
 
 function getSprintSortValue(item: TaskReportRow): string {
   return getSprintAreaByCategory(item.category)?.key ?? item.category;
+}
+
+function formatTaskModule(
+  item: Pick<TaskReportRow, "mainModule" | "subModule">
+): string | undefined {
+  if (!item.mainModule && !item.subModule) {
+    return undefined;
+  }
+
+  if (!item.mainModule) {
+    return item.subModule;
+  }
+
+  return item.subModule
+    ? `${item.mainModule} / ${item.subModule}`
+    : item.mainModule;
 }
 
 function isUrgentSprintItem(item: TaskReportRow): boolean {
@@ -3624,6 +4228,8 @@ function formatSprintItemCode(item: TaskReportRow): string {
       ? "FAC"
       : area?.key === "infrastructure"
         ? "INF"
+        : area?.key === "master_data_collection"
+          ? "MDC"
         : "DEV";
   const numericPart = item.taskCode.match(/\d+/g)?.at(-1);
 
@@ -3669,12 +4275,17 @@ function resolveStateKey(item: TaskReportRow): string {
     return "todo";
   }
 
+  if (item.status === "assigned") {
+    return "assigned";
+  }
+
   return "in_progress";
 }
 
 function formatState(item: TaskReportRow, language: AppLanguage): string {
   const labels = {
     ar: {
+      assigned: "مسند",
       blocked: "محجوب",
       cancelled: "ملغي",
       completed: "مكتمل",
@@ -3683,6 +4294,7 @@ function formatState(item: TaskReportRow, language: AppLanguage): string {
       todo: "قيد الانتظار"
     },
     en: {
+      assigned: "Assigned",
       blocked: "Blocked",
       cancelled: "Cancelled",
       completed: "Completed",
@@ -3699,6 +4311,7 @@ function formatState(item: TaskReportRow, language: AppLanguage): string {
 function formatStatus(status: string, language: AppLanguage): string {
   const labels = {
     ar: {
+      assigned: "مسند",
       blocked: "محجوب",
       cancelled: "ملغي",
       completed: "مكتمل",
@@ -3707,6 +4320,7 @@ function formatStatus(status: string, language: AppLanguage): string {
       waiting_review: "مراجعة"
     },
     en: {
+      assigned: "Assigned",
       blocked: "Blocked",
       cancelled: "Cancelled",
       completed: "Completed",
