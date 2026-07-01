@@ -1,5 +1,7 @@
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BadgeDollarSign,
   Building2,
   Calculator,
@@ -49,6 +51,7 @@ import {
   deleteTaskModuleFromCatalog,
   deleteTaskSubModuleFromCatalog,
   getTaskModuleCatalog,
+  moveTaskModuleInCatalog,
   renameTaskSubModuleInCatalog,
   renameTaskModuleInCatalog,
   subscribeToTaskModuleCatalogChanges,
@@ -110,17 +113,7 @@ type ModuleVisual = {
 };
 
 const financeSubModuleOrder = [
-  "Payroll",
-  "Financial Reporting",
-  "Accounts Payable",
-  "Budgeting"
-];
-const referenceModuleOrder = [
-  "Finance Department",
-  "Personnel Affairs Department",
-  "Information Technology Department",
-  "Materials and Warehouses Department",
-  "Operations Department"
+  "Payrole"
 ];
 const referenceModuleMetrics: Record<
   string,
@@ -130,38 +123,10 @@ const referenceModuleMetrics: Record<
     pendingCount?: number;
     progress: number;
   }
-> = {
-  "Finance Department": {
-    blockedCount: 1,
-    completedCount: 5,
-    pendingCount: 8,
-    progress: 42
-  },
-  "Information Technology Department": {
-    progress: 35
-  },
-  "Materials and Warehouses Department": {
-    progress: 22
-  },
-  "Operations Department": {
-    progress: 31
-  },
-  "Personnel Affairs Department": {
-    progress: 28
-  }
-};
-const referenceSubModuleProgress: Record<string, Record<string, number>> = {
-  "Finance Department": {
-    "Accounts Payable": 30,
-    Budgeting: 20,
-    "Financial Reporting": 45,
-    Payroll: 80
-  }
-};
+> = {};
+const referenceSubModuleProgress: Record<string, Record<string, number>> = {};
 const referenceConnectedTaskOrder = [
-  "ERP-MDC-0005",
-  "ERP-DEV-0004",
-  "ERP-INF-0001"
+  "ERP-FIN-0001"
 ];
 const moduleTaskPriorityOptions: TaskPriority[] = ["low", "medium", "high", "urgent"];
 const moduleTaskStatusOptions: TaskStatus[] = [
@@ -263,12 +228,14 @@ function ModulesContentView({
     filteredModules[0] ??
     modules[0];
   const visibleModules = filteredModules;
+  const isSearchingModules = search.trim().length > 0;
   const pageStart = filteredModules.length > 0 ? 1 : 0;
   const pageEnd = filteredModules.length;
   const canManageModules =
     session.roleCode === "super_admin" ||
     session.roleCode === "it_manager" ||
     session.permissionCodes.includes("tasks:update");
+  const canReorderModules = canManageModules && !isSearchingModules;
   const visibleSubModules = selectedModule
     ? getVisibleSubModuleGroups(selectedModule)
     : [];
@@ -337,6 +304,12 @@ function ModulesContentView({
         ? "Module already exists. Sub modules were updated."
         : "Module added."
     );
+  }
+
+  function handleMoveModule(name: string, direction: "down" | "up") {
+    moveTaskModuleInCatalog(name, direction);
+    setSelectedModuleName(name);
+    setFormMessage("Module dashboard order updated.");
   }
 
   function openEditModule() {
@@ -797,30 +770,62 @@ function ModulesContentView({
                 const visual = getModuleVisual(module.name);
                 const Icon = visual.icon;
                 const metrics = getModuleDisplayMetrics(module);
+                const moduleIndex = modules.findIndex((entry) => entry.name === module.name);
 
                 return (
-                  <button
-                    className={`modules-list-item is-${visual.tone}${
-                      selectedModule?.name === module.name ? " is-active" : ""
-                    }`}
-                    key={module.name}
-                    onClick={() => setSelectedModuleName(module.name)}
-                    type="button"
-                  >
-                    <span className="modules-list-icon">
-                      <Icon size={30} strokeWidth={2.15} aria-hidden="true" />
-                    </span>
-                    <span className="modules-list-copy">
-                      <strong>{module.name}</strong>
-                      <small>{module.taskCount} Sprint Items</small>
-                    </span>
-                    <b>{metrics.progress}%</b>
-                    <ProgressRing
-                      className="modules-list-ring"
-                      progress={metrics.progress}
-                      tone={visual.tone}
-                    />
-                  </button>
+                  <div className="modules-list-entry" key={module.name}>
+                    <button
+                      className={`modules-list-item is-${visual.tone}${
+                        selectedModule?.name === module.name ? " is-active" : ""
+                      }`}
+                      onClick={() => setSelectedModuleName(module.name)}
+                      type="button"
+                    >
+                      <span className="modules-list-icon">
+                        <Icon size={30} strokeWidth={2.15} aria-hidden="true" />
+                      </span>
+                      <span className="modules-list-copy">
+                        <strong>{module.name}</strong>
+                        <small>{module.taskCount} Sprint Items</small>
+                      </span>
+                      <b>{metrics.progress}%</b>
+                      <ProgressRing
+                        className="modules-list-ring"
+                        progress={metrics.progress}
+                        tone={visual.tone}
+                      />
+                    </button>
+                    {canManageModules ? (
+                      <span className="modules-order-controls">
+                        <button
+                          aria-label={`Move ${module.name} up`}
+                          disabled={!canReorderModules || moduleIndex <= 0}
+                          onClick={() => handleMoveModule(module.name, "up")}
+                          title={
+                            isSearchingModules
+                              ? "Clear search to reorder modules"
+                              : `Move ${module.name} up`
+                          }
+                          type="button"
+                        >
+                          <ArrowUp size={16} strokeWidth={2.4} aria-hidden="true" />
+                        </button>
+                        <button
+                          aria-label={`Move ${module.name} down`}
+                          disabled={!canReorderModules || moduleIndex === modules.length - 1}
+                          onClick={() => handleMoveModule(module.name, "down")}
+                          title={
+                            isSearchingModules
+                              ? "Clear search to reorder modules"
+                              : `Move ${module.name} down`
+                          }
+                          type="button"
+                        >
+                          <ArrowDown size={16} strokeWidth={2.4} aria-hidden="true" />
+                        </button>
+                      </span>
+                    ) : null}
+                  </div>
                 );
               })}
             </div>
@@ -1602,7 +1607,7 @@ function getModuleDisplayMetrics(module: ModuleSummary): ModuleSummary {
 function getVisibleSubModules(module: ModuleSummary): SubModuleSummary[] {
   return [...module.subModules]
     .sort((left, right) => {
-      if (module.name === "Finance Department") {
+      if (module.name === "FINANCE") {
         const leftIndex = financeSubModuleOrder.indexOf(left.name);
         const rightIndex = financeSubModuleOrder.indexOf(right.name);
 
@@ -1637,7 +1642,7 @@ function getVisibleSubModuleGroups(module: ModuleSummary): SubModuleTaskGroup[] 
 }
 
 function sortTasksForModuleDisplay(moduleName: string, tasks: TaskReportRow[]): TaskReportRow[] {
-  if (moduleName !== "Finance Department") {
+  if (moduleName !== "FINANCE") {
     return tasks;
   }
 
@@ -1665,6 +1670,7 @@ function getModuleVisual(name: string): ModuleVisual {
   }
 
   if (
+    lowerName.includes("human") ||
     lowerName.includes("personnel") ||
     lowerName.includes("training") ||
     lowerName.includes("medical")
@@ -1681,7 +1687,11 @@ function getModuleVisual(name: string): ModuleVisual {
     return { color: "#16a34a", icon: Database, tone: "green" };
   }
 
-  if (lowerName.includes("materials") || lowerName.includes("warehouse")) {
+  if (
+    lowerName.includes("supply") ||
+    lowerName.includes("materials") ||
+    lowerName.includes("warehouse")
+  ) {
     return { color: "#ff6a13", icon: Building2, tone: "orange" };
   }
 
@@ -1700,7 +1710,7 @@ function getModuleVisual(name: string): ModuleVisual {
 function getSubModuleVisual(name: string, index: number): ModuleVisual {
   const lowerName = name.toLowerCase();
 
-  if (lowerName.includes("payroll")) {
+  if (lowerName.includes("payrole") || lowerName.includes("payroll")) {
     return { color: "#116dff", icon: FileText, tone: "blue" };
   }
 
@@ -1759,6 +1769,7 @@ function buildModuleSummaries(
   items: TaskReportRow[]
 ): ModuleSummary[] {
   const catalogMap = new Map(catalog.map((module) => [module.name, module]));
+  const catalogOrder = new Map(catalog.map((module, index) => [module.name, index]));
 
   for (const item of items) {
     const mainModule = item.mainModule?.trim();
@@ -1799,19 +1810,14 @@ function buildModuleSummaries(
         tasks: moduleTasks
       };
     })
-    .sort((left, right) =>
-      getReferenceModuleIndex(left.name) === getReferenceModuleIndex(right.name)
-        ? right.taskCount === left.taskCount
-          ? left.name.localeCompare(right.name)
-          : right.taskCount - left.taskCount
-        : getReferenceModuleIndex(left.name) - getReferenceModuleIndex(right.name)
-    );
-}
+    .sort((left, right) => {
+      const leftIndex = catalogOrder.get(left.name) ?? 999;
+      const rightIndex = catalogOrder.get(right.name) ?? 999;
 
-function getReferenceModuleIndex(name: string): number {
-  const index = referenceModuleOrder.indexOf(name);
-
-  return index === -1 ? 999 : index;
+      return leftIndex === rightIndex
+        ? left.name.localeCompare(right.name)
+        : leftIndex - rightIndex;
+    });
 }
 
 function calculateAverageProgress(items: TaskReportRow[]): number {

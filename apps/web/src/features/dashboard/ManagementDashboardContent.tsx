@@ -401,6 +401,7 @@ function buildModuleRows(
   catalog: TaskModuleDefinition[]
 ): ModuleSummary[] {
   const catalogByName = new Map(catalog.map((module) => [module.name, module]));
+  const catalogOrder = new Map(catalog.map((module, index) => [module.name, index]));
 
   for (const item of items) {
     const mainModule = item.mainModule?.trim();
@@ -414,7 +415,14 @@ function buildModuleRows(
   }
 
   return [...catalogByName.values()]
-    .sort((left, right) => left.name.localeCompare(right.name))
+    .sort((left, right) => {
+      const leftIndex = catalogOrder.get(left.name) ?? 999;
+      const rightIndex = catalogOrder.get(right.name) ?? 999;
+
+      return leftIndex === rightIndex
+        ? left.name.localeCompare(right.name)
+        : leftIndex - rightIndex;
+    })
     .flatMap((module) => {
       const moduleItems = items.filter((item) => item.mainModule?.trim() === module.name);
       const taskSubModules = moduleItems

@@ -1,8 +1,9 @@
 export const manualSubModuleValue = "__manual__";
 
-const customModuleStorageKey = "itdcc.customTaskModules";
-const deletedModuleStorageKey = "itdcc.deletedTaskModules";
-const hiddenSubModuleStorageKey = "itdcc.hiddenTaskSubModules";
+const customModuleStorageKey = "itdcc.erpDepartments.customTaskModules";
+const deletedModuleStorageKey = "itdcc.erpDepartments.deletedTaskModules";
+const hiddenSubModuleStorageKey = "itdcc.erpDepartments.hiddenTaskSubModules";
+const moduleOrderStorageKey = "itdcc.erpDepartments.taskModuleOrder";
 const moduleCatalogChangeEvent = "itdcc:task-module-catalog-changed";
 
 export type TaskModuleDefinition = {
@@ -11,140 +12,25 @@ export type TaskModuleDefinition = {
 };
 
 export const companyMainModules = [
-  "Finance Department",
-  "Personnel Affairs Department",
-  "Training and Development Department",
-  "Medical Affairs Department",
-  "Benghazi Office Department",
-  "Insurance Control",
-  "Operations Department",
-  "Maintenance Department",
-  "Services Department",
-  "Transport Department",
-  "Aviation, Dispatch and Travel Operations Coordinator",
-  "Site Services Control",
-  "Petroleum Engineering Department",
-  "Management Committee Office",
-  "Legal and Review Department",
-  "Internal Audit Department",
-  "Planning and Follow-up Department",
-  "Health, Safety and Environment Department",
-  "General Engineering Department",
-  "Drilling Department",
-  "Joint Development Projects Team",
-  "Information Technology Department",
-  "Documents and Information Department",
-  "Communications Department",
-  "Materials and Warehouses Department",
-  "Contracts Affairs Office"
+  "FINANCE",
+  "HUMAN RESOURCES",
+  "SUPPLY CHAIN",
+  "MAINTENANCE",
+  "OTHER DEPARTMENTS"
 ] as const;
 
 export type CompanyMainModule = (typeof companyMainModules)[number];
 
 const defaultSubModules = [
-  "Administration",
-  "Coordination",
-  "Reporting",
-  "Compliance",
-  "Follow-up"
+  "General"
 ] as const;
 
 const subModulesByMainModule: Partial<Record<CompanyMainModule, readonly string[]>> = {
-  "Communications Department": [
-    "Radio",
-    "Telecom",
-    "Internet",
-    "Mobile Services",
-    "VSAT"
-  ],
-  "Contracts Affairs Office": [
-    "Contract Review",
-    "Tendering",
-    "Vendor Coordination",
-    "Renewals"
-  ],
-  "Documents and Information Department": [
-    "Archive",
-    "Correspondence",
-    "Records",
-    "Document Control"
-  ],
-  "Finance Department": [
-    "Accounts Payable",
-    "Accounts Receivable",
-    "Budgeting",
-    "Payroll",
-    "Financial Reporting",
-    "Cost Control"
-  ],
-  "Health, Safety and Environment Department": [
-    "Incident Reporting",
-    "Safety Audits",
-    "Environmental Compliance",
-    "PPE",
-    "Permits"
-  ],
-  "Information Technology Department": [
-    "ERP",
-    "Applications",
-    "Infrastructure",
-    "Network",
-    "Cybersecurity",
-    "Service Desk",
-    "Access Management",
-    "Hardware"
-  ],
-  "Maintenance Department": [
-    "Preventive Maintenance",
-    "Corrective Maintenance",
-    "Shutdown Planning",
-    "Workshop",
-    "CMMS"
-  ],
-  "Materials and Warehouses Department": [
-    "Warehouses",
-    "Inventory",
-    "Procurement Support",
-    "Stock Control"
-  ],
-  "Medical Affairs Department": [
-    "Clinics",
-    "Medical Records",
-    "Claims",
-    "Occupational Health"
-  ],
-  "Operations Department": [
-    "Production Operations",
-    "Field Operations",
-    "Dispatch",
-    "Daily Reports"
-  ],
-  "Personnel Affairs Department": [
-    "Employee Records",
-    "Recruitment",
-    "Attendance",
-    "Benefits",
-    "HR Services"
-  ],
-  "Services Department": [
-    "Camp Services",
-    "Catering",
-    "Facility Requests",
-    "Janitorial"
-  ],
-  "Training and Development Department": [
-    "Training Plan",
-    "Courses",
-    "Competency",
-    "Onboarding"
-  ],
-  "Transport Department": [
-    "Fleet",
-    "Vehicle Requests",
-    "Drivers",
-    "Fuel",
-    "Maintenance Coordination"
-  ]
+  FINANCE: ["Payrole"],
+  "HUMAN RESOURCES": ["General"],
+  "SUPPLY CHAIN": ["General"],
+  MAINTENANCE: ["General"],
+  "OTHER DEPARTMENTS": ["General"]
 };
 
 export function getSubModuleOptions(mainModule: string): string[] {
@@ -163,11 +49,18 @@ export function getSubModuleOptions(mainModule: string): string[] {
 
 export function getCompanyMainModules(): string[] {
   const deletedModules = new Set(getDeletedTaskModules());
-
-  return uniqueSortedStrings([
+  const modules = uniqueStrings([
     ...companyMainModules,
     ...getCustomTaskModules().map((module) => module.name)
   ]).filter((module) => !deletedModules.has(module));
+  const moduleSet = new Set(modules);
+  const savedOrder = getTaskModuleOrder().filter((module) => moduleSet.has(module));
+  const orderedSet = new Set(savedOrder);
+
+  return [
+    ...savedOrder,
+    ...modules.filter((module) => !orderedSet.has(module))
+  ];
 }
 
 export function getTaskModuleCatalog(): TaskModuleDefinition[] {
@@ -200,6 +93,7 @@ export function addCustomTaskModule(name: string, subModules: string[] = []): Ta
       name: normalizedName,
       subModules: normalizedSubModules
     });
+    addTaskModuleToOrder(normalizedName);
   }
 
   saveCustomTaskModules(customModules);
@@ -226,6 +120,7 @@ export function deleteTaskModuleFromCatalog(name: string): TaskModuleDefinition[
     getCustomTaskModules().filter((module) => module.name !== normalizedName)
   );
   hideTaskModule(normalizedName);
+  removeTaskModuleFromOrder(normalizedName);
   notifyTaskModuleCatalogChanged();
 
   return getCustomTaskModules();
@@ -271,12 +166,41 @@ export function renameTaskModuleInCatalog(
   if (normalizedOldName !== normalizedNewName) {
     hideTaskModule(normalizedOldName);
     unhideTaskModule(normalizedNewName);
+    renameTaskModuleInOrder(normalizedOldName, normalizedNewName);
   }
 
   saveCustomTaskModules(nextCustomModules);
   notifyTaskModuleCatalogChanged();
 
   return getCustomTaskModules();
+}
+
+export function moveTaskModuleInCatalog(
+  name: string,
+  direction: "down" | "up"
+): string[] {
+  const modules = getCompanyMainModules();
+  const normalizedName = normalizeModuleValue(name);
+  const currentIndex = modules.indexOf(normalizedName);
+
+  if (currentIndex === -1) {
+    return modules;
+  }
+
+  const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+  if (nextIndex < 0 || nextIndex >= modules.length) {
+    return modules;
+  }
+
+  const nextModules = [...modules];
+  const [movedModule] = nextModules.splice(currentIndex, 1);
+
+  nextModules.splice(nextIndex, 0, movedModule);
+  saveTaskModuleOrder(nextModules);
+  notifyTaskModuleCatalogChanged();
+
+  return nextModules;
 }
 
 export function deleteTaskSubModuleFromCatalog(
@@ -387,6 +311,67 @@ function getDeletedTaskModules(): string[] {
   } catch {
     return [];
   }
+}
+
+function getTaskModuleOrder(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(moduleOrderStorageKey) ?? "[]") as unknown;
+
+    return Array.isArray(parsed)
+      ? uniqueStrings(parsed.map((value) => String(value)))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTaskModuleOrder(modules: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(moduleOrderStorageKey, JSON.stringify(uniqueStrings(modules)));
+}
+
+function addTaskModuleToOrder(name: string) {
+  const normalizedName = normalizeModuleValue(name);
+
+  if (!normalizedName) {
+    return;
+  }
+
+  saveTaskModuleOrder([...getTaskModuleOrder(), normalizedName]);
+}
+
+function removeTaskModuleFromOrder(name: string) {
+  const normalizedName = normalizeModuleValue(name);
+
+  saveTaskModuleOrder(getTaskModuleOrder().filter((module) => module !== normalizedName));
+}
+
+function renameTaskModuleInOrder(oldName: string, newName: string) {
+  const normalizedOldName = normalizeModuleValue(oldName);
+  const normalizedNewName = normalizeModuleValue(newName);
+  const currentOrder = getTaskModuleOrder();
+
+  if (!normalizedOldName || !normalizedNewName) {
+    return;
+  }
+
+  if (!currentOrder.includes(normalizedOldName)) {
+    saveTaskModuleOrder([...currentOrder, normalizedNewName]);
+    return;
+  }
+
+  saveTaskModuleOrder(
+    currentOrder.map((module) =>
+      module === normalizedOldName ? normalizedNewName : module
+    )
+  );
 }
 
 function saveDeletedTaskModules(modules: string[]) {
@@ -520,9 +505,12 @@ function normalizeModuleValue(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map(normalizeModuleValue).filter(Boolean))];
+}
+
 function uniqueSortedStrings(values: string[]): string[] {
-  return [...new Set(values.map(normalizeModuleValue).filter(Boolean))]
-    .sort((left, right) => left.localeCompare(right));
+  return uniqueStrings(values).sort((left, right) => left.localeCompare(right));
 }
 
 function uniqueByName(modules: TaskModuleDefinition[]): TaskModuleDefinition[] {
