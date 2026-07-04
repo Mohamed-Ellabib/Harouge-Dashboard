@@ -1,14 +1,17 @@
 import {
+  Activity,
   ArrowRight,
   Building2,
+  ChartColumn,
   ChevronDown,
+  ClipboardCheck,
   Code2,
   Database,
-  FileText,
-  Gauge,
+  Flag,
   Grip,
-  Landmark,
-  Server,
+  ShieldCheck,
+  Target,
+  TrendingUp,
   type LucideIcon
 } from "lucide-react";
 import {
@@ -56,6 +59,21 @@ type SprintSummary = {
   pendingCount: number;
   progress: number;
   tone: "blue" | "green" | "orange" | "purple";
+  weight: number;
+};
+
+type SprintAreaWeights = {
+  development: number;
+  facility: number;
+  infrastructure: number;
+  master_data_collection: number;
+};
+
+const defaultSprintAreaWeights: SprintAreaWeights = {
+  development: 40,
+  facility: 10,
+  infrastructure: 20,
+  master_data_collection: 30
 };
 
 type ModuleSummary = {
@@ -99,8 +117,8 @@ function ManagementDashboardContentView({
         : { isRefreshing: true, items: [], status: "ready" }
     );
 
-    api
-      .getTaskReport({ limit: 100, sortBy: "lastProgressUpdateAt", sortOrder: "desc" })
+        api
+          .getTaskReport({ limit: 100 })
       .then((taskResult) => {
         if (!isMounted) {
           return;
@@ -161,10 +179,14 @@ function ManagementDashboardContentView({
 
   const items = state.status === "ready" ? state.items : [];
   const projectProgress = state.status === "ready" ? state.projectProgress : undefined;
-  const overallProgress = projectProgress?.percentage ?? calculateAverageProgress(items);
+  const sprintAreaWeights = projectProgress?.areaWeights ?? defaultSprintAreaWeights;
   const sprintSummaries = useMemo(
-    () => buildSprintSummaries(items, t),
-    [items, t]
+    () => buildSprintSummaries(items, t, sprintAreaWeights),
+    [items, t, sprintAreaWeights]
+  );
+  const overallProgress = useMemo(
+    () => calculateWeightedOverallProgress(sprintSummaries),
+    [sprintSummaries]
   );
   const moduleCatalog = useMemo(() => getTaskModuleCatalog(), [catalogVersion]);
   const moduleRows = useMemo(() => buildModuleRows(items, moduleCatalog), [items, moduleCatalog]);
@@ -230,13 +252,13 @@ function ManagementDashboardContentView({
   return (
     <section
       aria-label={`ERP management dashboard for ${sessionOwnerLabel}`}
-      className="management-v2-page"
+      className="management-v2-page management-v2-restyled"
     >
       <section className="management-v2-sprints-grid" aria-label="Project and sprints">
         <article className="management-v2-sprint-card is-project-progress">
           <header>
             <span className="management-v2-sprint-icon">
-              <Gauge size={27} strokeWidth={2.2} aria-hidden="true" />
+              <Target size={27} strokeWidth={2.2} aria-hidden="true" />
             </span>
             <h3>Overall Project Progress</h3>
           </header>
@@ -278,6 +300,10 @@ function ManagementDashboardContentView({
                   <dt>Pending</dt>
                   <dd>{sprint.pendingCount}</dd>
                 </div>
+                <div>
+                  <dt>Target</dt>
+                  <dd>{sprint.weight}%</dd>
+                </div>
               </dl>
 
               <button
@@ -316,6 +342,7 @@ function ManagementDashboardContentView({
             } as CSSProperties;
             const canToggle = row.hasChildren;
             const isExpanded = expandedModuleIds.has(row.id);
+            const miniBars = buildMiniChartHeights(row.progress);
 
             return (
               <article
@@ -358,7 +385,22 @@ function ManagementDashboardContentView({
                 ) : (
                   <>
                     <strong>{row.label}</strong>
-                    <span className="management-v2-module-mini-ring">
+                    <span
+                      aria-label={`${row.label} progress ${row.progress}%`}
+                      className="management-v2-module-chart"
+                      role="img"
+                    >
+                      <span className="management-v2-module-chart-bars" aria-hidden="true">
+                        {miniBars.map((height, index) => (
+                          <span
+                            key={`${row.id}-bar-${index}`}
+                            style={{ "--bar-height": `${height}%` } as CSSProperties}
+                          />
+                        ))}
+                      </span>
+                      <span className="management-v2-module-chart-line" aria-hidden="true">
+                        <span />
+                      </span>
                       <b>{row.progress}%</b>
                     </span>
                   </>
@@ -376,7 +418,8 @@ export const ManagementDashboardContent = memo(ManagementDashboardContentView);
 
 function buildSprintSummaries(
   items: TaskReportRow[],
-  t: (key: string) => string
+  t: (key: string) => string,
+  weights: SprintAreaWeights
 ): SprintSummary[] {
   return sprintAreaDefinitions.map((area) => {
     const areaItems = filterItemsBySprintArea(items, area.key);
@@ -391,9 +434,23 @@ function buildSprintSummaries(
       label: t(area.labelKey),
       pendingCount,
       progress,
-      tone: area.tone
+      tone: area.tone,
+      weight: weights[area.key]
     };
   });
+}
+
+function calculateWeightedOverallProgress(summaries: SprintSummary[]): number {
+  if (summaries.length === 0) {
+    return 0;
+  }
+
+  const weighted = summaries.reduce(
+    (sum, summary) => sum + (summary.progress * summary.weight) / 100,
+    0
+  );
+
+  return Math.round(weighted);
 }
 
 function buildModuleRows(
@@ -401,12 +458,22 @@ function buildModuleRows(
   catalog: TaskModuleDefinition[]
 ): ModuleSummary[] {
   const catalogByName = new Map(catalog.map((module) => [module.name, module]));
-  const catalogOrder = new Map(catalog.map((module, index) => [module.name, index]));
+  const moduleOrderFromItems: string[] = [];
+  const seenModuleNames = new Set<string>();
 
   for (const item of items) {
     const mainModule = item.mainModule?.trim();
 
-    if (mainModule && !catalogByName.has(mainModule)) {
+    if (!mainModule) {
+      continue;
+    }
+
+    if (!seenModuleNames.has(mainModule)) {
+      seenModuleNames.add(mainModule);
+      moduleOrderFromItems.push(mainModule);
+    }
+
+    if (!catalogByName.has(mainModule)) {
       catalogByName.set(mainModule, {
         name: mainModule,
         subModules: []
@@ -414,77 +481,79 @@ function buildModuleRows(
     }
   }
 
-  return [...catalogByName.values()]
-    .sort((left, right) => {
-      const leftIndex = catalogOrder.get(left.name) ?? 999;
-      const rightIndex = catalogOrder.get(right.name) ?? 999;
+  const catalogOnlyModuleNames = catalog
+    .map((module) => module.name)
+    .filter((name) => !seenModuleNames.has(name));
+  const orderedModuleNames = [...moduleOrderFromItems, ...catalogOnlyModuleNames];
 
-      return leftIndex === rightIndex
-        ? left.name.localeCompare(right.name)
-        : leftIndex - rightIndex;
-    })
-    .flatMap((module) => {
-      const moduleItems = items.filter((item) => item.mainModule?.trim() === module.name);
-      const taskSubModules = moduleItems
-        .map((item) => item.subModule?.trim())
-        .filter((value): value is string => Boolean(value));
-      const subModules = uniqueStrings([...module.subModules, ...taskSubModules])
-        .sort((left, right) => left.localeCompare(right));
-      const moduleId = `module:${module.name}`;
+  return orderedModuleNames.flatMap((moduleName) => {
+    const module = catalogByName.get(moduleName);
 
-      return [
-        {
-          hasChildren: subModules.length > 0,
-          icon: Landmark,
-          id: moduleId,
-          indent: 0 as const,
-          label: module.name,
-          progress: calculateAverageProgress(moduleItems),
-          rowType: "module" as const
-        },
-        ...subModules.flatMap((subModule) => {
-          const subModuleItems = moduleItems.filter((item) => item.subModule?.trim() === subModule);
-          const subModuleId = `${moduleId}:sub:${subModule}`;
+    if (!module) {
+      return [];
+    }
 
-          return [
-            {
-              hasChildren: subModuleItems.length > 0,
-              icon: FileText,
-              id: subModuleId,
-              indent: 1 as const,
-              label: subModule,
-              moduleId,
-              parentId: moduleId,
-              progress: calculateAverageProgress(subModuleItems),
-              rowType: "submodule" as const
-            },
-            ...subModuleItems
-              .sort((left, right) => left.taskCode.localeCompare(right.taskCode))
-              .map((item) => ({
-                hasChildren: false,
-                icon: FileText,
-                id: `${subModuleId}:task:${item.id}`,
-                indent: 2 as const,
-                label: item.title,
-                meta: `${resolveSprintLabel(item)} | ${formatStatusLabel(item.status)}`,
-                moduleId,
-                parentId: subModuleId,
-                progress: item.progress,
-                rowType: "task" as const,
-                status: item.status,
-                taskCode: item.taskCode
-              }))
-          ];
-        })
-      ];
-    });
+    const moduleItems = items.filter((item) => item.mainModule?.trim() === module.name);
+    const taskSubModules = moduleItems
+      .map((item) => item.subModule?.trim())
+      .filter((value): value is string => Boolean(value));
+    const subModules = [
+      ...uniqueStrings(taskSubModules),
+      ...module.subModules.filter((name) => !taskSubModules.includes(name))
+    ];
+    const moduleId = `module:${module.name}`;
+
+    return [
+      {
+        hasChildren: subModules.length > 0,
+        icon: ChartColumn,
+        id: moduleId,
+        indent: 0 as const,
+        label: module.name,
+        progress: calculateAverageProgress(moduleItems),
+        rowType: "module" as const
+      },
+      ...subModules.flatMap((subModule) => {
+        const subModuleItems = moduleItems.filter((item) => item.subModule?.trim() === subModule);
+        const subModuleId = `${moduleId}:sub:${subModule}`;
+
+        return [
+          {
+            hasChildren: subModuleItems.length > 0,
+            icon: Activity,
+            id: subModuleId,
+            indent: 1 as const,
+            label: subModule,
+            moduleId,
+            parentId: moduleId,
+            progress: calculateAverageProgress(subModuleItems),
+            rowType: "submodule" as const
+          },
+          ...subModuleItems.map((item) => ({
+            hasChildren: false,
+            icon: ClipboardCheck,
+            id: `${subModuleId}:task:${item.id}`,
+            indent: 2 as const,
+            label: item.title,
+            meta: `${resolveSprintLabel(item)} | ${formatStatusLabel(item.status)}`,
+            moduleId,
+            parentId: subModuleId,
+            progress: item.progress,
+            rowType: "task" as const,
+            status: item.status,
+            taskCode: item.taskCode
+          }))
+        ];
+      })
+    ];
+  });
 }
 
 function getSprintIcon(areaKey: SprintAreaKey): LucideIcon {
   const icons: Record<SprintAreaKey, LucideIcon> = {
     development: Code2,
-    facility: Building2,
-    infrastructure: Server,
+    facility: Flag,
+    infrastructure: ShieldCheck,
     master_data_collection: Database
   };
 
@@ -534,4 +603,11 @@ function formatStatusLabel(status: string): string {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function buildMiniChartHeights(progress: number): number[] {
+  const clamped = Math.min(100, Math.max(0, progress));
+  const multipliers = [0.44, 0.58, 0.72, 0.86, 1];
+
+  return multipliers.map((factor) => Math.max(12, Math.round(clamped * factor)));
 }

@@ -413,6 +413,12 @@ export type CreateSprintPayload = {
 export type UpdateSprintPayload = Partial<CreateSprintPayload>;
 
 export type ProjectProgressRecord = {
+  areaWeights: {
+    development: number;
+    facility: number;
+    infrastructure: number;
+    master_data_collection: number;
+  };
   createdAt?: string;
   history: ProjectProgressHistoryRecord[];
   id: string;

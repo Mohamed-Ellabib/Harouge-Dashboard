@@ -179,9 +179,7 @@ function ModulesContentView({
     setState((current) => (current.status === "ready" ? current : { status: "loading" }));
 
     api.getTaskReport({
-      limit: 100,
-      sortBy: "lastProgressUpdateAt",
-      sortOrder: "desc"
+      limit: 100
     })
       .then((result) => {
         if (isMounted) {
@@ -1605,23 +1603,7 @@ function getModuleDisplayMetrics(module: ModuleSummary): ModuleSummary {
 }
 
 function getVisibleSubModules(module: ModuleSummary): SubModuleSummary[] {
-  return [...module.subModules]
-    .sort((left, right) => {
-      if (module.name === "FINANCE") {
-        const leftIndex = financeSubModuleOrder.indexOf(left.name);
-        const rightIndex = financeSubModuleOrder.indexOf(right.name);
-
-        if (leftIndex !== rightIndex) {
-          return (leftIndex === -1 ? 999 : leftIndex) - (rightIndex === -1 ? 999 : rightIndex);
-        }
-      }
-
-      if (right.taskCount !== left.taskCount) {
-        return right.taskCount - left.taskCount;
-      }
-
-      return left.name.localeCompare(right.name);
-    });
+  return [...module.subModules];
 }
 
 function getVisibleSubModuleGroups(module: ModuleSummary): SubModuleTaskGroup[] {
@@ -1642,20 +1624,8 @@ function getVisibleSubModuleGroups(module: ModuleSummary): SubModuleTaskGroup[] 
 }
 
 function sortTasksForModuleDisplay(moduleName: string, tasks: TaskReportRow[]): TaskReportRow[] {
-  if (moduleName !== "FINANCE") {
-    return tasks;
-  }
-
-  return [...tasks].sort((left, right) => {
-    const leftIndex = referenceConnectedTaskOrder.indexOf(left.taskCode);
-    const rightIndex = referenceConnectedTaskOrder.indexOf(right.taskCode);
-
-    if (leftIndex !== rightIndex) {
-      return (leftIndex === -1 ? 999 : leftIndex) - (rightIndex === -1 ? 999 : rightIndex);
-    }
-
-    return left.title.localeCompare(right.title);
-  });
+  void moduleName;
+  return tasks;
 }
 
 function getSubModuleDisplayProgress(moduleName: string, subModule: SubModuleSummary): number {
@@ -1787,8 +1757,10 @@ function buildModuleSummaries(
       const taskSubModules = moduleTasks
         .map((item) => item.subModule?.trim())
         .filter((value): value is string => Boolean(value));
-      const subModuleNames = [...new Set([...module.subModules, ...taskSubModules])]
-        .sort((left, right) => left.localeCompare(right));
+      const subModuleNames = [
+        ...new Set(taskSubModules),
+        ...module.subModules.filter((name) => !taskSubModules.includes(name))
+      ];
       const subModules = subModuleNames.map((name) => {
         const subModuleTasks = moduleTasks.filter((item) => item.subModule?.trim() === name);
 
@@ -1809,14 +1781,6 @@ function buildModuleSummaries(
         taskCount: moduleTasks.length,
         tasks: moduleTasks
       };
-    })
-    .sort((left, right) => {
-      const leftIndex = catalogOrder.get(left.name) ?? 999;
-      const rightIndex = catalogOrder.get(right.name) ?? 999;
-
-      return leftIndex === rightIndex
-        ? left.name.localeCompare(right.name)
-        : leftIndex - rightIndex;
     });
 }
 

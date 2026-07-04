@@ -6,6 +6,12 @@ import {
 } from "./project-progress.model";
 
 export interface ProjectProgressDto {
+  areaWeights: {
+    development: number;
+    facility: number;
+    infrastructure: number;
+    master_data_collection: number;
+  };
   createdAt?: Date;
   history: ProjectProgressHistoryDto[];
   id: string;
@@ -38,6 +44,12 @@ export function serializeProjectProgress(
   history: ProjectProgressHistoryDto[] = []
 ): ProjectProgressDto {
   return {
+    areaWeights: {
+      development: projectProgress.areaWeights.development,
+      facility: projectProgress.areaWeights.facility,
+      infrastructure: projectProgress.areaWeights.infrastructure,
+      master_data_collection: projectProgress.areaWeights.master_data_collection
+    },
     ...(projectProgress.createdAt ? { createdAt: projectProgress.createdAt } : {}),
     history,
     id: String(projectProgress._id),

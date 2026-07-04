@@ -39,6 +39,7 @@ import {
   type TaskReportRow,
   type UserRecord
 } from "../../api/client";
+import { GlobalHarougeWordEffect } from "../../app/GlobalHarougeWordEffect";
 import { useI18n } from "../../i18n";
 import type { AppLanguage } from "../../i18n/locale";
 import {
@@ -164,7 +165,8 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
   const [quickActionModal, setQuickActionModal] = useState<QuickActionModal>(null);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [dataRefreshVersion, setDataRefreshVersion] = useState(api.getDataVersion());
-  const [theme, setTheme] = useState<DashboardTheme>("dark");
+  const [breakingNewsItems, setBreakingNewsItems] = useState<string[]>([]);
+  const [theme, setTheme] = useState<DashboardTheme>("light");
   const userMenuRef = useRef<HTMLDivElement>(null);
   const activePage = resolveActivePage(location.pathname);
   const usesModulesPageTreatment =
@@ -254,6 +256,28 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
       setDataRefreshVersion(event.version);
     });
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void loadAllSprintItemsForTicker(language)
+      .then((items) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setBreakingNewsItems(buildBreakingNewsItems(items, language));
+      })
+      .catch(() => {
+        if (isMounted) {
+          setBreakingNewsItems([]);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [dataRefreshVersion, language]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -375,7 +399,6 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           {isManagementDashboardPage ? (
             <div className="dashboard-management-header-brand" aria-hidden="true">
               <img src="/harouge-logo.svg" alt="" />
-              <span />
             </div>
           ) : null}
 
@@ -598,6 +621,31 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           <UsersContent refreshSignal={dataRefreshVersion} />
         )}
 
+        {isManagementDashboardPage ? (
+          <footer className="dashboard-breaking-footer" aria-label="Breaking sprint updates">
+            <span className="dashboard-breaking-badge">
+              <i aria-hidden="true" />
+              {language === "ar" ? "عاجل" : "BREAKING"}
+            </span>
+            <div className="dashboard-breaking-marquee" role="status" aria-live="polite">
+              <div className="dashboard-breaking-track">
+                {(breakingNewsItems.length > 0
+                  ? [...breakingNewsItems, ...breakingNewsItems]
+                  : [
+                      language === "ar"
+                        ? "لا توجد عناصر سبرنت حاليا"
+                        : "No sprint items at the moment"
+                    ]
+                ).map((item, index) => (
+                  <span className="dashboard-breaking-item" key={`${item}-${index}`}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </footer>
+        ) : null}
+
         {quickActionModal === "addSprintItem" ? (
           <SprintItemsQuickActionModal
             action="create"
@@ -623,6 +671,7 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
           />
         ) : null}
       </main>
+      {isManagementDashboardPage ? <GlobalHarougeWordEffect /> : null}
     </div>
   );
 }
@@ -852,6 +901,62 @@ function resolveActivePage(pathname: string): ShellPage {
   }
 
   return pathname === "/users" ? "users" : "dashboard";
+}
+
+function buildBreakingNewsItems(items: TaskReportRow[], language: AppLanguage): string[] {
+  const allItems = items
+    .slice(0, 40)
+    .map((item) => {
+      const code = item.taskCode || item.id;
+      const moduleName = item.mainModule?.trim();
+      const progress = Number.isFinite(item.progress) ? item.progress : 0;
+      const status = formatStatusLabel(item.status);
+
+      if (language === "ar") {
+        return `${code} - ${item.title} (${progress}% | ${status})${moduleName ? ` | ${moduleName}` : ""}`;
+      }
+
+      return `${code} - ${item.title} (${progress}% | ${status})${moduleName ? ` | ${moduleName}` : ""}`;
+    });
+
+  return [...new Set(allItems.filter(Boolean))];
+}
+
+async function loadAllSprintItemsForTicker(language: AppLanguage): Promise<TaskReportRow[]> {
+  const allItems: TaskReportRow[] = [];
+  const limit = 100;
+  let page = 1;
+  let hasNextPage = true;
+
+  while (hasNextPage && page <= 20) {
+    const result = await api.getTaskReport({
+      limit,
+      page,
+      sortBy: "createdAt",
+      sortOrder: "desc"
+    });
+
+    allItems.push(...result.data);
+    hasNextPage = Boolean(result.pagination.hasNextPage);
+    page += 1;
+
+    if (result.data.length === 0) {
+      hasNextPage = false;
+    }
+  }
+
+  if (language === "ar") {
+    return allItems;
+  }
+
+  return allItems;
+}
+
+function formatStatusLabel(status: string): string {
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function resolvePageChrome(

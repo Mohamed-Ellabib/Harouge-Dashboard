@@ -30,7 +30,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [theme, setTheme] = useState<LoginTheme>("dark");
+  const [theme, setTheme] = useState<LoginTheme>("light");
   const isDarkMode = theme === "dark";
   const ThemeIcon = isDarkMode ? Sun : Moon;
 

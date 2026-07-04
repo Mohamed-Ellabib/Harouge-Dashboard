@@ -26,6 +26,20 @@ export interface ProjectProgressTimelineStage {
   status: ProjectProgressTimelineStageStatus;
 }
 
+export interface ProjectProgressAreaWeights {
+  development: number;
+  facility: number;
+  infrastructure: number;
+  master_data_collection: number;
+}
+
+export const defaultProjectProgressAreaWeights: ProjectProgressAreaWeights = {
+  development: 40,
+  facility: 10,
+  infrastructure: 20,
+  master_data_collection: 30
+};
+
 export const defaultProjectProgressTimelineStages: ProjectProgressTimelineStage[] = [
   { date: "2026-01-10", id: "initiation", label: "Initiation", status: "done" },
   { date: "2026-02-20", id: "planning", label: "Planning", status: "done" },
@@ -35,6 +49,7 @@ export const defaultProjectProgressTimelineStages: ProjectProgressTimelineStage[
 ];
 
 export interface ProjectProgress {
+  areaWeights: ProjectProgressAreaWeights;
   createdAt?: Date;
   key: typeof OVERALL_PROJECT_PROGRESS_KEY;
   note?: string;
@@ -78,6 +93,48 @@ const projectProgressTimelineStageSchema =
 
 const projectProgressSchema = new Schema<ProjectProgress>(
   {
+    areaWeights: {
+      default: () => ({ ...defaultProjectProgressAreaWeights }),
+      required: true,
+      type: {
+        development: {
+          max: 100,
+          min: 0,
+          required: true,
+          type: Number
+        },
+        facility: {
+          max: 100,
+          min: 0,
+          required: true,
+          type: Number
+        },
+        infrastructure: {
+          max: 100,
+          min: 0,
+          required: true,
+          type: Number
+        },
+        master_data_collection: {
+          max: 100,
+          min: 0,
+          required: true,
+          type: Number
+        }
+      },
+      validate: {
+        message: "Project progress area weights must add up to 100.",
+        validator(value: ProjectProgressAreaWeights) {
+          return (
+            value.development +
+              value.facility +
+              value.infrastructure +
+              value.master_data_collection ===
+            100
+          );
+        }
+      }
+    },
     key: {
       default: OVERALL_PROJECT_PROGRESS_KEY,
       enum: [OVERALL_PROJECT_PROGRESS_KEY],

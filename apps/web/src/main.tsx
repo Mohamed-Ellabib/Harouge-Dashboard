@@ -11,10 +11,10 @@ const container = document.getElementById("root");
 const dashboardThemeStorageKey = "itdcc.dashboardTheme";
 
 try {
-  document.documentElement.dataset.theme = "dark";
-  window.localStorage.setItem(dashboardThemeStorageKey, "dark");
+  document.documentElement.dataset.theme = "light";
+  window.localStorage.setItem(dashboardThemeStorageKey, "light");
 } catch {
-  document.documentElement.dataset.theme = "dark";
+  document.documentElement.dataset.theme = "light";
 }
 
 if (!container) {

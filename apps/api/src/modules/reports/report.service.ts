@@ -127,15 +127,20 @@ export async function listTaskReportRows(
     buildTaskReportFilter(query),
     visibilityFilter
   );
-  const sort = buildSort(
-    query.sortBy,
-    query.sortOrder,
-    taskReportSortFields,
-    "createdAt"
-  );
   const skip = (query.page - 1) * query.limit;
+  const taskQuery = TaskModel.find(filter).skip(skip).limit(query.limit);
+
+  if (
+    query.sortBy &&
+    taskReportSortFields.includes(query.sortBy as (typeof taskReportSortFields)[number])
+  ) {
+    taskQuery.sort(
+      buildSort(query.sortBy, query.sortOrder, taskReportSortFields, "createdAt")
+    );
+  }
+
   const [tasks, totalItems] = await Promise.all([
-    TaskModel.find(filter).sort(sort).skip(skip).limit(query.limit),
+    taskQuery,
     TaskModel.countDocuments(filter)
   ]);
   const [usersById, requestsById] = await Promise.all([

@@ -10,6 +10,7 @@ import { isDuplicateKeyError } from "../../shared/database";
 import { AuditLogModel } from "../audit-logs/audit-log.model";
 import { UserModel, type UserDocument } from "../users/user.model";
 import {
+  defaultProjectProgressAreaWeights,
   defaultProjectProgressTimelineStages,
   OVERALL_PROJECT_PROGRESS_KEY,
   ProjectProgressModel,
@@ -161,11 +162,17 @@ async function getOrCreateProjectProgress(): Promise<ProjectProgressDocument> {
   });
 
   if (existing) {
+    if (!existing.areaWeights) {
+      existing.areaWeights = { ...defaultProjectProgressAreaWeights };
+      await existing.save();
+    }
+
     return existing;
   }
 
   try {
     return await ProjectProgressModel.create({
+      areaWeights: { ...defaultProjectProgressAreaWeights },
       key: OVERALL_PROJECT_PROGRESS_KEY,
       percentage: 0,
       timelineStages: defaultProjectProgressTimelineStages.map((stage) => ({ ...stage }))
