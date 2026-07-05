@@ -20,18 +20,49 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const sessionStorageKey = "itdcc.session";
+
+function readStoredSession(): Session | null {
+  try {
+    const raw = window.sessionStorage.getItem(sessionStorageKey);
+
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw) as Session;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSession(session: Session | null): void {
+  try {
+    if (!session) {
+      window.sessionStorage.removeItem(sessionStorageKey);
+      return;
+    }
+
+    window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(session));
+  } catch {
+    // Ignore storage failures and continue with in-memory auth state.
+  }
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(() => readStoredSession());
   const [isLoading, setIsLoading] = useState(true);
 
   async function refreshSession() {
     try {
       const currentSession = await api.getSession();
       setSession(currentSession);
+      writeStoredSession(currentSession);
     } catch (error) {
-      setSession(null);
-
-      if (!(error instanceof ApiError && error.status === 401)) {
+      if (error instanceof ApiError && error.status === 401) {
+        setSession(null);
+        writeStoredSession(null);
+      } else {
         console.warn("Session refresh failed.", error);
       }
     } finally {
@@ -59,6 +90,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function login(email: string, password: string) {
     const currentSession = await api.login(email, password);
     setSession(currentSession);
+    writeStoredSession(currentSession);
   }
 
   async function changePassword(currentPassword: string, newPassword: string) {
@@ -67,11 +99,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       newPassword
     });
     setSession(currentSession);
+    writeStoredSession(currentSession);
   }
 
   async function logout() {
     await api.logout();
     setSession(null);
+    writeStoredSession(null);
   }
 
   function hasPermission(...permissionCodes: string[]) {
