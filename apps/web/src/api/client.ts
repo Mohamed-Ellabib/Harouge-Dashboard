@@ -628,6 +628,12 @@ let appDataRefreshSessionKey: string | undefined;
 let appDataRefreshPromise: Promise<void> | undefined;
 let sessionRequestPromise: Promise<Session | null> | undefined;
 
+const configuredApiBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ?? "https://harouge-dashboard.onrender.com"
+)
+  .trim()
+  .replace(/\/+$/, "");
+
 const emptyPagination: PaginationMeta = {
   hasPreviousPage: false,
   limit: 0,
@@ -644,7 +650,7 @@ async function request<TResponse>(
   const needsCsrfToken = isUnsafeMethod(init?.method) && path !== "/api/auth/login";
   const requestCsrfToken =
     needsCsrfToken && !csrfToken ? await refreshCsrfToken() : csrfToken;
-  const response = await fetch(path, {
+  const response = await fetch(toApiUrl(path), {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -751,7 +757,7 @@ function notifyAppDataChanged(reason: AppDataChangedEvent["reason"]) {
 }
 
 async function refreshCsrfToken(): Promise<string> {
-  const response = await fetch("/api/auth/csrf", {
+  const response = await fetch(toApiUrl("/api/auth/csrf"), {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -793,6 +799,18 @@ function buildQueryString(params: Record<string, string | number | undefined>): 
   const serialized = query.toString();
 
   return serialized ? `?${serialized}` : "";
+}
+
+function toApiUrl(path: string): string {
+  if (!configuredApiBaseUrl) {
+    return path;
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `${configuredApiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 function toPaginatedResult<TItem>(response: ApiSuccess<TItem[]>): PaginatedResult<TItem> {
