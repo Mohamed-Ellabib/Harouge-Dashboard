@@ -2,12 +2,13 @@ services:
   - type: web
     name: erp-sprint-progress-system
     runtime: node
+    rootDir: apps/api
     plan: free
     region: frankfurt
     branch: main
     autoDeploy: true
-    buildCommand: npm ci --include=dev && npm run api:build && npm run web:build
-    startCommand: npm run api:start
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
