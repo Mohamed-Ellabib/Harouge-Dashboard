@@ -1,0 +1,75 @@
+{
+  "vendors": {
+    "menu": "البائعون",
+    "title": "متاجر البائعين",
+    "description": "إدارة المتاجر والنطاقات وهوية الواجهة.",
+    "newVendor": "بائع جديد",
+    "name": "الاسم",
+    "handle": "المعرف",
+    "status": "الحالة",
+    "statuses": {
+      "draft": "مسودة",
+      "active": "نشط",
+      "suspended": "موقوف"
+    },
+    "contactEmail": "بريد التواصل",
+    "logoUrl": "رابط الشعار",
+    "primaryColor": "اللون الأساسي",
+    "domains": "النطاقات",
+    "members": "أعضاء البائع",
+    "membersPlaceholder": "owner@example.com\nmanager@example.com",
+    "memberPassword": "كلمة مرور البائع",
+    "memberPasswordPlaceholder": "اتركها فارغة للإبقاء على كلمة المرور الحالية",
+    "membersPanel": {
+      "title": "صلاحيات أعضاء البائع",
+      "description": "عطل أو أعد تفعيل دخول لوحة البائع بدون حذف الحساب.",
+      "empty": "لا يوجد أعضاء مرتبطون بعد.",
+      "disable": "تعطيل",
+      "enable": "تفعيل",
+      "saved": "تم تحديث عضو البائع",
+      "saveError": "تعذر تحديث عضو البائع",
+      "statuses": {
+        "active": "نشط",
+        "disabled": "معطل"
+      },
+      "roles": {
+        "owner": "مالك",
+        "manager": "مدير"
+      }
+    },
+    "createHint": "أنشئ بائعًا قبل ربط المنتجات به.",
+    "editing": "تعديل {{name}}",
+    "cancel": "إلغاء",
+    "saveChanges": "حفظ التغييرات",
+    "createVendor": "إنشاء بائع",
+    "table": {
+      "vendor": "البائع",
+      "domains": "النطاقات",
+      "products": "المنتجات",
+      "contact": "التواصل",
+      "actions": "الإجراءات"
+    },
+    "products": {
+      "title": "ربط المنتجات",
+      "description": "اختر المنتجات التي تتبع هذا البائع.",
+      "save": "حفظ المنتجات",
+      "saved": "تم حفظ ربط المنتجات",
+      "loadError": "تعذر تحميل المنتجات",
+      "saveError": "تعذر حفظ ربط المنتجات",
+      "empty": "لا توجد منتجات متاحة بعد.",
+      "assignedCount": "{{count}} مرتبطة"
+    },
+    "loading": "جاري تحميل البائعين...",
+    "empty": "لا يوجد بائعون بعد.",
+    "noDomain": "لا يوجد نطاق",
+    "noContact": "لا يوجد بريد",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "created": "تم إنشاء البائع",
+    "updated": "تم تحديث البائع",
+    "deleted": "تم حذف البائع",
+    "loadError": "تعذر تحميل البائعين",
+    "saveError": "تعذر حفظ البائع",
+    "deleteError": "تعذر حذف البائع"
+  }
+}

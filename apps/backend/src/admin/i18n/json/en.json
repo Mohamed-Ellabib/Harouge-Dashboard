@@ -1,0 +1,75 @@
+{
+  "vendors": {
+    "menu": "Vendors",
+    "title": "Vendor stores",
+    "description": "Manage shops, domains, and storefront branding.",
+    "newVendor": "New vendor",
+    "name": "Name",
+    "handle": "Handle",
+    "status": "Status",
+    "statuses": {
+      "draft": "Draft",
+      "active": "Active",
+      "suspended": "Suspended"
+    },
+    "contactEmail": "Contact email",
+    "logoUrl": "Logo URL",
+    "primaryColor": "Primary color",
+    "domains": "Domains",
+    "members": "Vendor members",
+    "membersPlaceholder": "owner@example.com\nmanager@example.com",
+    "memberPassword": "Vendor password",
+    "memberPasswordPlaceholder": "Leave blank to keep the current password",
+    "membersPanel": {
+      "title": "Vendor member access",
+      "description": "Disable or restore vendor dashboard access without deleting the account.",
+      "empty": "No vendor members are attached yet.",
+      "disable": "Disable",
+      "enable": "Enable",
+      "saved": "Vendor member updated",
+      "saveError": "Could not update vendor member",
+      "statuses": {
+        "active": "Active",
+        "disabled": "Disabled"
+      },
+      "roles": {
+        "owner": "Owner",
+        "manager": "Manager"
+      }
+    },
+    "createHint": "Create a vendor before assigning products to it.",
+    "editing": "Editing {{name}}",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "createVendor": "Create vendor",
+    "table": {
+      "vendor": "Vendor",
+      "domains": "Domains",
+      "products": "Products",
+      "contact": "Contact",
+      "actions": "Actions"
+    },
+    "products": {
+      "title": "Product assignment",
+      "description": "Choose which products belong to this vendor.",
+      "save": "Save products",
+      "saved": "Product assignments saved",
+      "loadError": "Could not load products",
+      "saveError": "Could not save product assignments",
+      "empty": "No products are available yet.",
+      "assignedCount": "{{count}} assigned"
+    },
+    "loading": "Loading vendors...",
+    "empty": "No vendors yet.",
+    "noDomain": "No domain",
+    "noContact": "No contact",
+    "edit": "Edit",
+    "delete": "Delete",
+    "created": "Vendor created",
+    "updated": "Vendor updated",
+    "deleted": "Vendor deleted",
+    "loadError": "Could not load vendors",
+    "saveError": "Could not save vendor",
+    "deleteError": "Could not delete vendor"
+  }
+}
