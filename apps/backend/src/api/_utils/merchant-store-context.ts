@@ -134,10 +134,10 @@ export const resolveMerchantStoreContext = async (
   if (
     typeof legacyVendorId !== "string" ||
     !legacyVendorId ||
-    member.vendor_id !== legacyVendorId
+    auth.vendor_id !== legacyVendorId
   ) {
     throw configurationError(
-      "The legacy merchant identity conflicts with permanent store ownership."
+      "The merchant session conflicts with permanent store ownership."
     )
   }
 

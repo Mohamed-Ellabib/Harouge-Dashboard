@@ -4,22 +4,22 @@ Last updated: 2026-07-13
 
 ## Current phase
 
-Phase 2B - implemented and validated; the commit SHA is reported by this execution.
+Phase 2C - implemented; final validation and commit are recorded by this execution.
 
-Phase 2A commit: `939b6a6`. Phase 1 commit: `f6b1b95`. Phase 0.5 commit: `3bc7f49`. The branch is local and has no configured remote.
+Phase 2B commit: a769519ee6e52a1abd9aba55ac55e5c603fbc585. Phase 2A commit: 939b6a6. Phase 1 commit: f6b1b95. Phase 0.5 commit: 3bc7f49. The branch is local and has no configured remote.
 
 ## Delivered
 
-- Unique Medusa Store-Cart and Store-Order ownership links.
-- Public Cart creation from authoritative hostname/key/Store context.
-- Cross-domain, cross-key, cross-channel, mixed-Store, region, shipping, promotion, inactive-Store, and customer-account mutation guards.
-- Completion preflight plus verified immutable Order Store ownership.
-- Whole-Order merchant authorization and allowlisted Order DTOs.
-- Durable repair records for post-order ownership-link failures.
-- Guarded dry-run-first Cart/Order ownership diagnostic and backfill.
-- Concurrency and idempotency regression coverage.
-- Migration and link synchronization on disposable local PostgreSQL only.
+- Durable StoreProvisioning, audit event, and database lease models.
+- Strict normalized input contract and safe allowlisted result/status contracts.
+- Platform-admin-only create, status, and safe cancellation API.
+- Idempotent Tenant, StoreProfile, Medusa Store, channel, key, Region, location, domain, brand, owner, membership, and plan provisioning.
+- Exact compatible Region reuse for Medusa country uniqueness.
+- Graph-gated activation with MerchantStoreContext and PublicStoreContext validation.
+- Explicit multi-Store owner reuse and Store-selected merchant login.
+- Failure checkpoints, retained-for-retry resource evidence, and deterministic conflict behavior.
+- Disposable-database migration, concurrency, failure-injection, authorization, and secret-handling coverage.
 
 ## Gate
 
-Phase 2C may begin after this work is committed with a clean tree. Production migration remains blocked until the owner confirms Neon credential rotation and separately authorizes the reviewed migration runbook. Storefront, provisioning, WhatsApp checkout, customer OTP, Redis/shared locks, and production repair processing remain deferred.
+Phase 3 storefront work is technically unblocked only after the Phase 2C commit and clean-tree gate pass. Production deployment and migration remain blocked. The owner must confirm Neon credential rotation and separately approve the production runbook. Shared rate limiting, lease monitoring, DNS and SSL automation, billing, and the platform dashboard remain required before production operation.

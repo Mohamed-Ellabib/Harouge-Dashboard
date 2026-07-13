@@ -8,6 +8,7 @@ const {
 } = require("./test-environment")
 
 const requestedType = process.argv[2] || "all"
+const jestSelectors = process.argv.slice(3)
 const supportedTypes = ["unit", "integration:modules", "integration:http"]
 
 if (requestedType !== "all" && !supportedTypes.includes(requestedType)) {
@@ -50,6 +51,7 @@ const runJest = (testType) => {
       "--runInBand",
       "--forceExit",
       "--silent",
+      ...jestSelectors,
     ],
     {
       cwd: resolve(__dirname, ".."),

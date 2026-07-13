@@ -60,6 +60,10 @@ export default defineMiddlewares({
       middlewares: [attachPublicStoreContext, protectPublicCartStore]
     },
     {
+      matcher: "/admin/saas/provisioning*",
+      middlewares: [authenticate("user", ["session", "bearer"])]
+    },
+    {
       matcher: "/admin/vendors*",
       middlewares: [authenticate("user", ["session", "bearer"])]
     },

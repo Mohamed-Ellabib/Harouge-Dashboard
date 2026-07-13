@@ -35,3 +35,16 @@ All Phase 2A schema, link, backfill, and integration operations used guarded dis
 The previously exposed Neon credential rotation remains unverified. Production migration is still blocked. The current lock/event providers and rate limiter are process-local; horizontally scaled production needs shared infrastructure. Region, shipping, and promotion Store policies currently use explicit Store metadata allowlists and do not yet have a management UI.
 
 All Phase 2B migrations, tests, diagnostics, and backfill validation used guarded disposable local PostgreSQL. Neon was not accessed.
+
+## Phase 2C findings
+
+| ID | Finding | Root cause | Affected paths | Remediation | Regression evidence | Remaining risk | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| P2C-01 | Duplicate or conflicting Store graphs | provisioning had no durable reservation | platform provisioning workflow | unique idempotency, handle, domain reservations plus database leases | replay and concurrency integration tests | long-running leases need operational monitoring | FIXED |
+| P2C-02 | Partial provisioning could activate an incomplete Store | activation was not graph-gated | provisioning resource and context graph | draft until structural and context validation; activation reverted on failure | injected failure matrix and retry tests | automated repair UI deferred | FIXED |
+| P2C-03 | Owner reuse could silently grant or enable access | identity reuse lacked an explicit contract | owner creation and login Store selection | explicit active-account reuse, unique membership, disabled-account rejection, Store-selected login | multi-Store owner and disabled owner tests | merchant identity remains in legacy module | FIXED FOR PHASE 2C |
+| P2C-04 | Credentials or key tokens could leak through durable workflow state | provisioning input includes an initial password | platform API, snapshots, events, result DTO | non-persisting workflow facade, in-memory async hashing, HMAC request fingerprint, allowlisted snapshots/results | contract and HTTP secret-absence tests | request-body logging must remain disabled | FIXED |
+| P2C-05 | Medusa Store creation races on shared currency preferences | core workflow upsert is not concurrency-safe across requests | core Store creation step | database-backed exclusive operation around Store creation | concurrent same-key and multi-Store tests | production lease alerting deferred | FIXED |
+| P2C-06 | Region creation conflicts across Stores for one country | Medusa assigns a country to one Region | Region provisioning | exact country-set and currency compatible reuse; incompatible ownership fails | multi-Store and context tests | richer service-area model deferred | FIXED BY POLICY |
+
+Neon credential rotation remains unverified, so production migration remains blocked. The platform request limiter is process-local and requires a shared backend before horizontal scaling. DNS, SSL, billing, automatic destructive cleanup, and distributed event processing remain deferred. All Phase 2C tests and migrations used guarded disposable local PostgreSQL; Neon was not accessed.

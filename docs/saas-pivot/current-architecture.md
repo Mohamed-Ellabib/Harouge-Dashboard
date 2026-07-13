@@ -25,3 +25,11 @@ Cart mutation policy validates canonical Product Store ownership, channel availa
 Order-link failures are reported as checkout failures and create a durable checkout ownership repair record when the core Order can no longer be safely compensated. The guarded backfill diagnoses existing Cart/Order ownership and applies only unambiguous local mappings. Production execution remains blocked.
 
 Phase 2C still owns production-grade shared locking/idempotency infrastructure and any broader checkout capabilities. Storefront UI, provisioning, customer OTP, WhatsApp checkout, and production migration are not implemented.
+
+## Phase 2C provisioning
+
+The platform-only provisioning API invokes one durable orchestrator. StoreProvisioning checkpoints safe input identity, resource references, status, and audit events. StoreProvisioningLease provides database-backed idempotency and core Store-creation exclusion. Core Medusa resources are created through installed workflows; SaaS records use the SaaS module.
+
+Activation is graph-gated. StoreProfile and the temporary legacy Vendor remain draft until structural invariants, MerchantStoreContext, and PublicStoreContext resolve. Product, Cart, and Order ownership helpers remain canonical and unchanged.
+
+The owner account can be explicitly reused across Stores through one MerchantMembership per Store. Login requires Store selection when an account has multiple active memberships. Compatible Regions may be shared because Medusa country ownership is unique globally; each Store still records its allowed and default Region.

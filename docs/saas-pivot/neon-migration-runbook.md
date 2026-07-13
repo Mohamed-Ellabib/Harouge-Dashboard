@@ -29,3 +29,9 @@ Before any protected-environment apply, extend the isolated restore rehearsal to
 8. Exercise checkout rollback and Store-Order link failure recovery before traffic is restored.
 
 The Phase 2B command deliberately refuses remote/protected targets. This runbook does not authorize Neon access.
+
+## Phase 2C provisioning migration
+
+Before any future production run, confirm credential rotation, backup and restore testing, and an approved maintenance window. Apply the StoreProvisioning, StoreProvisioningEvent, StoreProvisioningLease, and nullable Tenant key migration before enabling the platform route. Synchronize links, reconcile existing StoreProfile graphs, and verify unique handle/domain reservations.
+
+Do not copy local provisioning attempts into production. Do not expose the platform route until authentication, shared rate limiting, monitoring, and the production temporary-domain base are configured. This phase did not connect to or modify Neon.

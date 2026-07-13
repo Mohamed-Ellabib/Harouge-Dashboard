@@ -16,3 +16,9 @@ Fallback to Vendor is not implemented for migrated contexts. Missing permanent r
 ## Phase 2B status
 
 Cart and Order authorization now uses canonical whole-resource Medusa Store links. Legacy Vendor/order-item metadata may remain for compatibility but cannot grant access or override Store ownership. Vendor removal still requires reconciliation of all StoreProduct, StoreCart, and StoreOrder links, resolution of ownership conflicts, an observation period, and a separately approved reversible migration. Phase 2B does not remove Vendor data.
+
+## Phase 2C impact
+
+Provisioning still creates one draft-then-active legacy Vendor as a compatibility adapter. The permanent authority is Tenant, StoreProfile, Medusa Store, MerchantMembership, StoreDomain, and canonical Product/Cart/Order links. StoreProvisioning records legacy_vendor_id only for retry and later reconciliation.
+
+Legacy removal remains blocked until merchant authentication no longer stores identity credentials in VendorMember, all dashboard routes use MerchantMembership and Medusa Store, and domain/product/order compatibility reads have been removed.

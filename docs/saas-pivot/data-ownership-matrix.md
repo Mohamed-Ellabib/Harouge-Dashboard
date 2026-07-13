@@ -32,3 +32,15 @@ One Tenant with multiple StoreProfiles is supported. Store A/Store B fixtures pr
 | Checkout repair record | Tenant/StoreProfile/Store | durable evidence for ownership-link failure | OPERATIONAL |
 
 The Store-Cart and Store-Order link schemas also carry a unique `ownership_key`, giving the database a single-owner constraint for each Cart and Order under concurrent execution.
+
+## Phase 2C additions
+
+| Record | Canonical owner | Creation boundary | Mutability |
+| --- | --- | --- | --- |
+| StoreProvisioning | Platform | Platform provisioning API | Status/checkpoints only |
+| StoreProvisioningEvent | StoreProvisioning | Provisioning orchestrator | Append-only evidence |
+| StoreProvisioningLease | Database operation key | Provisioning orchestrator | Ephemeral, soft-deleted on release |
+| Tenant key | Tenant | Provisioning reservation | Immutable through provisioning |
+| Plan assignment | StoreProfile | Validated provisioning input | Later controlled plan workflow |
+| Temporary domain | StoreProfile | Configured base-domain policy | Immutable hostname |
+| Owner membership | StoreProfile and merchant account | Explicit provisioning relation | Controlled membership administration |

@@ -25,7 +25,8 @@
     "test:unit": "node ./scripts/run-tests.js unit",
     "diagnose:product-channels": "medusa exec ./src/scripts/diagnose-product-sales-channels.ts -- --dry-run",
     "saas:backfill-stores": "medusa exec ./src/scripts/saas-backfill-stores.ts --",
-    "saas:backfill-cart-order-store": "medusa exec ./src/scripts/saas-backfill-cart-order-store.ts --"
+    "saas:backfill-cart-order-store": "medusa exec ./src/scripts/saas-backfill-cart-order-store.ts --",
+    "medusa:disposable": "node ./scripts/run-disposable-medusa.js"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.17.0",
