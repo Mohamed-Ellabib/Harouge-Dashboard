@@ -3,6 +3,7 @@ import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 import { authenticateVendorSession } from "./_utils/vendor-auth"
 
 import { attachMerchantStoreContext } from "./_utils/merchant-store-context"
+import { protectPublicCartStore } from "./_utils/public-cart-store"
 import { attachPublicStoreContext } from "./_utils/public-store-context"
 const parseCorsOrigins = (value?: string): string[] => {
   return value
@@ -17,7 +18,7 @@ const vendorCors = (req, res, next) => {
   const origin = req.headers.origin
   const allowedOrigins = [
     ...parseCorsOrigins(process.env.AUTH_CORS),
-    ...parseCorsOrigins(process.env.ADMIN_CORS),
+    ...parseCorsOrigins(process.env.ADMIN_CORS)
   ]
 
   if (origin && (allowedOrigins.includes(origin) || allowedOrigins.includes("*"))) {
@@ -44,19 +45,27 @@ export default defineMiddlewares({
   routes: [
     {
       matcher: "/store/products*",
-      middlewares: [attachPublicStoreContext],
+      middlewares: [attachPublicStoreContext]
+    },
+    {
+      matcher: "/store/carts*",
+      middlewares: [attachPublicStoreContext, protectPublicCartStore]
+    },
+    {
+      matcher: "/store/payment-collections*",
+      middlewares: [attachPublicStoreContext, protectPublicCartStore]
+    },
+    {
+      matcher: "/store/shipping-options*",
+      middlewares: [attachPublicStoreContext, protectPublicCartStore]
     },
     {
       matcher: "/admin/vendors*",
-      middlewares: [authenticate("user", ["session", "bearer"])],
+      middlewares: [authenticate("user", ["session", "bearer"])]
     },
     {
       matcher: "/vendor*",
-      middlewares: [
-        vendorCors,
-        authenticateVendorSession,
-        attachMerchantStoreContext,
-      ],
-    },
-  ],
+      middlewares: [vendorCors, authenticateVendorSession, attachMerchantStoreContext]
+    }
+  ]
 })

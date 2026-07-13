@@ -23,7 +23,7 @@ describe("merchant order response contract", () => {
         total: 3000,
         product_id: "product_a",
         variant: { title: "Default", product_id: "product_a" },
-        metadata: { cost: 100 },
+        metadata: { cost: 100 }
       },
       {
         id: "item_b",
@@ -32,13 +32,13 @@ describe("merchant order response contract", () => {
         unit_price: 2200,
         total: 2200,
         product_id: "product_b",
-        variant: { title: "Default", product_id: "product_b" },
-      },
-    ],
+        variant: { title: "Default", product_id: "product_b" }
+      }
+    ]
   }
 
-  it("returns an exact allowlist containing only owned line items", () => {
-    const result = serializeMerchantOrder(sourceOrder, new Set(["product_a"]))
+  it("returns an exact allowlist only when the whole order belongs to the store", () => {
+    const result = serializeMerchantOrder(sourceOrder, new Set(["product_a", "product_b"]))
 
     expect(result).not.toBeNull()
     expect(Object.keys(result!).sort()).toEqual([
@@ -50,7 +50,7 @@ describe("merchant order response contract", () => {
       "items",
       "status",
       "updated_at",
-      "vendor_total",
+      "vendor_total"
     ])
     expect(Object.keys(result!.items[0]).sort()).toEqual([
       "id",
@@ -59,26 +59,20 @@ describe("merchant order response contract", () => {
       "title",
       "total",
       "unit_price",
-      "variant_title",
+      "variant_title"
     ])
-    expect(result!.items).toEqual([
-      {
-        id: "item_a",
-        title: "Store A Product",
-        quantity: 2,
-        unit_price: 1500,
-        total: 3000,
-        product_id: "product_a",
-        variant_title: "Default",
-      },
-    ])
-    expect(result!.vendor_total).toBe(3000)
+    expect(result!.items).toHaveLength(2)
+    expect(result!.vendor_total).toBe(5200)
     expect(JSON.stringify(result)).not.toMatch(
-      /shipping_address|billing_address|phone|customer_internal|metadata|future_private_field|product_b/
+      /shipping_address|billing_address|phone|customer_internal|metadata|future_private_field/
     )
   })
 
-  it("omits orders that have no line items owned by the merchant", () => {
+  it("fails closed instead of returning a partial mixed-store order", () => {
+    expect(serializeMerchantOrder(sourceOrder, new Set(["product_a"]))).toBeNull()
+  })
+
+  it("omits orders that have no canonically owned line items", () => {
     expect(serializeMerchantOrder(sourceOrder, new Set(["product_missing"]))).toBeNull()
   })
 })

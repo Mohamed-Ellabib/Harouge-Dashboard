@@ -1,6 +1,6 @@
 # Current Architecture
 
-Last verified: 2026-07-13 after Phase 2A implementation.
+Last verified: 2026-07-13 after Phase 2B implementation.
 
 ## Runtime identity
 
@@ -10,8 +10,18 @@ Medusa Store is the canonical commerce-store identity. Tenant groups stores. Sto
 
 Products have one canonical Medusa Store owner and one allowed Store channel. The Vendor-product link remains temporarily and must agree with canonical ownership. Missing or inconsistent permanent links fail closed.
 
-The application remains a Medusa 2.17 modular monolith with a separate React/Vite Arabic merchant dashboard. Phase 2A added no storefront, provisioning engine, checkout changes, or deployment behavior.
+The application remains a Medusa 2.17 modular monolith with a separate React/Vite Arabic merchant dashboard. Phase 2B adds checkout ownership enforcement without adding a storefront, provisioning engine, or deployment behavior.
 
 ## Deferred risks
 
-Carts and orders still lack immutable Store ownership. Current merchant order filtering remains a compatibility mitigation. DNS verification and SSL issuance are not implemented. The login limiter, event bus, and locking provider remain process-local. Neon credential rotation is unverified and blocks production migration.
+DNS verification and SSL issuance are not implemented. The login limiter, event bus, and locking provider remain process-local. Neon credential rotation is unverified and blocks production migration.
+
+## Phase 2B checkout ownership
+
+Phase 2B adds immutable whole-resource ownership. A Cart is linked to exactly one Medusa Store at creation, and completion links the resulting Order to that same Store before success is returned. Public cart access requires the same verified hostname, single-channel publishable key, and Store context for the Cart lifetime.
+
+Cart mutation policy validates canonical Product Store ownership, channel availability, region, shipping option, promotion code, currency, and Store/Tenant status. Product channel mistakes cannot override canonical ownership. Merchant order list/detail authorization starts from the Store-Order link; legacy Vendor item metadata is compatibility data only.
+
+Order-link failures are reported as checkout failures and create a durable checkout ownership repair record when the core Order can no longer be safely compensated. The guarded backfill diagnoses existing Cart/Order ownership and applies only unambiguous local mappings. Production execution remains blocked.
+
+Phase 2C still owns production-grade shared locking/idempotency infrastructure and any broader checkout capabilities. Storefront UI, provisioning, customer OTP, WhatsApp checkout, and production migration are not implemented.

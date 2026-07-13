@@ -1,14 +1,6 @@
 import { randomUUID } from "crypto"
-import type {
-  MedusaNextFunction,
-  MedusaRequest,
-  MedusaResponse,
-} from "@medusajs/framework/http"
-import {
-  ContainerRegistrationKeys,
-  MedusaError,
-  Modules,
-} from "@medusajs/framework/utils"
+import type { MedusaNextFunction, MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 
 import {
   getPermanentBrand,
@@ -17,13 +9,9 @@ import {
   listStoreProfileStoreLinks,
   resolvePermanentStoreByDomain,
   resolvePermanentStoreByHandle,
-  serializePermanentPublicStoreProfile,
+  serializePermanentPublicStoreProfile
 } from "./legacy-vendor-compatibility"
-import {
-  normalizeDomain,
-  normalizeHandle,
-  type PublicStoreProfile,
-} from "./vendors"
+import { normalizeDomain, normalizeHandle, type PublicStoreProfile } from "./vendors"
 
 export type PublicStoreContext = {
   tenantId: string
@@ -43,8 +31,7 @@ type ResolvePublicStoreOptions = {
 
 const CONTEXT_KEY = "public_store_context"
 
-const notFound = () =>
-  new MedusaError(MedusaError.Types.NOT_FOUND, "Storefront was not found.")
+const notFound = () => new MedusaError(MedusaError.Types.NOT_FOUND, "Storefront was not found.")
 
 const trustedProxyIps = (): Set<string> =>
   new Set(
@@ -55,9 +42,10 @@ const trustedProxyIps = (): Set<string> =>
   )
 
 const requestHostname = (req: MedusaRequest): string => {
-  const remoteAddress = String(
-    (req as any).ip ?? (req as any).socket?.remoteAddress ?? ""
-  ).replace(/^::ffff:/, "")
+  const remoteAddress = String((req as any).ip ?? (req as any).socket?.remoteAddress ?? "").replace(
+    /^::ffff:/,
+    ""
+  )
   const proxyTrusted = trustedProxyIps().has(remoteAddress)
   const forwardedHost = proxyTrusted
     ? String((req as any).headers?.["x-forwarded-host"] ?? "").split(",")[0]
@@ -67,17 +55,12 @@ const requestHostname = (req: MedusaRequest): string => {
   return normalizeDomain(host)
 }
 
-const developmentHandle = (
-  req: MedusaRequest,
-  explicit: unknown
-): string => {
+const developmentHandle = (req: MedusaRequest, explicit: unknown): string => {
   if (process.env.NODE_ENV === "production") {
     return ""
   }
 
-  return normalizeHandle(
-    explicit ?? (req as any).headers?.["x-store-handle"]
-  )
+  return normalizeHandle(explicit ?? (req as any).headers?.["x-store-handle"])
 }
 
 export const resolvePublicStoreContext = async (
@@ -85,10 +68,7 @@ export const resolvePublicStoreContext = async (
   options: ResolvePublicStoreOptions = {}
 ): Promise<PublicStoreContext> => {
   const hostname = requestHostname(req)
-  const handleOverride = developmentHandle(
-    req,
-    options.developmentHandleOverride
-  )
+  const handleOverride = developmentHandle(req, options.developmentHandleOverride)
   const binding = handleOverride
     ? await resolvePermanentStoreByHandle(req, handleOverride).catch(() => null)
     : hostname
@@ -125,10 +105,7 @@ export const resolvePublicStoreContext = async (
     }
   }
 
-  if (
-    sameChannelProfiles.length !== 1 ||
-    sameChannelProfiles[0] !== binding.storeProfile.id
-  ) {
+  if (sameChannelProfiles.length !== 1 || sameChannelProfiles[0] !== binding.storeProfile.id) {
     throw notFound()
   }
 
@@ -137,7 +114,7 @@ export const resolvePublicStoreContext = async (
     entity: "api_key",
     fields: ["id", "token", "revoked_at", "sales_channels_link.sales_channel_id"],
     filters: { token: publishableKeyContext.key, type: "publishable" },
-    pagination: { skip: 0, take: 2 },
+    pagination: { skip: 0, take: 2 }
   } as any)
   const apiKey = apiKeys.length === 1 ? apiKeys[0] : null
   const keyChannelIds = Array.isArray(apiKey?.sales_channels_link)
@@ -175,16 +152,15 @@ export const resolvePublicStoreContext = async (
           domains[0]?.normalized_hostname
       ),
     requestId: randomUUID(),
-    profile: serializePermanentPublicStoreProfile(binding, domains, brand),
+    profile: serializePermanentPublicStoreProfile(binding, domains, brand)
   }
 
   ;(req as any)[CONTEXT_KEY] = context
   return context
 }
 
-export const getPublicStoreContext = (
-  req: MedusaRequest
-): PublicStoreContext | null => (req as any)[CONTEXT_KEY] ?? null
+export const getPublicStoreContext = (req: MedusaRequest): PublicStoreContext | null =>
+  (req as any)[CONTEXT_KEY] ?? null
 
 export const attachPublicStoreContext = async (
   req: MedusaRequest,
@@ -193,13 +169,13 @@ export const attachPublicStoreContext = async (
 ) => {
   try {
     const context = await resolvePublicStoreContext(req)
-    const canonicalIds = await listExclusivelyOwnedCanonicalProductIds(
-      req,
-      context.medusaStoreId
-    )
-    const path = String(
-      (req as any).originalUrl ?? (req as any).url ?? ""
-    ).split("?")[0]
+    const path = String((req as any).originalUrl ?? (req as any).url ?? "").split("?")[0]
+
+    if (!path.startsWith("/store/products")) {
+      return next()
+    }
+
+    const canonicalIds = await listExclusivelyOwnedCanonicalProductIds(req, context.medusaStoreId)
     const directMatch = path.match(new RegExp("^/store/products/([^/]+)$"))
 
     if (directMatch) {
@@ -219,7 +195,7 @@ export const attachPublicStoreContext = async (
 
       ;(req as any).query = {
         ...((req as any).query ?? {}),
-        id: allowedIds.length ? allowedIds : ["__no_canonical_products__"],
+        id: allowedIds.length ? allowedIds : ["__no_canonical_products__"]
       }
     }
 

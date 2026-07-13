@@ -12,3 +12,7 @@ Vendor is retained during Phase 2A.
 8. Archive or delete Vendor data only under a separately approved, reversible migration.
 
 Fallback to Vendor is not implemented for migrated contexts. Missing permanent relationships fail closed in all environments. Cart/order ownership must be completed in Phase 2B before legacy product ownership can be removed safely.
+
+## Phase 2B status
+
+Cart and Order authorization now uses canonical whole-resource Medusa Store links. Legacy Vendor/order-item metadata may remain for compatibility but cannot grant access or override Store ownership. Vendor removal still requires reconciliation of all StoreProduct, StoreCart, and StoreOrder links, resolution of ownership conflicts, an observation period, and a separately approved reversible migration. Phase 2B does not remove Vendor data.

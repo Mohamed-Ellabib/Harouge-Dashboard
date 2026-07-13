@@ -3,24 +3,18 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 import {
   getMerchantStoreContext,
-  requireMerchantPermission,
+  requireMerchantPermission
 } from "../../../_utils/merchant-store-context"
 import { listMerchantOrders } from "../../../_utils/merchant-order"
-import { listExclusivelyOwnedProductIds } from "../../../_utils/vendors"
+import { listExclusivelyOwnedCanonicalProductIds } from "../../../_utils/legacy-vendor-compatibility"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const context = await getMerchantStoreContext(req)
   requireMerchantPermission(context, "orders.read")
   const productIds = new Set(
-    await listExclusivelyOwnedProductIds(
-    req,
-    context.vendorId,
-    context.medusaStoreId
+    await listExclusivelyOwnedCanonicalProductIds(req, context.medusaStoreId)
   )
-  )
-  const orders = productIds.size
-    ? await listMerchantOrders(req, productIds, req.params.id)
-    : []
+  const orders = await listMerchantOrders(req, context.medusaStoreId, productIds, req.params.id)
 
   if (orders.length !== 1) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found.")

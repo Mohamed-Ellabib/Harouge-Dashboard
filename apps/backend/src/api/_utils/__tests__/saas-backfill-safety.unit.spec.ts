@@ -6,19 +6,21 @@ describe("SaaS backfill safety", () => {
   beforeEach(() => {
     process.env = {
       ...ORIGINAL_ENV,
-      NODE_ENV: "development",
-      DATABASE_URL: "postgresql://local:local@127.0.0.1:55432/local_saas",
+      NODE_ENV: "test",
+      DATABASE_URL: "postgresql://local:local@127.0.0.1:55432/local_saas"
     }
     delete process.env.PROTECTED_DATABASE_URL
     delete process.env.TEST_DATABASE_GUARD_VALIDATED
     delete process.env.TEST_DATABASE_DISPOSABLE
+    process.env.TEST_DATABASE_GUARD_VALIDATED = "true"
+    process.env.TEST_DATABASE_DISPOSABLE = "medusa_phase05_disposable"
   })
 
   afterAll(() => {
     process.env = ORIGINAL_ENV
   })
 
-  it("allows an explicitly local non-production database", () => {
+  it("allows a guarded disposable local test database", () => {
     expect(() => assertBackfillApplySafety()).not.toThrow()
   })
 
@@ -27,20 +29,23 @@ describe("SaaS backfill safety", () => {
     expect(() => assertBackfillApplySafety()).toThrow(/disabled in production/i)
 
     process.env.NODE_ENV = "development"
-    process.env.DATABASE_URL =
-      "postgresql://isolated:secret@remote.example.test/isolated"
+    expect(() => assertBackfillApplySafety()).toThrow(/disposable test environment/i)
+
+    process.env.NODE_ENV = "test"
+    process.env.DATABASE_URL = "postgresql://isolated:secret@remote.example.test/isolated"
     expect(() => assertBackfillApplySafety()).toThrow(/restricted to local/i)
   })
 
   it("refuses a protected target without exposing its credential", () => {
-    process.env.PROTECTED_DATABASE_URL =
-      "postgresql://other:other@127.0.0.1:55432/local_saas"
+    process.env.PROTECTED_DATABASE_URL = "postgresql://other:other@127.0.0.1:55432/local_saas"
 
     expect(() => assertBackfillApplySafety()).toThrow(/protected database target/i)
   })
 
   it("requires the disposable acknowledgement in test mode", () => {
     process.env.NODE_ENV = "test"
+    delete process.env.TEST_DATABASE_GUARD_VALIDATED
+    delete process.env.TEST_DATABASE_DISPOSABLE
     expect(() => assertBackfillApplySafety()).toThrow(/safety guard/i)
 
     process.env.TEST_DATABASE_GUARD_VALIDATED = "true"

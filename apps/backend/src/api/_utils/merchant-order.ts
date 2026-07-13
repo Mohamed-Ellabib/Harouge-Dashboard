@@ -1,6 +1,8 @@
 import { getOrdersListWorkflow } from "@medusajs/core-flows"
 import type { MedusaRequest } from "@medusajs/framework/http"
 
+import { exclusivelyOwnedIds, listStoreOrderLinks } from "./checkout-ownership-links"
+
 export type MerchantOrderItem = {
   id: string
   title: string
@@ -40,14 +42,16 @@ export const serializeMerchantOrder = (
   order: Record<string, any>,
   allowedProductIds: ReadonlySet<string>
 ): MerchantOrder | null => {
-  const items = (Array.isArray(order.items) ? order.items : [])
-    .map((item: Record<string, any>) => ({ item, productId: itemProductId(item) }))
-    .filter(
-      (entry): entry is { item: Record<string, any>; productId: string } =>
-        Boolean(entry.productId && allowedProductIds.has(entry.productId))
-    )
+  const sourceItems = Array.isArray(order.items) ? order.items : []
+  const items = sourceItems.map((item: Record<string, any>) => ({
+    item,
+    productId: itemProductId(item)
+  }))
 
-  if (!items.length) {
+  if (
+    !items.length ||
+    items.some((entry) => !entry.productId || !allowedProductIds.has(entry.productId))
+  ) {
     return null
   }
 
@@ -56,13 +60,10 @@ export const serializeMerchantOrder = (
     title: String(item.title ?? ""),
     quantity: Number(item.quantity ?? 0),
     unit_price:
-      item.unit_price === null || item.unit_price === undefined
-        ? null
-        : Number(item.unit_price),
+      item.unit_price === null || item.unit_price === undefined ? null : Number(item.unit_price),
     total: itemTotal(item),
-    product_id: productId,
-    variant_title:
-      typeof item.variant?.title === "string" ? item.variant.title : null,
+    product_id: productId as string,
+    variant_title: typeof item.variant?.title === "string" ? item.variant.title : null
   }))
 
   return {
@@ -70,20 +71,27 @@ export const serializeMerchantOrder = (
     display_id: order.display_id ?? null,
     status: String(order.status ?? "pending"),
     email: typeof order.email === "string" ? order.email : null,
-    currency_code:
-      typeof order.currency_code === "string" ? order.currency_code : null,
+    currency_code: typeof order.currency_code === "string" ? order.currency_code : null,
     created_at: String(order.created_at),
     updated_at: String(order.updated_at),
     vendor_total: serializedItems.reduce((total, item) => total + item.total, 0),
-    items: serializedItems,
+    items: serializedItems
   }
 }
 
 export const listMerchantOrders = async (
   req: MedusaRequest,
+  medusaStoreId: string,
   allowedProductIds: ReadonlySet<string>,
   orderId?: string
 ): Promise<MerchantOrder[]> => {
+  const links = await listStoreOrderLinks(req, orderId ? { order_id: orderId } : {})
+  const ownedOrderIds = exclusivelyOwnedIds(links, "order_id", medusaStoreId)
+
+  if (!ownedOrderIds.length) {
+    return []
+  }
+
   const { result } = await getOrdersListWorkflow(req.scope).run({
     input: {
       fields: [
@@ -96,24 +104,22 @@ export const listMerchantOrders = async (
         "updated_at",
         "*items",
         "*items.variant",
-        "*items.variant.product",
+        "*items.variant.product"
       ],
       variables: {
         filters: {
-          is_draft_order: false,
-          ...(orderId ? { id: orderId } : {}),
+          id: ownedOrderIds,
+          is_draft_order: false
         },
         skip: 0,
         take: orderId ? 1 : 100,
-        order: { created_at: "DESC" },
-      },
-    },
+        order: { created_at: "DESC" }
+      }
+    }
   })
   const rows = Array.isArray(result) ? result : result.rows
 
   return rows
-    .map((order: Record<string, any>) =>
-      serializeMerchantOrder(order, allowedProductIds)
-    )
+    .map((order: Record<string, any>) => serializeMerchantOrder(order, allowedProductIds))
     .filter((order): order is MerchantOrder => Boolean(order))
 }

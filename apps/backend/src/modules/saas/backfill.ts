@@ -1,21 +1,18 @@
 /* eslint-disable @medusajs/use-medusa-error-not-generic-error -- CLI safety failures are not HTTP errors */
 import type { MedusaContainer } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  Modules,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import {
   listStoreProfileStoreLinks,
   listStoreProductLinks,
   storeProfileStoreLinkDefinition,
-  syncCanonicalStoreProducts,
+  syncCanonicalStoreProducts
 } from "../../api/_utils/legacy-vendor-compatibility"
 import {
   getDomainVendorId,
   normalizeDomain,
   normalizeEmail,
-  recordOrNull,
+  recordOrNull
 } from "../../api/_utils/vendors"
 import { MARKETPLACE_MODULE } from "../marketplace"
 import type MarketplaceModuleService from "../marketplace/service"
@@ -67,7 +64,7 @@ const emptyCounts = (): BackfillCounts => ({
   domains_migrated: 0,
   products_linked: 0,
   conflicts: 0,
-  unresolved_records: 0,
+  unresolved_records: 0
 })
 
 const normalizedDatabaseIdentity = (value: string): string => {
@@ -83,6 +80,10 @@ export const assertBackfillApplySafety = (): void => {
     throw new Error(
       "Store backfill apply is disabled in production pending a separate owner-approved runbook."
     )
+  }
+
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error("Store backfill apply requires the dedicated disposable test environment.")
   }
 
   const databaseUrl = process.env.DATABASE_URL
@@ -103,28 +104,21 @@ export const assertBackfillApplySafety = (): void => {
   const local = ["127.0.0.1", "localhost", "::1"].includes(parsed.hostname)
 
   if (!local) {
-    throw new Error(
-      "Store backfill apply is restricted to local databases in Phase 2A."
-    )
+    throw new Error("Store backfill apply is restricted to local databases in Phase 2A.")
   }
 
   if (
-    process.env.NODE_ENV === "test" &&
-    (process.env.TEST_DATABASE_GUARD_VALIDATED !== "true" ||
-      process.env.TEST_DATABASE_DISPOSABLE !== "medusa_phase05_disposable")
+    process.env.TEST_DATABASE_GUARD_VALIDATED !== "true" ||
+    process.env.TEST_DATABASE_DISPOSABLE !== "medusa_phase05_disposable"
   ) {
-    throw new Error(
-      "Test backfill apply requires the disposable database safety guard."
-    )
+    throw new Error("Test backfill apply requires the disposable database safety guard.")
   }
 }
 
 const deterministicId = (prefix: string, legacyId: string): string =>
   prefix + "_" + legacyId.replace(/[^a-zA-Z0-9_-]/g, "_")
 
-const vendorStatusToStoreStatus = (
-  value: unknown
-): "draft" | "active" | "suspended" =>
+const vendorStatusToStoreStatus = (value: unknown): "draft" | "active" | "suspended" =>
   value === "active" || value === "suspended" ? value : "draft"
 
 const conflict = (
@@ -151,11 +145,9 @@ export const runLegacyVendorBackfill = async (
   const report: BackfillReport = {
     mode: apply ? "apply" : "dry-run",
     counts: emptyCounts(),
-    conflicts: [],
+    conflicts: []
   }
-  const marketplace = container.resolve(
-    MARKETPLACE_MODULE
-  ) as MarketplaceModuleService
+  const marketplace = container.resolve(MARKETPLACE_MODULE) as MarketplaceModuleService
   const saas = container.resolve(SAAS_MODULE) as SaasModuleService
   const storeService = container.resolve(Modules.STORE) as any
   const salesChannelService = container.resolve(Modules.SALES_CHANNEL) as any
@@ -180,7 +172,7 @@ export const runLegacyVendorBackfill = async (
     profiles,
     profileStoreLinks,
     canonicalProductLinks,
-    existingStores,
+    existingStores
   ] = await Promise.all([
     marketplace.listVendors(),
     marketplace.listVendorDomains(),
@@ -189,7 +181,7 @@ export const runLegacyVendorBackfill = async (
     saas.listStoreProfiles(),
     listStoreProfileStoreLinks(container),
     listStoreProductLinks(container),
-    storeService.listStores({}, { take: 1000 }),
+    storeService.listStores({}, { take: 1000 })
   ])
 
   report.counts.vendors_inspected = vendors.length
@@ -241,10 +233,7 @@ export const runLegacyVendorBackfill = async (
     }
 
     const channel = (
-      await salesChannelService.listSalesChannels(
-        { id: [channelId] },
-        { take: 2 }
-      )
+      await salesChannelService.listSalesChannels({ id: [channelId] }, { take: 2 })
     )[0]
 
     if (!channel) {
@@ -257,12 +246,8 @@ export const runLegacyVendorBackfill = async (
       continue
     }
 
-    const domains = vendorDomains.filter(
-      (domain) => getDomainVendorId(domain) === vendor.id
-    )
-    const members = vendorMembers.filter(
-      (member) => member.vendor_id === vendor.id
-    )
+    const domains = vendorDomains.filter((domain) => getDomainVendorId(domain) === vendor.id)
+    const members = vendorMembers.filter((member) => member.vendor_id === vendor.id)
     const legacyProducts = vendorProductLinks
       .filter((owner) => owner.vendor_id === vendor.id)
       .map((owner) => owner.product_id)
@@ -311,7 +296,7 @@ export const runLegacyVendorBackfill = async (
         entity: "product",
         fields: ["id", "sales_channels.id"],
         filters: { id: legacyProducts },
-        pagination: { skip: 0, take: legacyProducts.length },
+        pagination: { skip: 0, take: legacyProducts.length }
       } as any)
 
       for (const product of products) {
@@ -360,23 +345,15 @@ export const runLegacyVendorBackfill = async (
       ? await saas.retrieveTenant(storeProfile.tenant_id).catch(() => null)
       : null
     let storeId = storeProfile
-      ? profileStoreLinks.find(
-          (candidate) => candidate.store_profile_id === storeProfile.id
-        )?.store_id
+      ? profileStoreLinks.find((candidate) => candidate.store_profile_id === storeProfile.id)
+          ?.store_id
       : undefined
 
     if (storeId) {
-      const owners = profileStoreLinks.filter(
-        (candidate) => candidate.store_id === storeId
-      )
-      const mappedStore = existingStores.find(
-        (candidate) => candidate.id === storeId
-      )
+      const owners = profileStoreLinks.filter((candidate) => candidate.store_id === storeId)
+      const mappedStore = existingStores.find((candidate) => candidate.id === storeId)
 
-      if (
-        !mappedStore ||
-        mappedStore.default_sales_channel_id !== channelId
-      ) {
+      if (!mappedStore || mappedStore.default_sales_channel_id !== channelId) {
         conflict(
           report,
           vendor.id,
@@ -398,11 +375,9 @@ export const runLegacyVendorBackfill = async (
     }
 
     const unlinkedStores = existingStores.filter(
-      (store) =>
-        !profileStoreLinks.some((candidate) => candidate.store_id === store.id)
+      (store) => !profileStoreLinks.some((candidate) => candidate.store_id === store.id)
     )
-    const canReuseOnlyStore =
-      !storeId && vendors.length === 1 && unlinkedStores.length === 1
+    const canReuseOnlyStore = !storeId && vendors.length === 1 && unlinkedStores.length === 1
 
     if (blocked) {
       continue
@@ -416,7 +391,7 @@ export const runLegacyVendorBackfill = async (
         tenant = await saas.createTenants({
           id: deterministicId("tenant", vendor.id),
           name: vendor.name,
-          status: vendor.status === "suspended" ? "suspended" : "active",
+          status: vendor.status === "suspended" ? "suspended" : "active"
         } as any)
       }
     }
@@ -434,7 +409,7 @@ export const runLegacyVendorBackfill = async (
           status: vendorStatusToStoreStatus(vendor.status),
           locale: "ar-LY",
           timezone: "Africa/Tripoli",
-          plan_code: "starter_whatsapp",
+          plan_code: "starter_whatsapp"
         } as any)
       }
     }
@@ -449,7 +424,7 @@ export const runLegacyVendorBackfill = async (
           id: deterministicId("store", vendor.id),
           name: vendor.name,
           default_sales_channel_id: channelId,
-          supported_currencies: [{ currency_code: "lyd", is_default: true }],
+          supported_currencies: [{ currency_code: "lyd", is_default: true }]
         })
         storeId = created.id
       }
@@ -459,7 +434,7 @@ export const runLegacyVendorBackfill = async (
       await storeService.updateStores(storeId!, {
         name: vendor.name,
         default_sales_channel_id: channelId,
-        supported_currencies: [{ currency_code: "lyd", is_default: true }],
+        supported_currencies: [{ currency_code: "lyd", is_default: true }]
       })
     }
 
@@ -471,17 +446,12 @@ export const runLegacyVendorBackfill = async (
     }
 
     const currentProfileLinks = await listStoreProfileStoreLinks(container, {
-      store_profile_id: storeProfile!.id,
+      store_profile_id: storeProfile!.id
     })
 
     if (!currentProfileLinks.length) {
-      await link.create(
-        storeProfileStoreLinkDefinition(storeProfile!.id, storeId!)
-      )
-    } else if (
-      currentProfileLinks.length !== 1 ||
-      currentProfileLinks[0].store_id !== storeId
-    ) {
+      await link.create(storeProfileStoreLinkDefinition(storeProfile!.id, storeId!))
+    } else if (currentProfileLinks.length !== 1 || currentProfileLinks[0].store_id !== storeId) {
       conflict(
         report,
         vendor.id,
@@ -492,14 +462,12 @@ export const runLegacyVendorBackfill = async (
     }
 
     const existingDomains = await saas.listStoreDomains({
-      store_profile_id: storeProfile!.id,
+      store_profile_id: storeProfile!.id
     } as any)
 
     for (const legacyDomain of domains) {
       const hostname = normalizeDomain(legacyDomain.domain)
-      const found = existingDomains.find(
-        (candidate) => candidate.normalized_hostname === hostname
-      )
+      const found = existingDomains.find((candidate) => candidate.normalized_hostname === hostname)
 
       if (!found) {
         await saas.createStoreDomains({
@@ -510,14 +478,14 @@ export const runLegacyVendorBackfill = async (
           type: "custom",
           verification_status: "verified",
           ssl_status: "active",
-          is_primary: Boolean(legacyDomain.is_primary),
+          is_primary: Boolean(legacyDomain.is_primary)
         } as any)
         report.counts.domains_migrated += 1
       }
     }
 
     const brands = await saas.listStoreBrands({
-      store_profile_id: storeProfile!.id,
+      store_profile_id: storeProfile!.id
     } as any)
 
     if (!brands.length) {
@@ -525,12 +493,12 @@ export const runLegacyVendorBackfill = async (
         id: deterministicId("stbrand", vendor.id),
         store_profile_id: storeProfile!.id,
         logo_url: vendor.logo_url ?? null,
-        primary_color: vendor.primary_color ?? null,
+        primary_color: vendor.primary_color ?? null
       } as any)
     }
 
     const existingMemberships = await saas.listMerchantMemberships({
-      store_profile_id: storeProfile!.id,
+      store_profile_id: storeProfile!.id
     } as any)
 
     for (const member of members) {
@@ -546,18 +514,16 @@ export const runLegacyVendorBackfill = async (
           store_profile_id: storeProfile!.id,
           merchant_account_reference: member.id,
           role: member.role === "manager" ? "manager" : "owner",
-          status: member.status === "disabled" ? "disabled" : "active",
+          status: member.status === "disabled" ? "disabled" : "active"
         } as any)
         report.counts.memberships_created += 1
       }
     }
 
-    const existingCanonical = canonicalProductLinks.filter(
-      (owner) => legacyProducts.includes(owner.product_id)
+    const existingCanonical = canonicalProductLinks.filter((owner) =>
+      legacyProducts.includes(owner.product_id)
     )
-    const otherStoreOwnership = existingCanonical.some(
-      (owner) => owner.store_id !== storeId
-    )
+    const otherStoreOwnership = existingCanonical.some((owner) => owner.store_id !== storeId)
 
     if (otherStoreOwnership) {
       conflict(
