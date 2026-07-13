@@ -83,10 +83,16 @@ const getDefaultShippingProfileId = async (
 const getOwnedProduct = async (
   req: MedusaRequest,
   vendorId: string,
+  medusaStoreId: string,
   salesChannelId: string,
   productId: string
 ): Promise<Record<string, any>> => {
-  await assertProductBelongsExclusivelyToVendor(req, vendorId, productId)
+  await assertProductBelongsExclusivelyToVendor(
+    req,
+    vendorId,
+    productId,
+    medusaStoreId
+  )
   const product = (await listProducts(req, { id: [productId] }, 1))[0]
   const channelIds = Array.isArray(product?.sales_channels)
     ? product.sales_channels.map((channel: any) => channel.id)
@@ -105,6 +111,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const product = await getOwnedProduct(
     req,
     context.vendorId,
+    context.medusaStoreId,
     context.allowedSalesChannelId,
     req.params.id
   )
@@ -122,6 +129,7 @@ export async function PATCH(
   const currentProduct = await getOwnedProduct(
     req,
     context.vendorId,
+    context.medusaStoreId,
     context.allowedSalesChannelId,
     productId
   )
@@ -264,6 +272,7 @@ export async function PATCH(
   const product = await getOwnedProduct(
     req,
     context.vendorId,
+    context.medusaStoreId,
     context.allowedSalesChannelId,
     productId
   )

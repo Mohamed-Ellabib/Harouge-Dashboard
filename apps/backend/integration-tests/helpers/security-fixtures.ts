@@ -5,10 +5,16 @@ import {
   linkSalesChannelsToApiKeyWorkflow,
 } from "@medusajs/core-flows"
 import type { MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { hashVendorPassword } from "../../src/api/_utils/vendor-auth"
 import { MARKETPLACE_MODULE } from "../../src/modules/marketplace"
 import type MarketplaceModuleService from "../../src/modules/marketplace/service"
+import {
+  storeProfileStoreLinkDefinition,
+} from "../../src/api/_utils/legacy-vendor-compatibility"
+import { SAAS_MODULE } from "../../src/modules/saas"
+import type SaasModuleService from "../../src/modules/saas/service"
 
 export type SecurityFixtures = Awaited<ReturnType<typeof createSecurityFixtures>>
 
@@ -108,12 +114,101 @@ export const createSecurityFixtures = async (container: MedusaContainer) => {
     },
   ] as any)
 
+  const saas = container.resolve(SAAS_MODULE) as SaasModuleService
+  const storeService = container.resolve(Modules.STORE) as any
+  const tenantA = await saas.createTenants({
+    name: "Phase 2A Tenant A",
+    status: "active",
+  } as any)
+  const tenantB = await saas.createTenants({
+    name: "Phase 2A Tenant B",
+    status: "active",
+  } as any)
+  const storeProfileA = await saas.createStoreProfiles({
+    tenant_id: tenantA.id,
+    legacy_vendor_id: vendorA.id,
+    handle: vendorA.handle,
+    status: "active",
+    locale: "ar-LY",
+    timezone: "Africa/Tripoli",
+    plan_code: "professional_commerce",
+  } as any)
+  const storeProfileB = await saas.createStoreProfiles({
+    tenant_id: tenantB.id,
+    legacy_vendor_id: vendorB.id,
+    handle: vendorB.handle,
+    status: "active",
+    locale: "ar-LY",
+    timezone: "Africa/Tripoli",
+    plan_code: "professional_commerce",
+  } as any)
+  const medusaStoreA = await storeService.createStores({
+    name: vendorA.name,
+    default_sales_channel_id: salesChannelA.id,
+    supported_currencies: [{ currency_code: "lyd", is_default: true }],
+  })
+  const medusaStoreB = await storeService.createStores({
+    name: vendorB.name,
+    default_sales_channel_id: salesChannelB.id,
+    supported_currencies: [{ currency_code: "lyd", is_default: true }],
+  })
+  const link = container.resolve(ContainerRegistrationKeys.LINK) as any
+
+  await link.create([
+    storeProfileStoreLinkDefinition(storeProfileA.id, medusaStoreA.id),
+    storeProfileStoreLinkDefinition(storeProfileB.id, medusaStoreB.id),
+  ])
+  await saas.createStoreDomains([
+    {
+      store_profile_id: storeProfileA.id,
+      normalized_hostname: "store-a.example.test",
+      original_hostname: "store-a.example.test",
+      type: "custom",
+      verification_status: "verified",
+      ssl_status: "active",
+      is_primary: true,
+    },
+    {
+      store_profile_id: storeProfileB.id,
+      normalized_hostname: "store-b.example.test",
+      original_hostname: "store-b.example.test",
+      type: "custom",
+      verification_status: "verified",
+      ssl_status: "active",
+      is_primary: true,
+    },
+  ] as any)
+  await saas.createStoreBrands({
+    store_profile_id: storeProfileA.id,
+    logo_url: vendorA.logo_url,
+    primary_color: vendorA.primary_color,
+  } as any)
+  const membershipA = await saas.createMerchantMemberships({
+    store_profile_id: storeProfileA.id,
+    merchant_account_reference: memberA.id,
+    role: "owner",
+    status: "active",
+  } as any)
+  const membershipB = await saas.createMerchantMemberships({
+    store_profile_id: storeProfileB.id,
+    merchant_account_reference: memberB.id,
+    role: "owner",
+    status: "active",
+  } as any)
   return {
     marketplace,
     vendorA,
     vendorB,
     memberA,
     memberB,
+    membershipA,
+    membershipB,
+    tenantA,
+    tenantB,
+    storeProfileA,
+    storeProfileB,
+    medusaStoreA,
+    medusaStoreB,
     salesChannelA,
     salesChannelB,
     apiKeyA,

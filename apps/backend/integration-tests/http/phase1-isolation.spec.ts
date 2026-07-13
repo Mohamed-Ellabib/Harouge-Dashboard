@@ -70,6 +70,7 @@ medusaIntegrationTestRunner({
         const token = createVendorSessionToken({
           member_id: "vmem_missing",
           vendor_id: fixtures.vendorA.id,
+          store_profile_id: fixtures.storeProfileA.id,
           session_version: 0,
         }).token
         const unknownMembership = await api.get("/vendor/me", {
@@ -79,31 +80,25 @@ medusaIntegrationTestRunner({
         expect(unknownMembership.status).toBe(403)
       })
 
-      it("fails login closed for missing or ambiguous channel configuration", async () => {
-        for (const metadata of [
-          null,
-          { sales_channel_id: [fixtures.salesChannelA.id, fixtures.salesChannelB.id] },
-        ]) {
-          await fixtures.marketplace.updateVendors({
-            id: fixtures.vendorA.id,
-            metadata,
-          } as any)
-          vendorLoginRateLimiter.reset()
-          const response = await api.post(
-            "/vendor/auth/login",
-            { email: fixtures.memberA.email, password: fixtures.passwordA },
-            { validateStatus: () => true }
-          )
-          expect(response.status).toBe(401)
-          expect(response.data).toEqual({ message: "Invalid vendor credentials." })
-        }
+      it("fails login closed when the permanent Store has no sales channel", async () => {
+        const storeService = getContainer().resolve("store") as any
+        await storeService.updateStores(fixtures.medusaStoreA.id, {
+          default_sales_channel_id: null,
+        })
+        const response = await api.post(
+          "/vendor/auth/login",
+          { email: fixtures.memberA.email, password: fixtures.passwordA },
+          { validateStatus: () => true }
+        )
+        expect(response.status).toBe(401)
+        expect(response.data).toEqual({ message: "Invalid vendor credentials." })
       })
-
       it("rejects inactive stores and ambiguous active login memberships", async () => {
-        await fixtures.marketplace.updateVendors({
-          id: fixtures.vendorA.id,
+        const saas = getContainer().resolve("saas") as any
+        await saas.updateStoreProfiles({
+          id: fixtures.storeProfileA.id,
           status: "suspended",
-        } as any)
+        })
         const inactive = await api.post(
           "/vendor/auth/login",
           { email: fixtures.memberA.email, password: fixtures.passwordA },
@@ -111,10 +106,10 @@ medusaIntegrationTestRunner({
         )
         expect(inactive.status).toBe(401)
 
-        await fixtures.marketplace.updateVendors({
-          id: fixtures.vendorA.id,
+        await saas.updateStoreProfiles({
+          id: fixtures.storeProfileA.id,
           status: "active",
-        } as any)
+        })
         await fixtures.marketplace.createVendorMembers({
           vendor_id: fixtures.vendorB.id,
           email: fixtures.memberA.email,
@@ -260,10 +255,11 @@ medusaIntegrationTestRunner({
           fixtures.vendorB.name
         )
 
-        await fixtures.marketplace.updateVendorMembers({
-          id: fixtures.memberA.id,
+        const saas = getContainer().resolve("saas") as any
+        await saas.updateMerchantMemberships({
+          id: fixtures.membershipA.id,
           role: "manager",
-        } as any)
+        })
         const managerRead = await api.get("/vendor/me", {
           headers: { Cookie: cookieA },
         })
@@ -320,10 +316,11 @@ medusaIntegrationTestRunner({
           "name",
         ])
 
-        await fixtures.marketplace.updateVendors({
-          id: fixtures.vendorB.id,
+        const saas = getContainer().resolve("saas") as any
+        await saas.updateStoreProfiles({
+          id: fixtures.storeProfileB.id,
           status: "suspended",
-        } as any)
+        })
         expect((await resolve("store-b.example.test", fixtures.apiKeyB.token)).status).toBe(404)
       })
 

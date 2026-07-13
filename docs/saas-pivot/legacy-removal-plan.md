@@ -1,0 +1,14 @@
+# Legacy Vendor Removal Plan
+
+Vendor is retained during Phase 2A.
+
+1. Backfill and reconcile every Vendor.
+2. Stop creating standalone Vendors without permanent records.
+3. Move dashboard response types from Vendor vocabulary to StoreProfile.
+4. Remove Vendor metadata dependence for publishable-key references.
+5. Replace legacy member identity with the long-term merchant account model if required.
+6. Remove Vendor-product dual writing after canonical ownership has remained consistent through an agreed observation period.
+7. Remove legacy route adapters.
+8. Archive or delete Vendor data only under a separately approved, reversible migration.
+
+Fallback to Vendor is not implemented for migrated contexts. Missing permanent relationships fail closed in all environments. Cart/order ownership must be completed in Phase 2B before legacy product ownership can be removed safely.

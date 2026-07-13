@@ -15,6 +15,7 @@ export const VENDOR_SESSION_COOKIE = "vendor_session"
 type VendorSessionPayload = {
   member_id: string
   vendor_id: string
+  store_profile_id: string
   session_version: number
   exp: number
 }
@@ -164,6 +165,7 @@ export const getVendorPasswordHash = (metadata: unknown): string | null => {
 export const createVendorSessionToken = (input: {
   member_id: string
   vendor_id: string
+  store_profile_id: string
   session_version: number
 }): { token: string; expiresAt: Date } => {
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000)
@@ -202,6 +204,7 @@ export const verifyVendorSessionToken = (
     if (
       typeof parsed.member_id !== "string" ||
       typeof parsed.vendor_id !== "string" ||
+      typeof parsed.store_profile_id !== "string" ||
       typeof parsed.session_version !== "number" ||
       !Number.isSafeInteger(parsed.session_version) ||
       parsed.session_version < 0 ||

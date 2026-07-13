@@ -9,6 +9,10 @@ import {
   verifyVendorPassword,
 } from "../../../_utils/vendor-auth"
 import {
+  resolvePermanentMerchantBinding,
+  resolvePermanentStoreByLegacyVendor,
+} from "../../../_utils/legacy-vendor-compatibility"
+import {
   getVendorLoginSource,
   vendorLoginRateLimiter,
 } from "../../../_utils/vendor-login-rate-limit"
@@ -17,7 +21,6 @@ import {
   getMarketplaceService,
   normalizeEmail,
   serializeVendorProfile,
-  resolveVendorSalesChannel,
 } from "../../../_utils/vendors"
 
 type VendorLoginBody = {
@@ -89,22 +92,32 @@ export async function POST(
     .retrieveVendor(member.vendor_id)
     .catch(() => null)
 
-  if (!vendor || vendor.status !== "active") {
+  if (!vendor) {
     vendorLoginRateLimiter.recordFailure(rateLimitInput)
     return invalidCredentials(res)
   }
 
-  const salesChannel = await resolveVendorSalesChannel(req, vendor).catch(() => null)
+  const legacyBinding = await resolvePermanentStoreByLegacyVendor(
+    req,
+    vendor.id
+  ).catch(() => null)
+  const binding = legacyBinding
+    ? await resolvePermanentMerchantBinding(
+        req,
+        member.id,
+        legacyBinding.storeProfile.id
+      ).catch(() => null)
+    : null
 
-  if (!salesChannel) {
+  if (!binding) {
     vendorLoginRateLimiter.recordFailure(rateLimitInput)
     return invalidCredentials(res)
   }
-
   vendorLoginRateLimiter.recordSuccess(rateLimitInput)
   const { token, expiresAt } = createVendorSessionToken({
     member_id: member.id,
     vendor_id: vendor.id,
+    store_profile_id: binding.storeProfile.id,
     session_version: getVendorSessionVersion(member.metadata),
   })
   const domains = await marketplace.listVendorDomains()

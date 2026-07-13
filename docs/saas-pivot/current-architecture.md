@@ -1,47 +1,17 @@
 # Current Architecture
 
-Last verified: 2026-07-13 after Phase 1 implementation.
+Last verified: 2026-07-13 after Phase 2A implementation.
 
-## Runtime topology
+## Runtime identity
 
-```mermaid
-flowchart LR
-  Shopper[Public client] --> PublicContext[PublicStoreContext]
-  PublicContext --> StoreAPI[Medusa Store API]
-  Merchant[Arabic merchant dashboard] --> MerchantContext[MerchantStoreContext]
-  MerchantContext --> VendorAPI[Cookie-authenticated vendor API]
-  Operator[Internal operator] --> Admin[Medusa Admin]
-  VendorAPI --> Core[Medusa workflows and modules]
-  StoreAPI --> Core
-  Admin --> Core
-  Core --> DB[(Shared PostgreSQL)]
-```
+Merchant requests resolve signed merchant account -> active MerchantMembership -> active StoreProfile -> active Tenant -> one linked Medusa Store -> its default Sales Channel. Public requests resolve normalized verified StoreDomain -> active StoreProfile -> active Tenant -> one linked Medusa Store -> matching single-channel publishable key.
 
-The repository remains a modular monolith with a Medusa 2.17 backend and a separate React/Vite merchant dashboard. No customer storefront or provisioning engine was added in Phase 1.
+Medusa Store is the canonical commerce-store identity. Tenant groups stores. StoreProfile owns SaaS metadata. MerchantMembership and StoreDomain are authoritative. Vendor is preserved only for authentication storage, current route/dashboard response compatibility, and temporary dual writing.
 
-## Verified current controls
+Products have one canonical Medusa Store owner and one allowed Store channel. The Vendor-product link remains temporarily and must agree with canonical ownership. Missing or inconsistent permanent links fail closed.
 
-- Protected merchant routes derive one active member and Vendor from the signed session, then resolve a strictly configured sales channel.
-- Central owner/manager permissions guard product, order, profile, and self-security operations.
-- Merchant product create/update uses Medusa workflows, one server-derived channel, and an exclusive vendor-product link.
-- Public product routes require an active host Vendor whose configured channel matches the publishable key's only channel.
-- Public profiles and merchant order responses are explicit allowlists.
-- Order list/detail includes only line items belonging to the current merchant and returns 404 when none remain.
-- Domain normalization removes case, scheme, path, port, `www`, and trailing dots before comparison.
-
-## Temporary compatibility architecture
-
-Vendor currently stands in for one Store. Sales channel and publishable-key references remain in Vendor metadata. Product ownership remains a module link. Order visibility is inferred from current product ownership. These are Phase 1 compatibility controls, not the permanent SaaS data model.
-
-## Permanent target
-
-Phase 2 must introduce separate Tenant and SaaS Store entities, memberships, verified domain records, data-backed channel/key ownership, and immutable Store ownership for carts and orders. Vendor compatibility must be migrated non-destructively.
+The application remains a Medusa 2.17 modular monolith with a separate React/Vite Arabic merchant dashboard. Phase 2A added no storefront, provisioning engine, checkout changes, or deployment behavior.
 
 ## Deferred risks
 
-- Whole-order Store ownership is not stored.
-- Domain verification and approval workflow are not modeled.
-- No plan, entitlement, provisioning, audit-event, or WhatsApp enquiry entity exists.
-- The login rate limiter, event bus, and locking provider are process-local.
-- Trusted proxy configuration is deployment-owned.
-- Previously exposed Neon credential rotation is still unverified.
+Carts and orders still lack immutable Store ownership. Current merchant order filtering remains a compatibility mitigation. DNS verification and SSL issuance are not implemented. The login limiter, event bus, and locking provider remain process-local. Neon credential rotation is unverified and blocks production migration.

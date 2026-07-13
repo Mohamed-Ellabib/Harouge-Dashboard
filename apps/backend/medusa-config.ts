@@ -17,5 +17,8 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/marketplace",
     },
+    {
+      resolve: "./src/modules/saas",
+    },
   ],
 })

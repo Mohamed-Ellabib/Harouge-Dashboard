@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
+import { updateLegacyCompatibleStore } from "../../_utils/legacy-vendor-compatibility"
 import {
   getMerchantStoreContext,
   requireMerchantPermission,
@@ -114,6 +115,25 @@ export async function PATCH(
     )
   }
 
-  await getMarketplaceService(req).updateVendors(update as any)
+  await updateLegacyCompatibleStore(
+    req,
+    {
+      vendorId: context.vendorId,
+      storeProfileId: context.storeProfileId,
+      medusaStoreId: context.medusaStoreId,
+    },
+    {
+      ...("name" in update ? { name: update.name as string } : {}),
+      ...("contact_email" in update
+        ? { public_contact_email: update.contact_email as string | null }
+        : {}),
+      ...("logo_url" in update
+        ? { logo_url: update.logo_url as string | null }
+        : {}),
+      ...("primary_color" in update
+        ? { primary_color: update.primary_color as string | null }
+        : {}),
+    }
+  )
   return res.json(await responseBody(req))
 }

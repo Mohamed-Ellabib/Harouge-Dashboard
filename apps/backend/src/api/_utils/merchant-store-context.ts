@@ -6,12 +6,14 @@ import type {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
+import {
+  listPermanentDomains,
+  resolvePermanentMerchantBinding,
+} from "./legacy-vendor-compatibility"
 import { getVendorSessionVersion } from "./vendor-auth"
 import {
-  domainsForVendor,
   getMarketplaceService,
   recordOrNull,
-  resolveVendorSalesChannel,
 } from "./vendors"
 
 export const MERCHANT_PERMISSIONS = [
@@ -41,7 +43,7 @@ export const permissionsForMerchantRole = (
   role: MerchantRole
 ): readonly MerchantPermission[] => ROLE_PERMISSIONS[role]
 
-type VendorDomainContext = {
+type StoreDomainContext = {
   id: string
   domain: string
   isPrimary: boolean
@@ -50,17 +52,23 @@ type VendorDomainContext = {
 export type MerchantStoreContext = {
   merchantMemberId: string
   merchantUserId: string | null
+  tenantId: string
+  storeProfileId: string
+  medusaStoreId: string
   vendorId: string
   role: MerchantRole
   accountStatus: "active"
   storeStatus: "active"
   allowedSalesChannelId: string
   allowedPublishableKeyReference: string | null
-  allowedDomains: VendorDomainContext[]
+  allowedDomains: StoreDomainContext[]
   permissions: readonly MerchantPermission[]
   requestId: string
   member: Record<string, any>
   vendor: Record<string, any>
+  tenant: Record<string, any>
+  storeProfile: Record<string, any>
+  medusaStore: Record<string, any>
 }
 
 const CONTEXT_KEY = "merchant_store_context"
@@ -85,7 +93,7 @@ export const resolveMerchantStoreContext = async (
   if (
     !auth ||
     typeof auth.member_id !== "string" ||
-    typeof auth.vendor_id !== "string" ||
+    typeof auth.store_profile_id !== "string" ||
     typeof auth.session_version !== "number"
   ) {
     throw contextError("Vendor login is required.")
@@ -101,30 +109,48 @@ export const resolveMerchantStoreContext = async (
 
   if (
     member.id !== auth.member_id ||
-    member.vendor_id !== auth.vendor_id ||
     member.status !== "active" ||
     getVendorSessionVersion(member.metadata) !== auth.session_version
   ) {
     throw contextError("The merchant session is no longer valid.")
   }
 
-  if (member.role !== "owner" && member.role !== "manager") {
+  const binding = await resolvePermanentMerchantBinding(
+    req,
+    member.id,
+    auth.store_profile_id
+  )
+  const membership = binding.membership
+
+  if (
+    !membership ||
+    (membership.role !== "owner" && membership.role !== "manager")
+  ) {
     throw contextError("The merchant role is not supported.")
   }
 
-  const vendor = await marketplace.retrieveVendor(member.vendor_id).catch(() => null)
+  const legacyVendorId = binding.storeProfile.legacy_vendor_id
 
-  if (!vendor || vendor.status !== "active") {
-    throw contextError("The merchant store is unavailable.")
+  if (
+    typeof legacyVendorId !== "string" ||
+    !legacyVendorId ||
+    member.vendor_id !== legacyVendorId
+  ) {
+    throw configurationError(
+      "The legacy merchant identity conflicts with permanent store ownership."
+    )
   }
 
-  const salesChannel = await resolveVendorSalesChannel(req, vendor)
-  const domains = domainsForVendor(
-    await marketplace.listVendorDomains(),
-    vendor.id
-  ).map((domain) => ({
+  const vendor = await marketplace.retrieveVendor(legacyVendorId).catch(() => null)
+
+  if (!vendor) {
+    throw configurationError("The legacy compatibility record is unavailable.")
+  }
+
+  const permanentDomains = await listPermanentDomains(req, binding.storeProfile.id)
+  const domains = permanentDomains.map((domain) => ({
     id: domain.id,
-    domain: domain.domain,
+    domain: domain.normalized_hostname,
     isPrimary: Boolean(domain.is_primary),
   }))
   const normalizedDomains = domains.map((domain) => domain.domain.toLowerCase())
@@ -146,18 +172,24 @@ export const resolveMerchantStoreContext = async (
   const context: MerchantStoreContext = {
     merchantMemberId: member.id,
     merchantUserId: member.user_id ?? null,
-    vendorId: vendor.id,
-    role: member.role,
+    tenantId: binding.tenant.id,
+    storeProfileId: binding.storeProfile.id,
+    medusaStoreId: binding.medusaStore.id,
+    vendorId: legacyVendorId,
+    role: membership.role,
     accountStatus: "active",
     storeStatus: "active",
-    allowedSalesChannelId: salesChannel.id,
+    allowedSalesChannelId: binding.medusaStore.default_sales_channel_id,
     allowedPublishableKeyReference:
       typeof publishableKeyReference === "string" ? publishableKeyReference : null,
     allowedDomains: domains,
-    permissions: permissionsForMerchantRole(member.role),
+    permissions: permissionsForMerchantRole(membership.role),
     requestId: requestIdFor(req),
     member,
     vendor,
+    tenant: binding.tenant,
+    storeProfile: binding.storeProfile,
+    medusaStore: binding.medusaStore,
   }
 
   ;(req as any)[CONTEXT_KEY] = context

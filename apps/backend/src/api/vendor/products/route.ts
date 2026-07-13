@@ -94,7 +94,11 @@ const hasOnlyAllowedChannel = (
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const context = await getMerchantStoreContext(req)
   requireMerchantPermission(context, "products.read")
-  const productIds = await listExclusivelyOwnedProductIds(req, context.vendorId)
+  const productIds = await listExclusivelyOwnedProductIds(
+    req,
+    context.vendorId,
+    context.medusaStoreId
+  )
 
   if (!productIds.length) {
     return res.json({ products: [], count: 0 })

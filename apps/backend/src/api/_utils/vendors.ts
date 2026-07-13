@@ -5,6 +5,13 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 
+import {
+  assertCanonicalProductOwner,
+  listExclusivelyOwnedCanonicalProductIds,
+  listStoreProductLinks,
+  resolvePermanentStoreByLegacyVendor,
+  syncCanonicalStoreProducts,
+} from "./legacy-vendor-compatibility"
 import { MARKETPLACE_MODULE } from "../../modules/marketplace"
 import type MarketplaceModuleService from "../../modules/marketplace/service"
 import {
@@ -395,7 +402,8 @@ export const listVendorProductLinks = async (
 
 export const listExclusivelyOwnedProductIds = async (
   req: MedusaRequest,
-  vendorId: string
+  vendorId: string,
+  medusaStoreId?: string
 ): Promise<string[]> => {
   const links = await listVendorProductLinks(req)
   const byProduct = new Map<string, LinkRecord[]>()
@@ -406,24 +414,41 @@ export const listExclusivelyOwnedProductIds = async (
     byProduct.set(link.product_id, records)
   }
 
-  return [...byProduct.entries()]
+  const legacyIds = [...byProduct.entries()]
     .filter(([, records]) => records.length === 1 && records[0].vendor_id === vendorId)
     .map(([productId]) => productId)
+
+  if (!medusaStoreId) {
+    return legacyIds
+  }
+
+  const canonicalIds = await listExclusivelyOwnedCanonicalProductIds(
+    req,
+    medusaStoreId
+  )
+  const canonicalSet = new Set(canonicalIds)
+
+  return legacyIds.filter((productId) => canonicalSet.has(productId))
 }
 
 export const assertProductBelongsExclusivelyToVendor = async (
   req: MedusaRequest,
   vendorId: string,
-  productId: string
+  productId: string,
+  medusaStoreId?: string
 ): Promise<void> => {
   const owners = await listVendorProductLinks(req, { product_id: productId })
 
   if (owners.length !== 1 || owners[0].vendor_id !== vendorId) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product was not found.")
   }
+
+  if (medusaStoreId) {
+    await assertCanonicalProductOwner(req, medusaStoreId, productId)
+  }
 }
 
-export const syncVendorProducts = async (
+const syncLegacyVendorProducts = async (
   req: MedusaRequest,
   vendorId: string,
   productIds: string[]
@@ -464,6 +489,31 @@ export const syncVendorProducts = async (
     await link.create(
       toAdd.map((productId) => vendorProductLinkDefinition(vendorId, productId))
     )
+  }
+}
+
+export const syncVendorProducts = async (
+  req: MedusaRequest,
+  vendorId: string,
+  productIds: string[]
+): Promise<void> => {
+  const binding = await resolvePermanentStoreByLegacyVendor(req, vendorId)
+  const previousCanonical = await listStoreProductLinks(req, {
+    store_id: binding.medusaStore.id,
+  })
+  const previousCanonicalIds = previousCanonical.map((record) => record.product_id)
+
+  await syncCanonicalStoreProducts(req, binding.medusaStore.id, productIds)
+
+  try {
+    await syncLegacyVendorProducts(req, vendorId, productIds)
+  } catch (error) {
+    await syncCanonicalStoreProducts(
+      req,
+      binding.medusaStore.id,
+      previousCanonicalIds
+    )
+    throw error
   }
 }
 

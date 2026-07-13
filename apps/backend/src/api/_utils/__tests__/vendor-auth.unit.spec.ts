@@ -54,12 +54,14 @@ describe("vendor authentication primitives", () => {
     const { token } = createVendorSessionToken({
       member_id: "member_a",
       vendor_id: "vendor_a",
+      store_profile_id: "profile_a",
       session_version: 4,
     })
 
     expect(verifyVendorSessionToken(token)).toMatchObject({
       member_id: "member_a",
       vendor_id: "vendor_a",
+      store_profile_id: "profile_a",
       session_version: 4,
     })
   })

@@ -4,21 +4,31 @@ import type {
   MedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 
 import {
-  domainsForVendor,
-  getDomainVendorId,
-  getMarketplaceService,
+  getPermanentBrand,
+  listExclusivelyOwnedCanonicalProductIds,
+  listPermanentDomains,
+  listStoreProfileStoreLinks,
+  resolvePermanentStoreByDomain,
+  resolvePermanentStoreByHandle,
+  serializePermanentPublicStoreProfile,
+} from "./legacy-vendor-compatibility"
+import {
   normalizeDomain,
   normalizeHandle,
-  recordOrNull,
-  resolveVendorSalesChannel,
-  serializePublicStoreProfile,
   type PublicStoreProfile,
 } from "./vendors"
 
 export type PublicStoreContext = {
+  tenantId: string
+  storeProfileId: string
+  medusaStoreId: string
   vendorId: string
   salesChannelId: string
   publishableApiKeyId: string
@@ -74,64 +84,51 @@ export const resolvePublicStoreContext = async (
   req: MedusaRequest,
   options: ResolvePublicStoreOptions = {}
 ): Promise<PublicStoreContext> => {
-  const marketplace = getMarketplaceService(req)
   const hostname = requestHostname(req)
   const handleOverride = developmentHandle(
     req,
     options.developmentHandleOverride
   )
-  const domains = await marketplace.listVendorDomains()
-  let vendor: Record<string, any> | null = null
-
-  if (handleOverride) {
-    const vendors = await marketplace.listVendors({ handle: handleOverride })
-    vendor = vendors.length === 1 ? vendors[0] : null
-  } else {
-    if (!hostname) {
-      throw notFound()
-    }
-
-    const domainMatches = domains.filter(
-      (candidate) => normalizeDomain(candidate.domain) === hostname
-    )
-
-    if (domainMatches.length !== 1) {
-      throw notFound()
-    }
-
-    const vendorId = getDomainVendorId(domainMatches[0])
-    vendor = vendorId
-      ? await marketplace.retrieveVendor(vendorId).catch(() => null)
+  const binding = handleOverride
+    ? await resolvePermanentStoreByHandle(req, handleOverride).catch(() => null)
+    : hostname
+      ? await resolvePermanentStoreByDomain(req, hostname).catch(() => null)
       : null
-  }
 
-  if (!vendor || vendor.status !== "active") {
+  if (!binding) {
     throw notFound()
   }
 
-  const salesChannel = await resolveVendorSalesChannel(req, vendor).catch(() => null)
+  const salesChannelId = binding.medusaStore.default_sales_channel_id
   const publishableKeyContext = (req as any).publishable_key_context
 
   if (
-    !salesChannel ||
+    typeof salesChannelId !== "string" ||
     !publishableKeyContext ||
     typeof publishableKeyContext.key !== "string" ||
     !Array.isArray(publishableKeyContext.sales_channel_ids) ||
     publishableKeyContext.sales_channel_ids.length !== 1 ||
-    publishableKeyContext.sales_channel_ids[0] !== salesChannel.id
+    publishableKeyContext.sales_channel_ids[0] !== salesChannelId
   ) {
     throw notFound()
   }
 
-  const vendors = await marketplace.listVendors({ status: "active" } as any)
-  const matchingStoreIds = vendors
-    .filter((candidate) => {
-      const configuredId = recordOrNull(candidate.metadata)?.sales_channel_id
-      return configuredId === salesChannel.id
-    })
-    .map((candidate) => candidate.id)
+  const profileStoreLinks = await listStoreProfileStoreLinks(req)
+  const storeService = req.scope.resolve(Modules.STORE) as any
+  const sameChannelProfiles: string[] = []
 
-  if (matchingStoreIds.length !== 1 || matchingStoreIds[0] !== vendor.id) {
+  for (const link of profileStoreLinks) {
+    const store = await storeService.retrieveStore(link.store_id).catch(() => null)
+
+    if (store?.default_sales_channel_id === salesChannelId) {
+      sameChannelProfiles.push(link.store_profile_id)
+    }
+  }
+
+  if (
+    sameChannelProfiles.length !== 1 ||
+    sameChannelProfiles[0] !== binding.storeProfile.id
+  ) {
     throw notFound()
   }
 
@@ -146,26 +143,39 @@ export const resolvePublicStoreContext = async (
   const keyChannelIds = Array.isArray(apiKey?.sales_channels_link)
     ? apiKey.sales_channels_link.map((link: any) => link.sales_channel_id)
     : []
-  const configuredKeyId = recordOrNull(vendor.metadata)?.publishable_api_key_id
 
   if (
     !apiKey ||
     apiKey.revoked_at ||
     keyChannelIds.length !== 1 ||
-    keyChannelIds[0] !== salesChannel.id ||
-    (typeof configuredKeyId === "string" && configuredKeyId !== apiKey.id)
+    keyChannelIds[0] !== salesChannelId
   ) {
     throw notFound()
   }
 
-  const vendorDomains = domainsForVendor(domains, vendor.id)
+  const domains = await listPermanentDomains(req, binding.storeProfile.id)
+  const brand = await getPermanentBrand(req, binding.storeProfile.id)
+  const legacyVendorId = binding.storeProfile.legacy_vendor_id
+
+  if (typeof legacyVendorId !== "string" || !legacyVendorId) {
+    throw notFound()
+  }
+
   const context: PublicStoreContext = {
-    vendorId: vendor.id,
-    salesChannelId: salesChannel.id,
+    tenantId: binding.tenant.id,
+    storeProfileId: binding.storeProfile.id,
+    medusaStoreId: binding.medusaStore.id,
+    vendorId: legacyVendorId,
+    salesChannelId,
     publishableApiKeyId: apiKey.id,
-    hostname: hostname || normalizeDomain(vendorDomains[0]?.domain),
+    hostname:
+      hostname ||
+      normalizeDomain(
+        domains.find((domain) => domain.is_primary)?.normalized_hostname ??
+          domains[0]?.normalized_hostname
+      ),
     requestId: randomUUID(),
-    profile: serializePublicStoreProfile(vendor, vendorDomains),
+    profile: serializePermanentPublicStoreProfile(binding, domains, brand),
   }
 
   ;(req as any)[CONTEXT_KEY] = context
@@ -182,7 +192,37 @@ export const attachPublicStoreContext = async (
   next: MedusaNextFunction
 ) => {
   try {
-    await resolvePublicStoreContext(req)
+    const context = await resolvePublicStoreContext(req)
+    const canonicalIds = await listExclusivelyOwnedCanonicalProductIds(
+      req,
+      context.medusaStoreId
+    )
+    const path = String(
+      (req as any).originalUrl ?? (req as any).url ?? ""
+    ).split("?")[0]
+    const directMatch = path.match(new RegExp("^/store/products/([^/]+)$"))
+
+    if (directMatch) {
+      if (!canonicalIds.includes(decodeURIComponent(directMatch[1]))) {
+        throw notFound()
+      }
+    } else {
+      const requested = (req as any).query?.id
+      const requestedIds = Array.isArray(requested)
+        ? requested.map(String)
+        : typeof requested === "string"
+          ? requested.split(",").filter(Boolean)
+          : null
+      const allowedIds = requestedIds
+        ? canonicalIds.filter((id) => requestedIds.includes(id))
+        : canonicalIds
+
+      ;(req as any).query = {
+        ...((req as any).query ?? {}),
+        id: allowedIds.length ? allowedIds : ["__no_canonical_products__"],
+      }
+    }
+
     return next()
   } catch (error) {
     return next(error)

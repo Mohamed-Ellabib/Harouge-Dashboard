@@ -23,7 +23,8 @@
     "test:integration:http": "node ./scripts/run-tests.js integration:http",
     "test:integration:modules": "node ./scripts/run-tests.js integration:modules",
     "test:unit": "node ./scripts/run-tests.js unit",
-    "diagnose:product-channels": "medusa exec ./src/scripts/diagnose-product-sales-channels.ts -- --dry-run"
+    "diagnose:product-channels": "medusa exec ./src/scripts/diagnose-product-sales-channels.ts -- --dry-run",
+    "saas:backfill-stores": "medusa exec ./src/scripts/saas-backfill-stores.ts --"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.17.0",

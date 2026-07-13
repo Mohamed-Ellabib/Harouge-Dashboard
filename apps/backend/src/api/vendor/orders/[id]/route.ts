@@ -12,7 +12,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const context = await getMerchantStoreContext(req)
   requireMerchantPermission(context, "orders.read")
   const productIds = new Set(
-    await listExclusivelyOwnedProductIds(req, context.vendorId)
+    await listExclusivelyOwnedProductIds(
+    req,
+    context.vendorId,
+    context.medusaStoreId
+  )
   )
   const orders = productIds.size
     ? await listMerchantOrders(req, productIds, req.params.id)

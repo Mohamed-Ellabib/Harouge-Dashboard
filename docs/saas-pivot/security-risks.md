@@ -6,25 +6,18 @@ Last updated: 2026-07-13
 
 | ID | Finding | Root cause | Remediation | Regression evidence | Remaining risk | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| S-01 | Products assigned outside store channel | Merchant writes accepted broad/default channel scope | Server-derived `MerchantStoreContext`, exact configured channel, exclusive owner link, hostile-field rejection | Phase 0.5 and Phase 1 product/key tests | Existing real data requires dry-run diagnosis before repair | FIXED for writes |
-| S-06 | Password changes retained sessions | Stateless cookie lacked server revocation state | Session version checked on every request and incremented on self/admin reset or disable | Multi-session HTTP tests | Version remains temporary metadata | FIXED |
-| S-08 | Unbounded synchronous login checks | Sync scrypt and no bounds/limiter | Async verify, shape/length checks, generic response, source+email limiter | Unit and HTTP auth tests | Shared limiter required for multiple replicas | FIXED for single process |
-| S-10 | Public entity metadata exposure | Unrestricted serialization | Exact `PublicStoreProfile` allowlist | Exact-key unit/HTTP contract | New fields require explicit contract change | FIXED |
-| P1-01 | Merchant routes derived store inconsistently | Route-local session/vendor/channel logic | Central `MerchantStoreContext` and permission enforcement | Phase 1 identity, role, product, order tests | Vendor is still a temporary Store surrogate | FIXED TEMPORARILY |
-| P1-02 | Host/key/channel confusion | Public host and key were not one authority | Central `PublicStoreContext`; trusted proxy allowlist; exact key/channel checks | Host/key matrix and direct public product tests | Deployment must configure trusted proxies | FIXED TEMPORARILY |
-| P1-03 | Global/unsafe merchant order response | Global orders and broad entity shape | Owned-item filtering and explicit `MerchantOrder` DTO | Mixed-order list/detail contract tests | Whole-order ownership absent | MITIGATED; PHASE 2 REQUIRED |
-| P1-04 | Role and shop-field overreach | Stored role was not a policy boundary | Central owner/manager matrix and PATCH allowlist/denylist | Role/shop HTTP and unit tests | Additional future roles require policy design | FIXED |
+| S-01 | Cross-channel products | client/default channel ownership | server Store context, canonical Store owner, exact channel, dual-write adapter | Phase 0.5, Phase 1, Phase 2A product tests | real data needs approved backfill | FIXED |
+| S-06 | Password reset retained sessions | stateless session had no revocation state | session version invalidation | multi-session tests | temporary identity metadata | FIXED |
+| S-08 | Blocking/unbounded login | sync verification and no limits | async bounded verification and layered limiter | auth tests | shared limiter needed for replicas | FIXED LOCAL |
+| S-10 | Public metadata exposure | unrestricted entity serialization | explicit public allowlist | exact-key tests | contract review for new fields | FIXED |
+| P2A-01 | Vendor remained authorization boundary | temporary model drove contexts | Membership/StoreProfile/Tenant/Medusa Store chain | permanent context tests | auth password storage still legacy | FIXED |
+| P2A-02 | Hostname used VendorDomain | legacy domain owned public routing | verified unique StoreDomain | public domain/key tests | DNS/SSL automation deferred | FIXED MODEL |
+| P2A-03 | Product owner was Vendor | transitional link represented Store | one canonical Store-product link plus channel agreement | second-owner and isolation tests | dual write remains temporary | FIXED |
+| P2A-04 | Unsafe migration could target shared DB | data conversion lacked guarded command | dry-run default; production/remote/protected/test guards | safety and backfill tests | production mechanism intentionally absent | FIXED FOR PHASE 2A |
+| P2A-05 | Public products could satisfy channel scope without canonical Store ownership | public middleware trusted only the sales-channel filter | intersect list and direct product reads with exclusive Store-product ownership | Phase 1 and Phase 2A public product tests | channel and canonical owner must remain consistent | FIXED |
 
-## Unresolved owner and architecture risks
+## Unresolved
 
-- Rotation of the previously exposed Neon credential cannot be verified. The owner must rotate it and confirm without placing either credential in Git, logs, fixtures, reports, or chat.
-- Existing production product-channel relationships were not changed; review dry-run diagnostics before any repair.
-- Whole-order Store ownership and mixed-store cart rejection are deferred to Phase 2.
-- Vendor-to-Store compatibility metadata has no permanent relational constraints.
-- Domain verification/approval and trusted production proxy configuration remain deployment/platform responsibilities.
-- Audit events are not durable; request IDs exist but there is no audit model.
-- Redis-backed rate limiting, event bus, and distributed locking remain production scaling requirements.
+The previously exposed Neon credential rotation cannot be verified. Production migration remains blocked. Carts and orders do not yet persist immutable Store ownership, so mixed-store prevention is Phase 2B work. Vendor authentication storage and dashboard vocabulary remain transitional. Durable audit events, shared rate limiting, event bus, and locking remain future production requirements.
 
-## Data safety
-
-All automated integration work used guarded disposable local PostgreSQL databases. No Phase 1 test, fixture, migration, or diagnostic used the shared remote database.
+All Phase 2A schema, link, backfill, and integration operations used guarded disposable local PostgreSQL. Neon was not accessed.
