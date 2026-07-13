@@ -1,8 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import {
+  clearVendorSessionCookie,
   getVendorPasswordHash,
   hashVendorPassword,
+  nextVendorSessionVersion,
   normalizeVendorPassword,
   verifyVendorPassword,
 } from "../../../_utils/vendor-auth"
@@ -35,7 +37,10 @@ export async function PATCH(
   const newPassword = normalizeVendorPassword(body.new_password)
   const passwordHash = getVendorPasswordHash(context.member.metadata)
 
-  if (!currentPassword || !verifyVendorPassword(currentPassword, passwordHash)) {
+  if (
+    !currentPassword ||
+    !(await verifyVendorPassword(currentPassword, passwordHash))
+  ) {
     return res.status(401).json({
       message: "Current password is incorrect.",
     })
@@ -48,19 +53,23 @@ export async function PATCH(
   }
 
   const marketplace = getMarketplaceService(req)
+  const metadata = recordOrNull(context.member.metadata) ?? {}
 
   await marketplace.updateVendorMembers([
     {
       id: context.member.id,
       metadata: {
-        ...(recordOrNull(context.member.metadata) ?? {}),
-        password_hash: hashVendorPassword(newPassword),
+        ...metadata,
+        password_hash: await hashVendorPassword(newPassword),
+        session_version: nextVendorSessionVersion(metadata),
       },
     },
   ] as any)
 
+  clearVendorSessionCookie(res)
   res.json({
     success: true,
+    reauthentication_required: true,
   })
 }
 

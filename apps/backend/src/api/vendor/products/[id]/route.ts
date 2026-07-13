@@ -11,6 +11,7 @@ import {
   listProducts,
   listVendorProductLinks,
   normalizeHandle,
+  resolveVendorSalesChannel,
   stringOrNull,
 } from "../../../_utils/vendors"
 
@@ -86,22 +87,6 @@ const getDefaultShippingProfileId = async (
   }
 
   return shippingProfileId
-}
-
-const getDefaultSalesChannels = async (
-  req: MedusaRequest
-): Promise<{ id: string }[]> => {
-  const salesChannel = req.scope.resolve(Modules.SALES_CHANNEL) as any
-  const salesChannels = await salesChannel.listSalesChannels({}, { take: 50 })
-
-  if (!salesChannels.length) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "A sales channel must exist before vendors can publish products."
-    )
-  }
-
-  return salesChannels.map((channel: { id: string }) => ({ id: channel.id }))
 }
 
 const ensureProductBelongsToVendor = async (
@@ -234,7 +219,9 @@ export async function PATCH(
 
   if (body.status === "published" || "price" in body) {
     update.shipping_profile_id = await getDefaultShippingProfileId(req)
-    update.sales_channels = await getDefaultSalesChannels(req)
+    update.sales_channels = [
+      await resolveVendorSalesChannel(req, context.vendor),
+    ]
   }
 
   if (!Object.keys(update).length && !isVariantUpdateRequested) {

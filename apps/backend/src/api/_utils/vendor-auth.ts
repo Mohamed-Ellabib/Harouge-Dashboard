@@ -1,16 +1,21 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto"
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from "crypto"
+import { promisify } from "util"
 import type { MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
 const PASSWORD_HASH_PREFIX = "scrypt"
 const PASSWORD_KEY_LENGTH = 64
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
+export const MAX_VENDOR_PASSWORD_LENGTH = 1024
+
+const scryptAsync = promisify(scrypt)
 
 export const VENDOR_SESSION_COOKIE = "vendor_session"
 
 type VendorSessionPayload = {
   member_id: string
   vendor_id: string
+  session_version: number
   exp: number
 }
 
@@ -70,12 +75,18 @@ export const normalizeVendorPassword = (value: unknown): string | null => {
     return null
   }
 
-  return value.length >= 8 ? value : null
+  return value.length >= 8 && value.length <= MAX_VENDOR_PASSWORD_LENGTH
+    ? value
+    : null
 }
 
-export const hashVendorPassword = (password: string): string => {
+export const hashVendorPassword = async (password: string): Promise<string> => {
   const salt = randomBytes(16)
-  const hash = scryptSync(password, salt, PASSWORD_KEY_LENGTH)
+  const hash = (await scryptAsync(
+    password,
+    salt,
+    PASSWORD_KEY_LENGTH
+  )) as Buffer
 
   return [
     PASSWORD_HASH_PREFIX,
@@ -87,7 +98,18 @@ export const hashVendorPassword = (password: string): string => {
 export const verifyVendorPassword = (
   password: string,
   storedHash: unknown
-): boolean => {
+): Promise<boolean> => {
+  return verifyVendorPasswordHash(password, storedHash)
+}
+
+const verifyVendorPasswordHash = async (
+  password: string,
+  storedHash: unknown
+): Promise<boolean> => {
+  if (!password || password.length > MAX_VENDOR_PASSWORD_LENGTH) {
+    return false
+  }
+
   if (typeof storedHash !== "string") {
     return false
   }
@@ -101,12 +123,32 @@ export const verifyVendorPassword = (
   try {
     const saltBuffer = base64UrlDecode(salt)
     const expected = base64UrlDecode(expectedHash)
-    const actual = scryptSync(password, saltBuffer, expected.length)
+    const actual = (await scryptAsync(
+      password,
+      saltBuffer,
+      expected.length
+    )) as Buffer
 
     return safeEqual(actual, expected)
   } catch {
     return false
   }
+}
+
+export const getVendorSessionVersion = (metadata: unknown): number => {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return 0
+  }
+
+  const value = (metadata as Record<string, unknown>).session_version
+
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : 0
+}
+
+export const nextVendorSessionVersion = (metadata: unknown): number => {
+  return getVendorSessionVersion(metadata) + 1
 }
 
 export const getVendorPasswordHash = (metadata: unknown): string | null => {
@@ -122,6 +164,7 @@ export const getVendorPasswordHash = (metadata: unknown): string | null => {
 export const createVendorSessionToken = (input: {
   member_id: string
   vendor_id: string
+  session_version: number
 }): { token: string; expiresAt: Date } => {
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000)
   const payload = base64UrlEncode(
@@ -159,6 +202,9 @@ export const verifyVendorSessionToken = (
     if (
       typeof parsed.member_id !== "string" ||
       typeof parsed.vendor_id !== "string" ||
+      typeof parsed.session_version !== "number" ||
+      !Number.isSafeInteger(parsed.session_version) ||
+      parsed.session_version < 0 ||
       typeof parsed.exp !== "number" ||
       parsed.exp <= Math.floor(Date.now() / 1000)
     ) {

@@ -9,7 +9,6 @@ type Vendor = {
     logo_url: string | null
     primary_color: string | null
   }
-  metadata: Record<string, unknown> | null
 }
 
 type VendorMember = {

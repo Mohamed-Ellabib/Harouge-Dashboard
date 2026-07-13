@@ -8,7 +8,9 @@ import {
 import { MARKETPLACE_MODULE } from "../../modules/marketplace"
 import type MarketplaceModuleService from "../../modules/marketplace/service"
 import {
+  getVendorSessionVersion,
   hashVendorPassword,
+  nextVendorSessionVersion,
   normalizeVendorPassword,
 } from "./vendor-auth"
 
@@ -187,22 +189,47 @@ export const serializeAdminVendor = (
   }
 }
 
-export const serializeStoreVendor = (
-  vendor: VendorRecord,
-  domains: DomainRecord[] = []
-) => {
-  return {
-    id: vendor.id,
-    name: vendor.name,
-    handle: vendor.handle,
-    domains: domains.map((domain) => domain.domain),
-    branding: {
-      logo_url: vendor.logo_url,
-      primary_color: vendor.primary_color,
-    },
-    metadata: vendor.metadata,
+export type PublicStoreProfile = {
+  name: string
+  handle: string
+  domain: string | null
+  branding: {
+    logo_url: string | null
+    primary_color: string | null
   }
 }
+
+export const serializePublicStoreProfile = (
+  vendor: VendorRecord,
+  domains: DomainRecord[] = []
+): PublicStoreProfile => {
+  const primaryDomain =
+    domains.find((domain) => domain.is_primary)?.domain ?? domains[0]?.domain ?? null
+
+  return {
+    name: vendor.name,
+    handle: vendor.handle,
+    domain: primaryDomain,
+    branding: {
+      logo_url: vendor.logo_url ?? null,
+      primary_color: vendor.primary_color ?? null,
+    },
+  }
+}
+
+export const serializeVendorProfile = (
+  vendor: VendorRecord,
+  domains: DomainRecord[] = []
+) => ({
+  id: vendor.id,
+  name: vendor.name,
+  handle: vendor.handle,
+  domains: domains.map((domain) => domain.domain),
+  branding: {
+    logo_url: vendor.logo_url,
+    primary_color: vendor.primary_color,
+  },
+})
 
 export const findDomainConflict = (
   domains: DomainRecord[],
@@ -257,7 +284,7 @@ export const syncVendorMembers = async (
   const normalizedEmails = [...new Set(emails.map(normalizeEmail).filter(Boolean))]
   const userIdsByEmail = await resolveUserIdsByEmail(req, normalizedEmails)
   const password = normalizeVendorPassword(memberPassword)
-  const passwordHash = password ? hashVendorPassword(password) : null
+  const passwordHash = password ? await hashVendorPassword(password) : null
 
   const currentEmails = new Set(
     currentMembers.map((member) => normalizeEmail(member.email))
@@ -285,6 +312,7 @@ export const syncVendorMembers = async (
           ? {
               metadata: {
                 password_hash: passwordHash,
+                session_version: 0,
               },
             }
           : {}),
@@ -315,6 +343,7 @@ export const syncVendorMembers = async (
                 metadata: {
                   ...(recordOrNull(member.metadata) ?? {}),
                   password_hash: passwordHash,
+                  session_version: nextVendorSessionVersion(member.metadata),
                 },
               }
             : {}),
@@ -444,6 +473,42 @@ export const listProducts = async (
   return products
 }
 
+export const resolveVendorSalesChannel = async (
+  req: MedusaRequest,
+  vendor: VendorRecord
+): Promise<{ id: string }> => {
+  const metadata = recordOrNull(vendor.metadata)
+  const configuredId = metadata?.sales_channel_id
+  const salesChannelService = req.scope.resolve(Modules.SALES_CHANNEL) as any
+
+  if (typeof configuredId === "string" && configuredId) {
+    const channels = await salesChannelService.listSalesChannels(
+      { id: [configuredId] },
+      { take: 1 }
+    )
+
+    if (channels[0]?.id === configuredId) {
+      return { id: configuredId }
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The vendor's configured sales channel does not exist."
+    )
+  }
+
+  const channels = await salesChannelService.listSalesChannels({}, { take: 2 })
+
+  if (channels.length === 1) {
+    return { id: channels[0].id }
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "A vendor sales channel must be configured before products can be published."
+  )
+}
+
 export const getAuthenticatedVendor = async (req: MedusaRequest) => {
   const marketplace = getMarketplaceService(req)
   const vendorAuth = (req as any).vendor_auth
@@ -459,7 +524,8 @@ export const getAuthenticatedVendor = async (req: MedusaRequest) => {
     (candidate) =>
       candidate.id === vendorAuth.member_id &&
       candidate.vendor_id === vendorAuth.vendor_id &&
-      candidate.status === "active"
+      candidate.status === "active" &&
+      getVendorSessionVersion(candidate.metadata) === vendorAuth.session_version
   )
 
   if (!member) {

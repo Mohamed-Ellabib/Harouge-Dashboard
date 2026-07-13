@@ -3,14 +3,14 @@
   "private": true,
   "packageManager": "npm@11.12.1",
   "engines": {
-    "node": ">=20"
+    "node": ">=20 <24"
   },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "start": "turbo start",
     "lint": "turbo lint",
-    "test": "turbo test",
+    "test": "node ./scripts/run-workspace-tests.js",
     "backend:seed": "turbo seed --filter=@dtc/backend",
     "backend:dev": "turbo dev --filter=@dtc/backend",
     "vendor:dev": "turbo dev --filter=@dtc/vendor-dashboard",

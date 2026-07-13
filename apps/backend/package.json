@@ -18,9 +18,12 @@
     "dev": "medusa develop",
     "seed": "medusa exec ./src/migration-scripts/initial-data-seed.ts",
     "lint": "eslint .",
-    "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
-    "test:unit": "TEST_TYPE=unit NODE_OPTIONS=--experimental-vm-modules jest --silent --runInBand --forceExit"
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "node ./scripts/run-tests.js all",
+    "test:integration:http": "node ./scripts/run-tests.js integration:http",
+    "test:integration:modules": "node ./scripts/run-tests.js integration:modules",
+    "test:unit": "node ./scripts/run-tests.js unit",
+    "diagnose:product-channels": "medusa exec ./src/scripts/diagnose-product-sales-channels.ts -- --dry-run"
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.17.0",
@@ -48,6 +51,7 @@
     "@types/react-dom": "^18.2.25",
     "eslint": "^9.39.4",
     "jest": "^29.7.0",
+    "pg-god": "^1.0.12",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -57,7 +61,7 @@
     "yalc": "^1.0.0-pre.53"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20 <24"
   },
   "packageManager": "npm@11.12.1"
 }

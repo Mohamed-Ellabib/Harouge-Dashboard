@@ -1,21 +1,36 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import {
+  MAX_VENDOR_PASSWORD_LENGTH,
   createVendorSessionToken,
   getVendorPasswordHash,
+  getVendorSessionVersion,
   setVendorSessionCookie,
   verifyVendorPassword,
 } from "../../../_utils/vendor-auth"
 import {
+  getVendorLoginSource,
+  vendorLoginRateLimiter,
+} from "../../../_utils/vendor-login-rate-limit"
+import {
   domainsForVendor,
   getMarketplaceService,
   normalizeEmail,
-  serializeStoreVendor,
+  serializeVendorProfile,
 } from "../../../_utils/vendors"
 
 type VendorLoginBody = {
   email?: unknown
   password?: unknown
+}
+
+const DUMMY_VENDOR_PASSWORD_HASH =
+  "scrypt$bWVkdXNhLWR1bW15LWxvZ2luLXNhbHQ$MCb60ByrqzY8O4BA3Z4DvUCKYCOTMh4V7m_yV5835QVV05NlHJwtwbIwgKyV04zKIXcrCwF3Hkx3JWQGjy99Hw"
+
+const invalidCredentials = (res: MedusaResponse) => {
+  return res.status(401).json({
+    message: "Invalid vendor credentials.",
+  })
 }
 
 export async function POST(
@@ -26,11 +41,28 @@ export async function POST(
   const body = req.body ?? {}
   const email = normalizeEmail(body.email)
   const password = typeof body.password === "string" ? body.password : ""
+  const rateLimitInput = {
+    source: getVendorLoginSource(req),
+    identifier: email || "invalid",
+  }
+  const rateLimit = vendorLoginRateLimiter.check(rateLimitInput)
 
-  if (!email || !password) {
-    return res.status(400).json({
-      message: "Email and password are required.",
+  if (!rateLimit.allowed) {
+    res.setHeader("Retry-After", String(rateLimit.retryAfterSeconds))
+    return res.status(429).json({
+      message: "Too many login attempts. Try again later.",
     })
+  }
+
+  const validShape =
+    email.length <= 320 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
+    password.length >= 8 &&
+    password.length <= MAX_VENDOR_PASSWORD_LENGTH
+
+  if (!validShape) {
+    vendorLoginRateLimiter.recordFailure(rateLimitInput)
+    return invalidCredentials(res)
   }
 
   const members = await marketplace.listVendorMembers({
@@ -41,11 +73,14 @@ export async function POST(
     (candidate) => normalizeEmail(candidate.email) === email
   )
   const passwordHash = member ? getVendorPasswordHash(member.metadata) : null
+  const passwordValid = await verifyVendorPassword(
+    password,
+    passwordHash ?? DUMMY_VENDOR_PASSWORD_HASH
+  )
 
-  if (!member || !verifyVendorPassword(password, passwordHash)) {
-    return res.status(401).json({
-      message: "Invalid vendor credentials.",
-    })
+  if (!member || !passwordValid) {
+    vendorLoginRateLimiter.recordFailure(rateLimitInput)
+    return invalidCredentials(res)
   }
 
   const vendor = await marketplace
@@ -53,21 +88,22 @@ export async function POST(
     .catch(() => null)
 
   if (!vendor || vendor.status !== "active") {
-    return res.status(403).json({
-      message: "This vendor is not active.",
-    })
+    vendorLoginRateLimiter.recordFailure(rateLimitInput)
+    return invalidCredentials(res)
   }
 
+  vendorLoginRateLimiter.recordSuccess(rateLimitInput)
   const { token, expiresAt } = createVendorSessionToken({
     member_id: member.id,
     vendor_id: vendor.id,
+    session_version: getVendorSessionVersion(member.metadata),
   })
   const domains = await marketplace.listVendorDomains()
 
   setVendorSessionCookie(res, token, expiresAt)
 
   return res.json({
-    vendor: serializeStoreVendor(vendor, domainsForVendor(domains, vendor.id)),
+    vendor: serializeVendorProfile(vendor, domainsForVendor(domains, vendor.id)),
     member: {
       id: member.id,
       email: member.email,

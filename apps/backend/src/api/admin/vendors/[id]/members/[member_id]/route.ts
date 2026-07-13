@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
 import {
   hashVendorPassword,
+  nextVendorSessionVersion,
   normalizeVendorPassword,
 } from "../../../../../_utils/vendor-auth"
 import {
@@ -58,6 +59,8 @@ export async function PATCH(
   const update: Record<string, unknown> = {
     id: member.id,
   }
+  let revokeSessions = false
+  let nextPasswordHash: string | null = null
 
   if (body.status !== undefined) {
     if (
@@ -70,6 +73,7 @@ export async function PATCH(
     }
 
     update.status = body.status
+    revokeSessions = body.status === "disabled"
   }
 
   const hasMemberPassword =
@@ -86,9 +90,17 @@ export async function PATCH(
       })
     }
 
+    nextPasswordHash = await hashVendorPassword(password)
+    revokeSessions = true
+  }
+
+  if (revokeSessions) {
+    const metadata = recordOrNull(member.metadata) ?? {}
+
     update.metadata = {
-      ...(recordOrNull(member.metadata) ?? {}),
-      password_hash: hashVendorPassword(password),
+      ...metadata,
+      ...(nextPasswordHash ? { password_hash: nextPasswordHash } : {}),
+      session_version: nextVendorSessionVersion(metadata),
     }
   }
 

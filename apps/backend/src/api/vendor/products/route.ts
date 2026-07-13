@@ -7,6 +7,7 @@ import {
   listProducts,
   listVendorProductLinks,
   normalizeHandle,
+  resolveVendorSalesChannel,
   stringOrNull,
   syncVendorProducts,
 } from "../../_utils/vendors"
@@ -80,22 +81,6 @@ const getDefaultShippingProfileId = async (
   }
 
   return shippingProfileId
-}
-
-const getDefaultSalesChannels = async (
-  req: MedusaRequest
-): Promise<{ id: string }[]> => {
-  const salesChannel = req.scope.resolve(Modules.SALES_CHANNEL) as any
-  const salesChannels = await salesChannel.listSalesChannels({}, { take: 50 })
-
-  if (!salesChannels.length) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "A sales channel must exist before vendors can publish products."
-    )
-  }
-
-  return salesChannels.map((channel: { id: string }) => ({ id: channel.id }))
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
@@ -183,7 +168,7 @@ export async function POST(
   }
 
   const shippingProfileId = await getDefaultShippingProfileId(req)
-  const salesChannels = await getDefaultSalesChannels(req)
+  const salesChannel = await resolveVendorSalesChannel(req, context.vendor)
 
   const { result } = await createProductsWorkflow(req.scope).run({
     input: {
@@ -195,7 +180,7 @@ export async function POST(
           thumbnail: stringOrNull(body.thumbnail),
           description: stringOrNull(body.description),
           shipping_profile_id: shippingProfileId,
-          sales_channels: salesChannels,
+          sales_channels: [salesChannel],
           options: [
             {
               title: "Default",

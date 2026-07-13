@@ -5,7 +5,7 @@ import {
   getDomainVendorId,
   getMarketplaceService,
   normalizeDomain,
-  serializeStoreVendor,
+  serializePublicStoreProfile,
 } from "../../../_utils/vendors"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
@@ -46,6 +46,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   res.json({
-    vendor: serializeStoreVendor(vendor, domainsForVendor(domains, vendor.id)),
+    vendor: serializePublicStoreProfile(
+      vendor,
+      domainsForVendor(domains, vendor.id)
+    ),
   })
 }

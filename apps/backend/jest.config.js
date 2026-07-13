@@ -1,6 +1,3 @@
-const { loadEnv } = require("@medusajs/utils");
-loadEnv("test", process.cwd());
-
 module.exports = {
   transform: {
     "^.+\\.[jt]s$": [
@@ -16,6 +13,7 @@ module.exports = {
   moduleFileExtensions: ["js", "ts", "json"],
   modulePathIgnorePatterns: ["dist/", "<rootDir>/.medusa/"],
   setupFiles: ["./integration-tests/setup.js"],
+  collectCoverageFrom: ["src/**/*.{js,ts}", "!src/**/*.d.ts"],
 };
 
 if (process.env.TEST_TYPE === "integration:http") {
