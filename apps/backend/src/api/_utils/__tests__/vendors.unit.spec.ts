@@ -1,6 +1,10 @@
 import { Modules } from "@medusajs/framework/utils"
 
 import {
+  assertProductBelongsExclusivelyToVendor,
+  listExclusivelyOwnedProductIds,
+  normalizeDomain,
+  parseDomains,
   resolveVendorSalesChannel,
   serializePublicStoreProfile,
 } from "../vendors"
@@ -72,18 +76,16 @@ describe("vendor store boundaries", () => {
     )
   })
 
-  it("keeps one-channel installations compatible without selecting all", async () => {
+  it("fails closed when the channel is not explicitly configured", async () => {
+    const listSalesChannels = jest.fn()
     const req = {
-      scope: {
-        resolve: jest.fn(() => ({
-          listSalesChannels: jest.fn().mockResolvedValue([{ id: "only_sc" }]),
-        })),
-      },
+      scope: { resolve: jest.fn(() => ({ listSalesChannels })) },
     } as any
 
-    await expect(resolveVendorSalesChannel(req, { metadata: null })).resolves.toEqual(
-      { id: "only_sc" }
+    await expect(resolveVendorSalesChannel(req, { metadata: null })).rejects.toThrow(
+      "must be configured explicitly"
     )
+    expect(listSalesChannels).not.toHaveBeenCalled()
   })
 
   it("refuses ambiguous channel ownership", async () => {
@@ -100,5 +102,52 @@ describe("vendor store boundaries", () => {
     await expect(
       resolveVendorSalesChannel(req, { metadata: null })
     ).rejects.toThrow("must be configured")
+  })
+
+  it("normalizes equivalent domains and removes ports, paths, www, and trailing dots", () => {
+    expect(normalizeDomain(" HTTPS://WWW.Store-A.Example.Test:8443/path. ")).toBe(
+      "store-a.example.test"
+    )
+    expect(parseDomains([
+      "store-a.example.test",
+      "STORE-A.EXAMPLE.TEST.",
+      "https://www.store-a.example.test:443/catalog",
+    ])).toEqual(["store-a.example.test"])
+  })
+
+  it("excludes ambiguous product ownership and rejects direct access", async () => {
+    const links = [
+      { vendor_id: "vendor_a", product_id: "product_a" },
+      { vendor_id: "vendor_b", product_id: "product_b" },
+      { vendor_id: "vendor_a", product_id: "product_ambiguous" },
+      { vendor_id: "vendor_b", product_id: "product_ambiguous" },
+    ]
+    const linkModule = {
+      list: jest.fn((filters = {}) =>
+        Promise.resolve(
+          "product_id" in filters
+            ? links.filter((link) => link.product_id === (filters as any).product_id)
+            : links
+        )
+      ),
+    }
+    const req = {
+      scope: {
+        resolve: jest.fn(() => ({ getLinkModule: () => linkModule })),
+      },
+    } as any
+
+    await expect(listExclusivelyOwnedProductIds(req, "vendor_a")).resolves.toEqual([
+      "product_a",
+    ])
+    await expect(
+      assertProductBelongsExclusivelyToVendor(req, "vendor_a", "product_a")
+    ).resolves.toBeUndefined()
+    await expect(
+      assertProductBelongsExclusivelyToVendor(req, "vendor_a", "product_ambiguous")
+    ).rejects.toThrow("Product was not found")
+    await expect(
+      assertProductBelongsExclusivelyToVendor(req, "vendor_a", "product_b")
+    ).rejects.toThrow("Product was not found")
   })
 })

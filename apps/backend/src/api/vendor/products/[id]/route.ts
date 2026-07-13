@@ -7,18 +7,19 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 
 import {
-  getAuthenticatedVendor,
+  getMerchantStoreContext,
+  requireMerchantPermission,
+} from "../../../_utils/merchant-store-context"
+import {
+  assertProductBelongsExclusivelyToVendor,
   listProducts,
-  listVendorProductLinks,
   normalizeHandle,
-  resolveVendorSalesChannel,
   stringOrNull,
 } from "../../../_utils/vendors"
 
 const PRODUCT_STATUSES = ["draft", "published"] as const
 
 type ProductStatus = (typeof PRODUCT_STATUSES)[number]
-
 type VendorProductUpdateBody = {
   title?: unknown
   handle?: unknown
@@ -31,23 +32,17 @@ type VendorProductUpdateBody = {
   variant_title?: unknown
 }
 
-const statusOrNull = (value: unknown): ProductStatus | null => {
-  return typeof value === "string" &&
-    PRODUCT_STATUSES.includes(value as ProductStatus)
+const statusOrNull = (value: unknown): ProductStatus | null =>
+  typeof value === "string" && PRODUCT_STATUSES.includes(value as ProductStatus)
     ? (value as ProductStatus)
     : null
-}
 
-const normalizeCurrencyCode = (
-  value: unknown,
-  fallback = "eur"
-): string => {
+const normalizeCurrencyCode = (value: unknown, fallback = "eur"): string => {
   if (typeof value !== "string") {
     return fallback
   }
 
   const currencyCode = value.trim().toLowerCase()
-
   return /^[a-z]{3}$/.test(currencyCode) ? currencyCode : fallback
 }
 
@@ -73,60 +68,68 @@ const getDefaultShippingProfileId = async (
   req: MedusaRequest
 ): Promise<string> => {
   const fulfillment = req.scope.resolve(Modules.FULFILLMENT) as any
-  const shippingProfiles = await fulfillment.listShippingProfiles(
-    {},
-    { take: 1 }
-  )
-  const shippingProfileId = shippingProfiles[0]?.id
+  const profiles = await fulfillment.listShippingProfiles({}, { take: 1 })
 
-  if (!shippingProfileId) {
+  if (!profiles[0]?.id) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "A shipping profile must exist before vendors can publish products."
     )
   }
 
-  return shippingProfileId
+  return profiles[0].id
 }
 
-const ensureProductBelongsToVendor = async (
+const getOwnedProduct = async (
   req: MedusaRequest,
   vendorId: string,
+  salesChannelId: string,
   productId: string
-) => {
-  const links = await listVendorProductLinks(req, {
-    vendor_id: vendorId,
-    product_id: productId,
-  })
+): Promise<Record<string, any>> => {
+  await assertProductBelongsExclusivelyToVendor(req, vendorId, productId)
+  const product = (await listProducts(req, { id: [productId] }, 1))[0]
+  const channelIds = Array.isArray(product?.sales_channels)
+    ? product.sales_channels.map((channel: any) => channel.id)
+    : []
 
-  if (!links.length) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "This product is not assigned to your vendor."
-    )
+  if (!product || channelIds.length !== 1 || channelIds[0] !== salesChannelId) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product was not found.")
   }
+
+  return product
+}
+
+export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  const context = await getMerchantStoreContext(req)
+  requireMerchantPermission(context, "products.read")
+  const product = await getOwnedProduct(
+    req,
+    context.vendorId,
+    context.allowedSalesChannelId,
+    req.params.id
+  )
+
+  return res.json({ product })
 }
 
 export async function PATCH(
   req: MedusaRequest<VendorProductUpdateBody>,
   res: MedusaResponse
 ) {
-  const context = await getAuthenticatedVendor(req)
-
-  if (!context) {
-    return res.status(403).json({
-      message: "This user is not linked to an active vendor.",
-    })
-  }
-
+  const context = await getMerchantStoreContext(req)
+  requireMerchantPermission(context, "products.write")
   const productId = req.params.id
-  await ensureProductBelongsToVendor(req, context.vendor.id, productId)
-
+  const currentProduct = await getOwnedProduct(
+    req,
+    context.vendorId,
+    context.allowedSalesChannelId,
+    productId
+  )
   const body = req.body ?? {}
-  const update: Record<string, unknown> = {}
-  const productsBeforeUpdate = await listProducts(req, { id: [productId] }, 1)
-  const currentProduct = productsBeforeUpdate[0]
-  const primaryVariant = Array.isArray(currentProduct?.variants)
+  const update: Record<string, unknown> = {
+    sales_channels: [{ id: context.allowedSalesChannelId }],
+  }
+  const primaryVariant = Array.isArray(currentProduct.variants)
     ? currentProduct.variants[0]
     : null
   const primaryPrice = Array.isArray(primaryVariant?.prices)
@@ -135,77 +138,51 @@ export async function PATCH(
 
   if ("title" in body) {
     const title = stringOrNull(body.title)
-
     if (!title) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Product title is required."
-      )
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product title is required.")
     }
-
     update.title = title
   }
 
   if ("handle" in body) {
     const handle = normalizeHandle(body.handle)
-
     if (!handle) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Product handle is required."
-      )
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product handle is required.")
     }
-
     update.handle = handle
   }
 
   if ("status" in body) {
     const status = statusOrNull(body.status)
-
     if (!status) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Product status is invalid."
-      )
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product status is invalid.")
     }
-
     update.status = status
   }
 
   if ("thumbnail" in body) {
     update.thumbnail = stringOrNull(body.thumbnail)
   }
-
   if ("description" in body) {
     update.description = stringOrNull(body.description)
   }
 
   const variantUpdate: Record<string, unknown> = {}
-  const isVariantUpdateRequested =
+  const variantRequested =
     "price" in body || "sku" in body || "variant_title" in body
 
   if ("sku" in body) {
     variantUpdate.sku = stringOrNull(body.sku)
   }
-
   if ("variant_title" in body) {
     variantUpdate.title =
-      stringOrNull(body.variant_title) ??
-      update.title ??
-      currentProduct?.title ??
-      "Default"
+      stringOrNull(body.variant_title) ?? update.title ?? currentProduct.title ?? "Default"
   }
-
   if ("price" in body) {
     const price = priceOrNull(body.price)
-
     if (price === null) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Product price is required."
-      )
+      throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product price is required.")
     }
-
     variantUpdate.prices = [
       {
         amount: price,
@@ -219,50 +196,44 @@ export async function PATCH(
 
   if (body.status === "published" || "price" in body) {
     update.shipping_profile_id = await getDefaultShippingProfileId(req)
-    update.sales_channels = [
-      await resolveVendorSalesChannel(req, context.vendor),
-    ]
   }
 
-  if (!Object.keys(update).length && !isVariantUpdateRequested) {
+  const supportedProductChange = [
+    "title",
+    "handle",
+    "status",
+    "thumbnail",
+    "description",
+  ].some((key) => key in body)
+
+  if (!supportedProductChange && !variantRequested) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "No supported product fields were provided."
     )
   }
 
-  if (Object.keys(update).length) {
-    await updateProductsWorkflow(req.scope).run({
-      input: {
-        selector: { id: productId },
-        update,
-      },
-    })
-  }
+  await updateProductsWorkflow(req.scope).run({
+    input: { selector: { id: productId }, update },
+  })
 
-  if (isVariantUpdateRequested) {
+  if (variantRequested) {
     if (primaryVariant?.id) {
       await updateProductVariantsWorkflow(req.scope).run({
         input: {
           product_variants: [
-            {
-              id: primaryVariant.id,
-              product_id: productId,
-              ...variantUpdate,
-            },
+            { id: primaryVariant.id, product_id: productId, ...variantUpdate },
           ],
         } as any,
       })
     } else {
       const price = priceOrNull(body.price)
-
       if (price === null) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "Product price is required before creating the first variant."
         )
       }
-
       await createProductVariantsWorkflow(req.scope).run({
         input: {
           product_variants: [
@@ -271,14 +242,12 @@ export async function PATCH(
               title:
                 stringOrNull(body.variant_title) ??
                 update.title ??
-                currentProduct?.title ??
+                currentProduct.title ??
                 "Default",
               sku: stringOrNull(body.sku),
               manage_inventory: false,
               allow_backorder: true,
-              options: {
-                Default: "Default",
-              },
+              options: { Default: "Default" },
               prices: [
                 {
                   amount: price,
@@ -292,9 +261,11 @@ export async function PATCH(
     }
   }
 
-  const products = await listProducts(req, { id: [productId] }, 1)
-
-  res.json({
-    product: products[0] ?? currentProduct,
-  })
+  const product = await getOwnedProduct(
+    req,
+    context.vendorId,
+    context.allowedSalesChannelId,
+    productId
+  )
+  return res.json({ product })
 }

@@ -1,83 +1,30 @@
-# Phase 0.5 Security Risks
+# Security Risks
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
-Phase 0.5 was limited to the four confirmed findings and the test foundation.
-It did not add SaaS Store schema, storefront, or provisioning work.
+## Fixed and verified
 
-## S-01: Products assigned to every sales channel
+| ID | Finding | Root cause | Remediation | Regression evidence | Remaining risk | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| S-01 | Products assigned outside store channel | Merchant writes accepted broad/default channel scope | Server-derived `MerchantStoreContext`, exact configured channel, exclusive owner link, hostile-field rejection | Phase 0.5 and Phase 1 product/key tests | Existing real data requires dry-run diagnosis before repair | FIXED for writes |
+| S-06 | Password changes retained sessions | Stateless cookie lacked server revocation state | Session version checked on every request and incremented on self/admin reset or disable | Multi-session HTTP tests | Version remains temporary metadata | FIXED |
+| S-08 | Unbounded synchronous login checks | Sync scrypt and no bounds/limiter | Async verify, shape/length checks, generic response, source+email limiter | Unit and HTTP auth tests | Shared limiter required for multiple replicas | FIXED for single process |
+| S-10 | Public entity metadata exposure | Unrestricted serialization | Exact `PublicStoreProfile` allowlist | Exact-key unit/HTTP contract | New fields require explicit contract change | FIXED |
+| P1-01 | Merchant routes derived store inconsistently | Route-local session/vendor/channel logic | Central `MerchantStoreContext` and permission enforcement | Phase 1 identity, role, product, order tests | Vendor is still a temporary Store surrogate | FIXED TEMPORARILY |
+| P1-02 | Host/key/channel confusion | Public host and key were not one authority | Central `PublicStoreContext`; trusted proxy allowlist; exact key/channel checks | Host/key matrix and direct public product tests | Deployment must configure trusted proxies | FIXED TEMPORARILY |
+| P1-03 | Global/unsafe merchant order response | Global orders and broad entity shape | Owned-item filtering and explicit `MerchantOrder` DTO | Mixed-order list/detail contract tests | Whole-order ownership absent | MITIGATED; PHASE 2 REQUIRED |
+| P1-04 | Role and shop-field overreach | Stored role was not a policy boundary | Central owner/manager matrix and PATCH allowlist/denylist | Role/shop HTTP and unit tests | Additional future roles require policy design | FIXED |
 
-- **Root cause:** merchant product writes loaded every sales channel.
-- **Affected files:** vendor product create/update routes and vendor helpers.
-- **Remediation:** derive the authenticated vendor and configured channel
-  server-side, construct workflow input without client ownership/channel data,
-  and retain vendor-product ownership checks.
-- **Regression test:** the Store A/Store B HTTP suite verifies exact channel
-  membership, later-channel isolation, scoped keys, hostile input, and
-  cross-vendor denial.
-- **Remaining risk:** existing production relationships were not changed. The
-  dry-run diagnostic needs review before an owner-approved repair. Sensitive
-  reassignment audit storage is not yet available.
-- **Status:** fixed for new merchant writes; existing data needs diagnosis.
+## Unresolved owner and architecture risks
 
-## S-06: Password changes do not revoke sessions
-
-- **Root cause:** signed cookies had no server-validated revocation value.
-- **Affected files:** vendor auth, password, member-sync, lookup, and admin
-  member update paths.
-- **Remediation:** store a session version in member metadata and signed
-  cookies; compare it on every request; increment it on password changes,
-  admin resets, and disabling.
-- **Regression test:** two prior sessions are rejected after self-service
-  changes, admin resets, and disabling; old credentials fail and new ones work.
-- **Remaining risk:** revocation is account-wide, not per-device, and the
-  version remains in metadata pending a dedicated identity model.
-- **Status:** fixed.
-
-## S-08: Unbounded synchronous password checks
-
-- **Root cause:** synchronous scrypt and no request bounds or attempt limiter.
-- **Affected files:** vendor auth, login route, and login limiter.
-- **Remediation:** asynchronous scrypt, shape and 1024-character bounds before
-  verification, normalized email, generic failures, and layered source plus
-  normalized-identifier limits. Local limiter storage is capped and empty
-  lookup keys are not retained.
-- **Regression test:** unit and HTTP tests cover malformed/oversized input,
-  generic responses, both limit dimensions, expiry, bounded key storage, and
-  event-loop response.
-- **Remaining risk:** the limiter is process-local. Multiple production
-  replicas require a shared Redis-backed implementation and trusted-proxy
-  configuration.
-- **Status:** fixed for the current single-process deployment; production
-  scaling action remains.
-
-## S-10: Public Store response exposes vendor metadata
-
-- **Root cause:** the public serializer included unrestricted metadata.
-- **Affected files:** public vendor serializers and Store vendor routes.
-- **Remediation:** an explicit `PublicStoreProfile` allowlist containing name,
-  handle, primary domain, and public branding only.
-- **Regression test:** exact allowed keys and known sensitive/internal key
-  absence are asserted.
-- **Remaining risk:** future public fields must be deliberately added to the
-  type and contract test.
-- **Status:** fixed.
-
-## Unresolved risks
-
-- Order ownership is still indirect and was outside Phase 0.5.
-- Product single-owner uniqueness is not a database invariant.
-- Hostname, publishable key, and channel are not one authoritative context.
-- Vendor roles are stored but not enforced as permissions.
-- Duplicate merchant emails across vendors remain ambiguous.
-- CSRF hardening and security-event audit storage need later design.
-- Fake Redis, local events, and in-memory locking are not production-safe.
-- Rotation of the previously exposed Neon credential could not be verified.
-  The owner must rotate it and confirm without placing either value in Git,
-  reports, logs, or chat.
+- Rotation of the previously exposed Neon credential cannot be verified. The owner must rotate it and confirm without placing either credential in Git, logs, fixtures, reports, or chat.
+- Existing production product-channel relationships were not changed; review dry-run diagnostics before any repair.
+- Whole-order Store ownership and mixed-store cart rejection are deferred to Phase 2.
+- Vendor-to-Store compatibility metadata has no permanent relational constraints.
+- Domain verification/approval and trusted production proxy configuration remain deployment/platform responsibilities.
+- Audit events are not durable; request IDs exist but there is no audit model.
+- Redis-backed rate limiting, event bus, and distributed locking remain production scaling requirements.
 
 ## Data safety
 
-All Phase 0.5 integration work used local disposable PostgreSQL databases.
-The shared remote database was not used by tests, migrations, fixtures, or
-diagnostics. The diagnostic was not run against remote data.
+All automated integration work used guarded disposable local PostgreSQL databases. No Phase 1 test, fixture, migration, or diagnostic used the shared remote database.

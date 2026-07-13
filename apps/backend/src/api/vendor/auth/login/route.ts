@@ -17,6 +17,7 @@ import {
   getMarketplaceService,
   normalizeEmail,
   serializeVendorProfile,
+  resolveVendorSalesChannel,
 } from "../../../_utils/vendors"
 
 type VendorLoginBody = {
@@ -69,9 +70,10 @@ export async function POST(
     email,
     status: "active",
   })
-  const member = members.find(
+  const exactMembers = members.filter(
     (candidate) => normalizeEmail(candidate.email) === email
   )
+  const member = exactMembers.length === 1 ? exactMembers[0] : null
   const passwordHash = member ? getVendorPasswordHash(member.metadata) : null
   const passwordValid = await verifyVendorPassword(
     password,
@@ -88,6 +90,13 @@ export async function POST(
     .catch(() => null)
 
   if (!vendor || vendor.status !== "active") {
+    vendorLoginRateLimiter.recordFailure(rateLimitInput)
+    return invalidCredentials(res)
+  }
+
+  const salesChannel = await resolveVendorSalesChannel(req, vendor).catch(() => null)
+
+  if (!salesChannel) {
     vendorLoginRateLimiter.recordFailure(rateLimitInput)
     return invalidCredentials(res)
   }

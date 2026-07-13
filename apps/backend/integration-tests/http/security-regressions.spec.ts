@@ -109,10 +109,16 @@ medusaIntegrationTestRunner({
         ])
 
         const storeAProducts = await api.get("/store/products", {
-          headers: { "x-publishable-api-key": fixtures.apiKeyA.token },
+          headers: {
+            Host: "store-a.example.test",
+            "x-publishable-api-key": fixtures.apiKeyA.token,
+          },
         })
         const storeBProducts = await api.get("/store/products", {
-          headers: { "x-publishable-api-key": fixtures.apiKeyB.token },
+          headers: {
+            Host: "store-b.example.test",
+            "x-publishable-api-key": fixtures.apiKeyB.token,
+          },
         })
         expect(storeAProducts.data.products.map((product) => product.id)).toContain(
           productA.id

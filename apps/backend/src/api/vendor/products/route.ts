@@ -3,11 +3,14 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 
 import {
-  getAuthenticatedVendor,
+  getMerchantStoreContext,
+  requireMerchantPermission,
+} from "../../_utils/merchant-store-context"
+import {
+  listExclusivelyOwnedProductIds,
   listProducts,
   listVendorProductLinks,
   normalizeHandle,
-  resolveVendorSalesChannel,
   stringOrNull,
   syncVendorProducts,
 } from "../../_utils/vendors"
@@ -28,12 +31,10 @@ type VendorProductCreateBody = {
   variant_title?: unknown
 }
 
-const statusOrDefault = (value: unknown): ProductStatus => {
-  return typeof value === "string" &&
-    PRODUCT_STATUSES.includes(value as ProductStatus)
+const statusOrDefault = (value: unknown): ProductStatus =>
+  typeof value === "string" && PRODUCT_STATUSES.includes(value as ProductStatus)
     ? (value as ProductStatus)
     : "published"
-}
 
 const normalizeCurrencyCode = (value: unknown): string => {
   if (typeof value !== "string") {
@@ -41,7 +42,6 @@ const normalizeCurrencyCode = (value: unknown): string => {
   }
 
   const currencyCode = value.trim().toLowerCase()
-
   return /^[a-z]{3}$/.test(currencyCode) ? currencyCode : "eur"
 }
 
@@ -67,10 +67,7 @@ const getDefaultShippingProfileId = async (
   req: MedusaRequest
 ): Promise<string> => {
   const fulfillment = req.scope.resolve(Modules.FULFILLMENT) as any
-  const shippingProfiles = await fulfillment.listShippingProfiles(
-    {},
-    { take: 1 }
-  )
+  const shippingProfiles = await fulfillment.listShippingProfiles({}, { take: 1 })
   const shippingProfileId = shippingProfiles[0]?.id
 
   if (!shippingProfileId) {
@@ -83,61 +80,46 @@ const getDefaultShippingProfileId = async (
   return shippingProfileId
 }
 
+const hasOnlyAllowedChannel = (
+  product: Record<string, any>,
+  salesChannelId: string
+): boolean => {
+  const channelIds = Array.isArray(product.sales_channels)
+    ? product.sales_channels.map((channel: any) => channel.id)
+    : []
+
+  return channelIds.length === 1 && channelIds[0] === salesChannelId
+}
+
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const context = await getAuthenticatedVendor(req)
-
-  if (!context) {
-    return res.status(403).json({
-      message: "This user is not linked to an active vendor.",
-    })
-  }
-
-  const links = await listVendorProductLinks(req, {
-    vendor_id: context.vendor.id,
-  })
-  const productIds = links.map((link) => link.product_id)
+  const context = await getMerchantStoreContext(req)
+  requireMerchantPermission(context, "products.read")
+  const productIds = await listExclusivelyOwnedProductIds(req, context.vendorId)
 
   if (!productIds.length) {
-    return res.json({
-      products: [],
-      count: 0,
-    })
+    return res.json({ products: [], count: 0 })
   }
 
-  const products = await listProducts(
-    req,
-    {
-      id: productIds,
-    },
-    productIds.length
+  const products = (
+    await listProducts(req, { id: productIds }, productIds.length)
+  ).filter((product) =>
+    hasOnlyAllowedChannel(product, context.allowedSalesChannelId)
   )
 
-  res.json({
-    products,
-    count: products.length,
-  })
+  return res.json({ products, count: products.length })
 }
 
 export async function POST(
   req: MedusaRequest<VendorProductCreateBody>,
   res: MedusaResponse
 ) {
-  const context = await getAuthenticatedVendor(req)
-
-  if (!context) {
-    return res.status(403).json({
-      message: "This user is not linked to an active vendor.",
-    })
-  }
-
+  const context = await getMerchantStoreContext(req)
+  requireMerchantPermission(context, "products.write")
   const body = req.body ?? {}
   const title = stringOrNull(body.title)
 
   if (!title) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Product title is required."
-    )
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product title is required.")
   }
 
   const handle = normalizeHandle(body.handle) || normalizeHandle(title)
@@ -145,15 +127,10 @@ export async function POST(
   const currencyCode = normalizeCurrencyCode(body.currency_code)
 
   if (!handle) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Product handle is required."
-    )
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product handle is required.")
   }
 
-  const existingProducts = await listProducts(req, { handle }, 1)
-
-  if (existingProducts.length) {
+  if ((await listProducts(req, { handle }, 1)).length) {
     throw new MedusaError(
       MedusaError.Types.CONFLICT,
       "A product with this handle already exists."
@@ -161,15 +138,10 @@ export async function POST(
   }
 
   if (price === null) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Product price is required."
-    )
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product price is required.")
   }
 
   const shippingProfileId = await getDefaultShippingProfileId(req)
-  const salesChannel = await resolveVendorSalesChannel(req, context.vendor)
-
   const { result } = await createProductsWorkflow(req.scope).run({
     input: {
       products: [
@@ -180,28 +152,16 @@ export async function POST(
           thumbnail: stringOrNull(body.thumbnail),
           description: stringOrNull(body.description),
           shipping_profile_id: shippingProfileId,
-          sales_channels: [salesChannel],
-          options: [
-            {
-              title: "Default",
-              values: ["Default"],
-            },
-          ],
+          sales_channels: [{ id: context.allowedSalesChannelId }],
+          options: [{ title: "Default", values: ["Default"] }],
           variants: [
             {
               title: stringOrNull(body.variant_title) ?? title,
               sku: stringOrNull(body.sku),
               manage_inventory: false,
               allow_backorder: true,
-              options: {
-                Default: "Default",
-              },
-              prices: [
-                {
-                  amount: price,
-                  currency_code: currencyCode,
-                },
-              ],
+              options: { Default: "Default" },
+              prices: [{ amount: price, currency_code: currencyCode }],
             },
           ],
         },
@@ -209,19 +169,15 @@ export async function POST(
     } as any,
   })
   const productId = result[0].id
-
   const currentLinks = await listVendorProductLinks(req, {
-    vendor_id: context.vendor.id,
+    vendor_id: context.vendorId,
   })
 
-  await syncVendorProducts(req, context.vendor.id, [
+  await syncVendorProducts(req, context.vendorId, [
     ...currentLinks.map((link) => link.product_id),
     productId,
   ])
 
   const products = await listProducts(req, { id: [productId] }, 1)
-
-  res.status(201).json({
-    product: products[0] ?? result[0],
-  })
+  return res.status(201).json({ product: products[0] ?? result[0] })
 }

@@ -8,7 +8,6 @@ import {
 import { MARKETPLACE_MODULE } from "../../modules/marketplace"
 import type MarketplaceModuleService from "../../modules/marketplace/service"
 import {
-  getVendorSessionVersion,
   hashVendorPassword,
   nextVendorSessionVersion,
   normalizeVendorPassword,
@@ -70,12 +69,12 @@ export const normalizeDomain = (value: unknown): string => {
 
   try {
     const url = new URL(raw.includes("://") ? raw : `https://${raw}`)
-    host = url.host
+    host = url.hostname
   } catch {
     host = raw.split("/")[0]
   }
 
-  return host.replace(/^www\./, "").replace(/\.$/, "")
+  return host.replace(/^www\./, "").replace(/\.+$/, "")
 }
 
 export const parseDomains = (value: unknown): string[] => {
@@ -224,6 +223,7 @@ export const serializeVendorProfile = (
   id: vendor.id,
   name: vendor.name,
   handle: vendor.handle,
+  contact_email: vendor.contact_email ?? null,
   domains: domains.map((domain) => domain.domain),
   branding: {
     logo_url: vendor.logo_url,
@@ -393,6 +393,36 @@ export const listVendorProductLinks = async (
   return await linkModule.list(filters)
 }
 
+export const listExclusivelyOwnedProductIds = async (
+  req: MedusaRequest,
+  vendorId: string
+): Promise<string[]> => {
+  const links = await listVendorProductLinks(req)
+  const byProduct = new Map<string, LinkRecord[]>()
+
+  for (const link of links) {
+    const records = byProduct.get(link.product_id) ?? []
+    records.push(link)
+    byProduct.set(link.product_id, records)
+  }
+
+  return [...byProduct.entries()]
+    .filter(([, records]) => records.length === 1 && records[0].vendor_id === vendorId)
+    .map(([productId]) => productId)
+}
+
+export const assertProductBelongsExclusivelyToVendor = async (
+  req: MedusaRequest,
+  vendorId: string,
+  productId: string
+): Promise<void> => {
+  const owners = await listVendorProductLinks(req, { product_id: productId })
+
+  if (owners.length !== 1 || owners[0].vendor_id !== vendorId) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Product was not found.")
+  }
+}
+
 export const syncVendorProducts = async (
   req: MedusaRequest,
   vendorId: string,
@@ -497,51 +527,8 @@ export const resolveVendorSalesChannel = async (
     )
   }
 
-  const channels = await salesChannelService.listSalesChannels({}, { take: 2 })
-
-  if (channels.length === 1) {
-    return { id: channels[0].id }
-  }
-
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "A vendor sales channel must be configured before products can be published."
+    "A vendor sales channel must be configured explicitly."
   )
-}
-
-export const getAuthenticatedVendor = async (req: MedusaRequest) => {
-  const marketplace = getMarketplaceService(req)
-  const vendorAuth = (req as any).vendor_auth
-
-  if (!vendorAuth?.member_id || !vendorAuth?.vendor_id) {
-    return null
-  }
-
-  const members = await marketplace.listVendorMembers({
-    id: vendorAuth.member_id,
-  } as any)
-  const member = members.find(
-    (candidate) =>
-      candidate.id === vendorAuth.member_id &&
-      candidate.vendor_id === vendorAuth.vendor_id &&
-      candidate.status === "active" &&
-      getVendorSessionVersion(candidate.metadata) === vendorAuth.session_version
-  )
-
-  if (!member) {
-    return null
-  }
-
-  const vendor = await marketplace
-    .retrieveVendor(member.vendor_id)
-    .catch(() => null)
-
-  if (!vendor || vendor.status !== "active") {
-    return null
-  }
-
-  return {
-    member,
-    vendor,
-  }
 }

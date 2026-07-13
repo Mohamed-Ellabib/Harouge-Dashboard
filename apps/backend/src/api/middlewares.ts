@@ -2,6 +2,8 @@ import { authenticate, defineMiddlewares } from "@medusajs/framework/http"
 
 import { authenticateVendorSession } from "./_utils/vendor-auth"
 
+import { attachMerchantStoreContext } from "./_utils/merchant-store-context"
+import { attachPublicStoreContext } from "./_utils/public-store-context"
 const parseCorsOrigins = (value?: string): string[] => {
   return value
     ? value
@@ -41,12 +43,20 @@ const vendorCors = (req, res, next) => {
 export default defineMiddlewares({
   routes: [
     {
+      matcher: "/store/products*",
+      middlewares: [attachPublicStoreContext],
+    },
+    {
       matcher: "/admin/vendors*",
       middlewares: [authenticate("user", ["session", "bearer"])],
     },
     {
       matcher: "/vendor*",
-      middlewares: [vendorCors, authenticateVendorSession],
+      middlewares: [
+        vendorCors,
+        authenticateVendorSession,
+        attachMerchantStoreContext,
+      ],
     },
   ],
 })

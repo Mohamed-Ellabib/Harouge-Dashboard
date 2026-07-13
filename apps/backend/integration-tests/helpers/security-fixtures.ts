@@ -58,6 +58,7 @@ export const createSecurityFixtures = async (container: MedusaContainer) => {
     primary_color: "#1257a6",
     metadata: {
       sales_channel_id: salesChannelA.id,
+      publishable_api_key_id: apiKeyA.id,
       internal_note: "must never be public",
     },
   } as any)
@@ -68,6 +69,7 @@ export const createSecurityFixtures = async (container: MedusaContainer) => {
     contact_email: "private-b@example.test",
     metadata: {
       sales_channel_id: salesChannelB.id,
+      publishable_api_key_id: apiKeyB.id,
     },
   } as any)
   const passwordA = "Merchant-A-Strong-Passphrase"
