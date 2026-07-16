@@ -1,63 +1,55 @@
-# Medusa Commerce Backend
+# Medusa Multi-Store Commerce SaaS
 
-Backend-only Medusa v2 project generated with the official open-source Medusa starter.
+Medusa 2.17 backend with a platform Admin, an Arabic-first merchant dashboard, permanent Tenant/Store ownership, isolated Products/Carts/Orders, and idempotent Store provisioning.
+
+Before working in this repository, read [the project handoff](docs/saas-pivot/HANDOFF.md). Codex sessions must also follow [AGENTS.md](AGENTS.md).
+
+## Applications
+
+- Backend and platform Admin: `apps/backend`
+- Merchant dashboard: `apps/vendor-dashboard`
+- Architecture and phase records: `docs/saas-pivot`
+
+A customer storefront has not been implemented.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 20 through 23
 - npm
 - PostgreSQL 15 or newer
 
-This machine currently has Node.js and npm available. PostgreSQL is not installed or not on `PATH`, so database setup still needs a local PostgreSQL server before Medusa can run.
-
-## Local Setup
-
-Install dependencies from the repository root:
+## Setup
 
 ```powershell
-npm.cmd install
+npm.cmd ci
 ```
 
-Create a PostgreSQL database named `medusa-backend`, or change `apps/backend/.env` to match your database credentials:
+Environment files are intentionally ignored. Recreate `apps/backend/.env` and the guarded `apps/backend/.env.test.local` without putting credentials in Git, documentation, or prompts.
 
-```env
-DATABASE_URL=postgres://postgres:CHANGE_ME@localhost:5432/medusa-backend
-```
-
-Then run Medusa database setup:
-
-```powershell
-cd apps\backend
-npx.cmd medusa db:setup
-```
-
-Create an admin user:
-
-```powershell
-npx.cmd medusa user -e admin@test.com -p supersecret
-```
-
-Optionally seed sample catalog data:
-
-```powershell
-cd ..\..
-npm.cmd run backend:seed
-```
-
-Start the backend:
+Run the applications:
 
 ```powershell
 npm.cmd run backend:dev
+npm.cmd run vendor:dev
 ```
 
-Open the Medusa admin at:
+- Platform Admin: `http://localhost:9000/app`
+- Merchant dashboard: `http://127.0.0.1:5173/`
 
-```text
-http://localhost:9000/app
+## Validation
+
+```powershell
+npm.cmd test
+npm.cmd run lint
+npm.cmd run build
+npm.cmd run typecheck --workspace @dtc/backend
+npm.cmd run typecheck --workspace @dtc/vendor-dashboard
 ```
 
-## Useful Links
+Use the guarded runner for disposable local migrations:
 
-- Medusa docs: https://docs.medusajs.com
-- Installation guide: https://docs.medusajs.com/learn/installation
-- Medusa GitHub: https://github.com/medusajs/medusa
+```powershell
+node apps/backend/scripts/run-disposable-medusa.js db:migrate
+```
+
+Never run tests, backfills, diagnostics, or acceptance flows against Neon. Production migration remains blocked as documented in the handoff and migration runbook.

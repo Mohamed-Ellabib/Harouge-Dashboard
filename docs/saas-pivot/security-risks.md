@@ -1,6 +1,6 @@
 # Security Risks
 
-Last updated: 2026-07-13
+Last updated: 2026-07-17
 
 ## Fixed and verified
 
@@ -18,7 +18,7 @@ Last updated: 2026-07-13
 
 ## Unresolved
 
-The previously exposed Neon credential rotation cannot be verified. Production migration remains blocked. Carts and orders do not yet persist immutable Store ownership, so mixed-store prevention is Phase 2B work. Vendor authentication storage and dashboard vocabulary remain transitional. Durable audit events, shared rate limiting, event bus, and locking remain future production requirements.
+The previously exposed Neon credential rotation cannot be verified. Production migration remains blocked. Vendor authentication storage and dashboard vocabulary remain transitional. Shared rate limiting, distributed event processing, runtime locking, monitoring, DNS/SSL automation, and reviewed production operations remain required.
 
 All Phase 2A schema, link, backfill, and integration operations used guarded disposable local PostgreSQL. Neon was not accessed.
 

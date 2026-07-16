@@ -11,7 +11,7 @@ Vendor is retained during Phase 2A.
 7. Remove legacy route adapters.
 8. Archive or delete Vendor data only under a separately approved, reversible migration.
 
-Fallback to Vendor is not implemented for migrated contexts. Missing permanent relationships fail closed in all environments. Cart/order ownership must be completed in Phase 2B before legacy product ownership can be removed safely.
+Fallback to Vendor is not implemented for migrated contexts. Missing permanent relationships fail closed in all environments. Phase 2B completed canonical Cart/Order ownership, but legacy removal still requires the later reconciliation and observation gates below.
 
 ## Phase 2B status
 

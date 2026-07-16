@@ -1,6 +1,6 @@
 # Data Ownership Matrix
 
-Last verified: 2026-07-13 after Phase 2B implementation.
+Last verified: 2026-07-17 after Phase 2C implementation and manual acceptance.
 
 | Resource | Authoritative owner | Enforcement | Status |
 | --- | --- | --- | --- |
