@@ -1,5 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { BuildingStorefront, PencilSquare, Plus, Trash } from "@medusajs/icons"
+import { BuildingStorefront, Eye } from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -14,7 +14,7 @@ import {
   Toaster,
   toast,
 } from "@medusajs/ui"
-import { FormEvent, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 type VendorStatus = "draft" | "active" | "suspended"
@@ -61,8 +61,6 @@ type VendorFormState = {
   logo_url: string
   primary_color: string
   domains: string
-  members: string
-  member_password: string
 }
 
 const emptyForm: VendorFormState = {
@@ -73,8 +71,6 @@ const emptyForm: VendorFormState = {
   logo_url: "",
   primary_color: "",
   domains: "",
-  members: "",
-  member_password: "",
 }
 
 const statusColor = (status: VendorStatus) => {
@@ -87,14 +83,6 @@ const statusColor = (status: VendorStatus) => {
   }
 
   return "grey"
-}
-
-const slugify = (value: string) => {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 const getErrorMessage = async (response: Response) => {
@@ -115,8 +103,6 @@ const VendorsSettingsPage = () => {
   const [form, setForm] = useState<VendorFormState>(emptyForm)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [products, setProducts] = useState<VendorProduct[]>([])
   const [assignedProductIds, setAssignedProductIds] = useState<string[]>([])
   const [isProductsLoading, setIsProductsLoading] = useState(false)
@@ -194,21 +180,6 @@ const VendorsSettingsPage = () => {
     loadVendorProducts(selectedId)
   }, [selectedId])
 
-  const updateForm = (key: keyof VendorFormState, value: string) => {
-    setForm((current) => {
-      const next = {
-        ...current,
-        [key]: value,
-      }
-
-      if (key === "name" && !selectedId && !current.handle) {
-        next.handle = slugify(value)
-      }
-
-      return next
-    })
-  }
-
   const resetForm = () => {
     setSelectedId(null)
     setForm(emptyForm)
@@ -224,96 +195,7 @@ const VendorsSettingsPage = () => {
       logo_url: vendor.logo_url ?? "",
       primary_color: vendor.primary_color ?? "",
       domains: vendor.domains.map((domain) => domain.domain).join("\n"),
-      members: vendor.members.map((member) => member.email).join("\n"),
-      member_password: "",
     })
-  }
-
-  const saveVendor = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setIsSaving(true)
-
-    try {
-      const response = await fetch(
-        selectedId ? `/admin/vendors/${selectedId}` : "/admin/vendors",
-        {
-          method: selectedId ? "PATCH" : "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: form.name,
-            handle: form.handle,
-            status: form.status,
-            contact_email: form.contact_email,
-            logo_url: form.logo_url,
-            primary_color: form.primary_color,
-            domains: form.domains,
-            members: form.members,
-            member_password: form.member_password,
-          }),
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response))
-      }
-
-      const data = await response.json()
-
-      setVendors((current) => {
-        if (selectedId) {
-          return current.map((vendor) =>
-            vendor.id === selectedId ? data.vendor : vendor
-          )
-        }
-
-        return [data.vendor, ...current]
-      })
-
-      toast.success(
-        selectedId ? t("vendors.updated") : t("vendors.created")
-      )
-      resetForm()
-    } catch (error) {
-      toast.error(t("vendors.saveError"), {
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const deleteVendor = async (vendor: Vendor) => {
-    setIsDeleting(vendor.id)
-
-    try {
-      const response = await fetch(`/admin/vendors/${vendor.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response))
-      }
-
-      setVendors((current) =>
-        current.filter((candidate) => candidate.id !== vendor.id)
-      )
-
-      if (selectedId === vendor.id) {
-        resetForm()
-      }
-
-      toast.success(t("vendors.deleted"))
-    } catch (error) {
-      toast.error(t("vendors.deleteError"), {
-        description: error instanceof Error ? error.message : undefined,
-      })
-    } finally {
-      setIsDeleting(null)
-    }
   }
 
   const toggleProductAssignment = (productId: string, checked: boolean) => {
@@ -435,29 +317,31 @@ const VendorsSettingsPage = () => {
       <Toaster />
       <div className="flex flex-col gap-y-3">
         <Container className="divide-y p-0">
-          <div className="flex items-center justify-between gap-x-4 px-6 py-4">
+          <div className="px-6 py-4">
             <div>
               <Heading>{t("vendors.title")}</Heading>
               <Text className="text-ui-fg-subtle" size="small">
                 {t("vendors.description")}
               </Text>
             </div>
-            <Button size="small" variant="secondary" onClick={resetForm}>
-              <Plus />
-              {t("vendors.newVendor")}
-            </Button>
           </div>
 
-          <form className="grid gap-4 px-6 py-4" onSubmit={saveVendor}>
+          <div className="grid gap-1 bg-ui-bg-subtle px-6 py-4">
+            <Text weight="plus">{t("vendors.compatibilityNotice.title")}</Text>
+            <Text className="text-ui-fg-subtle" size="small">
+              {t("vendors.compatibilityNotice.description")}
+            </Text>
+          </div>
+
+          <div className="grid gap-4 px-6 py-4">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="vendor-name">{t("vendors.name")}</Label>
                 <Input
                   id="vendor-name"
                   value={form.name}
-                  onChange={(event) => updateForm("name", event.target.value)}
                   placeholder="Maison Demo"
-                  required
+                  disabled
                 />
               </div>
               <div className="grid gap-1.5">
@@ -465,9 +349,8 @@ const VendorsSettingsPage = () => {
                 <Input
                   id="vendor-handle"
                   value={form.handle}
-                  onChange={(event) => updateForm("handle", event.target.value)}
                   placeholder="maison-demo"
-                  required
+                  disabled
                 />
               </div>
               <div className="grid gap-1.5">
@@ -476,9 +359,7 @@ const VendorsSettingsPage = () => {
                   id="vendor-status"
                   className="txt-compact-small h-8 rounded-md border border-ui-border-base bg-ui-bg-base px-2 text-ui-fg-base shadow-borders-base outline-none transition-fg focus:shadow-borders-interactive-with-active"
                   value={form.status}
-                  onChange={(event) =>
-                    updateForm("status", event.target.value)
-                  }
+                  disabled
                 >
                   <option value="draft">{t("vendors.statuses.draft")}</option>
                   <option value="active">
@@ -500,10 +381,8 @@ const VendorsSettingsPage = () => {
                   id="vendor-email"
                   type="email"
                   value={form.contact_email}
-                  onChange={(event) =>
-                    updateForm("contact_email", event.target.value)
-                  }
                   placeholder="owner@example.com"
+                  disabled
                 />
               </div>
               <div className="grid gap-1.5">
@@ -511,10 +390,8 @@ const VendorsSettingsPage = () => {
                 <Input
                   id="vendor-logo"
                   value={form.logo_url}
-                  onChange={(event) =>
-                    updateForm("logo_url", event.target.value)
-                  }
                   placeholder="https://..."
+                  disabled
                 />
               </div>
               <div className="grid gap-1.5">
@@ -524,10 +401,8 @@ const VendorsSettingsPage = () => {
                 <Input
                   id="vendor-color"
                   value={form.primary_color}
-                  onChange={(event) =>
-                    updateForm("primary_color", event.target.value)
-                  }
                   placeholder="#111827"
+                  disabled
                 />
               </div>
             </div>
@@ -537,40 +412,9 @@ const VendorsSettingsPage = () => {
               <Textarea
                 id="vendor-domains"
                 value={form.domains}
-                onChange={(event) =>
-                  updateForm("domains", event.target.value)
-                }
                 placeholder={"store.example.com\nexample.com"}
                 rows={3}
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="vendor-members">{t("vendors.members")}</Label>
-              <Textarea
-                id="vendor-members"
-                value={form.members}
-                onChange={(event) =>
-                  updateForm("members", event.target.value)
-                }
-                placeholder={t("vendors.membersPlaceholder")}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="vendor-member-password">
-                {t("vendors.memberPassword")}
-              </Label>
-              <Input
-                id="vendor-member-password"
-                type="password"
-                autoComplete="new-password"
-                value={form.member_password}
-                onChange={(event) =>
-                  updateForm("member_password", event.target.value)
-                }
-                placeholder={t("vendors.memberPasswordPlaceholder")}
+                disabled
               />
             </div>
 
@@ -635,28 +479,21 @@ const VendorsSettingsPage = () => {
             <div className="flex items-center justify-between">
               <Text className="text-ui-fg-subtle" size="small">
                 {selectedVendor
-                  ? t("vendors.editing", { name: selectedVendor.name })
-                  : t("vendors.createHint")}
+                  ? t("vendors.readOnlySelection", { name: selectedVendor.name })
+                  : t("vendors.selectHint")}
               </Text>
-              <div className="flex items-center gap-x-2">
-                {selectedId && (
-                  <Button
-                    type="button"
-                    size="small"
-                    variant="secondary"
-                    onClick={resetForm}
-                  >
-                    {t("vendors.cancel")}
-                  </Button>
-                )}
-                <Button size="small" type="submit" isLoading={isSaving}>
-                  {selectedId
-                    ? t("vendors.saveChanges")
-                    : t("vendors.createVendor")}
+              {selectedId && (
+                <Button
+                  type="button"
+                  size="small"
+                  variant="secondary"
+                  onClick={resetForm}
+                >
+                  {t("vendors.close")}
                 </Button>
-              </div>
+              )}
             </div>
-          </form>
+          </div>
         </Container>
 
         {selectedId && (
@@ -741,21 +578,21 @@ const VendorsSettingsPage = () => {
             <Table.Body>
               {isLoading && (
                 <Table.Row>
-                  <Table.Cell colSpan={6}>
+                  <td colSpan={6}>
                     <Text className="text-ui-fg-subtle" size="small">
                       {t("vendors.loading")}
                     </Text>
-                  </Table.Cell>
+                  </td>
                 </Table.Row>
               )}
               {!isLoading && !vendors.length && (
                 <Table.Row>
-                  <Table.Cell colSpan={6}>
+                  <td colSpan={6}>
                     <div className="flex items-center gap-x-2 text-ui-fg-subtle">
                       <BuildingStorefront />
                       <Text size="small">{t("vendors.empty")}</Text>
                     </div>
-                  </Table.Cell>
+                  </td>
                 </Table.Row>
               )}
               {!isLoading &&
@@ -807,18 +644,8 @@ const VendorsSettingsPage = () => {
                           type="button"
                           onClick={() => editVendor(vendor)}
                         >
-                          <PencilSquare />
-                          {t("vendors.edit")}
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="transparent"
-                          type="button"
-                          isLoading={isDeleting === vendor.id}
-                          onClick={() => deleteVendor(vendor)}
-                        >
-                          <Trash />
-                          {t("vendors.delete")}
+                          <Eye />
+                          {t("vendors.view")}
                         </Button>
                       </div>
                     </Table.Cell>

@@ -4,6 +4,8 @@ import {
   completeCartWorkflow,
   createCartWorkflow,
   createOrderWorkflow,
+  listShippingOptionsForCartWithPricingWorkflow,
+  listShippingOptionsForCartWorkflow,
   transferCartCustomerWorkflow,
   updateCartPromotionsWorkflow,
   updateCartWorkflow,
@@ -28,6 +30,7 @@ import {
   validateCartItemsForStore,
   validateVariantsForStore,
 } from "../api/_utils/checkout-store-policy";
+import { assertStoreOnlineCheckoutReady } from "../api/_utils/store-commerce-readiness";
 
 const invalid = (message: string) =>
   new MedusaError(MedusaError.Types.INVALID_DATA, message);
@@ -53,6 +56,13 @@ export const validateCreateCartStore = createCartWorkflow.hooks.validate(
     const binding = await resolveActiveStoreBySalesChannel(
       container,
       cart.sales_channel_id,
+    );
+
+    await assertStoreOnlineCheckoutReady(
+      container,
+      binding.storeProfile.id,
+      binding.medusaStore.id,
+      { validateGraph: true },
     );
 
     if (!cart.region_id) {
@@ -92,6 +102,13 @@ export const validateUpdateCartStore = updateCartWorkflow.hooks.validate(
   async ({ input }, { container }) => {
     const context = await resolveCartStoreContext(container, input.id);
 
+    await assertStoreOnlineCheckoutReady(
+      container,
+      context.storeProfileId,
+      context.medusaStoreId,
+      { validateGraph: true },
+    );
+
     if (
       input.sales_channel_id &&
       input.sales_channel_id !== context.salesChannelId
@@ -115,6 +132,13 @@ export const validateUpdateCartStore = updateCartWorkflow.hooks.validate(
 export const validateAddedCartItems = addToCartWorkflow.hooks.validate(
   async ({ input }, { container }) => {
     const context = await resolveCartStoreContext(container, input.cart_id);
+
+    await assertStoreOnlineCheckoutReady(
+      container,
+      context.storeProfileId,
+      context.medusaStoreId,
+      { validateGraph: true },
+    );
     const variantIds = (input.items ?? [])
       .map((item) => item.variant_id)
       .filter((id): id is string => Boolean(id));
@@ -139,6 +163,12 @@ export const validateUpdatedCartItem =
         container,
         inputCartId(input as Record<string, any>),
       );
+      await assertStoreOnlineCheckoutReady(
+        container,
+        context.storeProfileId,
+        context.medusaStoreId,
+        { validateGraph: true },
+      );
       await validateCartStoreConfiguration(container, context);
     },
   );
@@ -147,11 +177,46 @@ export const validateCartShippingMethod =
   addShippingMethodToCartWorkflow.hooks.validate(
     async ({ input }, { container }) => {
       const context = await resolveCartStoreContext(container, input.cart_id);
+      await assertStoreOnlineCheckoutReady(
+        container,
+        context.storeProfileId,
+        context.medusaStoreId,
+        { validateGraph: true },
+      );
       await assertShippingOptionsAllowedForStore(
         container,
         context.medusaStoreId,
         input.options.map((option) => option.id),
       );
+    },
+  );
+
+const validateShippingOptionListing = async (
+  cart: Record<string, any>,
+  container: any,
+): Promise<void> => {
+  const context = await resolveCartStoreContext(container, cart.id);
+  await assertStoreOnlineCheckoutReady(
+    container,
+    context.storeProfileId,
+    context.medusaStoreId,
+    { validateGraph: true },
+  );
+};
+
+export const validateListedCartShippingOptions =
+  listShippingOptionsForCartWorkflow.hooks.setShippingOptionsContext(
+    async ({ cart }, { container }) => {
+      await validateShippingOptionListing(cart as Record<string, any>, container);
+      return undefined;
+    },
+  );
+
+export const validateListedCartShippingOptionsWithPricing =
+  listShippingOptionsForCartWithPricingWorkflow.hooks.setShippingOptionsContext(
+    async ({ cart }, { container }) => {
+      await validateShippingOptionListing(cart as Record<string, any>, container);
+      return undefined;
     },
   );
 
@@ -164,6 +229,13 @@ export const validateCartPromotions =
 
       const cartId = inputCartId(input as Record<string, any>);
       const context = await resolveCartStoreContext(container, cartId);
+      await assertStoreOnlineCheckoutReady(
+        container,
+        context.storeProfileId,
+        context.medusaStoreId,
+        { validateGraph: true },
+      );
+
       await assertPromotionCodesAllowedForStore(
         container,
         context.medusaStoreId,
@@ -179,6 +251,12 @@ export const validateCartCustomerTransfer =
         container,
         inputCartId(input as Record<string, any>),
       );
+      await assertStoreOnlineCheckoutReady(
+        container,
+        context.storeProfileId,
+        context.medusaStoreId,
+        { validateGraph: true },
+      );
       await validateCartStoreConfiguration(container, context);
     },
   );
@@ -186,6 +264,12 @@ export const validateCartCustomerTransfer =
 export const validateCompleteCartStore = completeCartWorkflow.hooks.validate(
   async ({ input }, { container }) => {
     const context = await resolveCartStoreContext(container, input.id);
+    await assertStoreOnlineCheckoutReady(
+      container,
+      context.storeProfileId,
+      context.medusaStoreId,
+      { validateGraph: true },
+    );
     await validateCartStoreConfiguration(container, context);
   },
 );

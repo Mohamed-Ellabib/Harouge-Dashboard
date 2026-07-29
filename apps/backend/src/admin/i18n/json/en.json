@@ -2,7 +2,15 @@
   "vendors": {
     "menu": "Vendors",
     "title": "Vendor stores",
-    "description": "Manage shops, domains, and storefront branding.",
+    "description": "View current compatibility records and vendor account access.",
+    "compatibilityNotice": {
+      "title": "Read-only compatibility records",
+      "description": "These are temporary compatibility records for existing Stores. Store creation, lifecycle changes, and deletion are unavailable here; use the canonical provisioning workflow. Vendor member access controls remain separately available."
+    },
+    "selectHint": "Select a Store from the table to view its compatibility record and vendor accounts.",
+    "readOnlySelection": "Viewing the {{name}} compatibility record in read-only mode",
+    "close": "Close details",
+    "view": "View",
     "newVendor": "New vendor",
     "name": "Name",
     "handle": "Handle",

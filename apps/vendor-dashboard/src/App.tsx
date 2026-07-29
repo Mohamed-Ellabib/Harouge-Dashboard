@@ -1,98 +1,101 @@
-import { FormEvent, useEffect, useMemo, useState } from "react"
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Vendor = {
-  id: string
-  name: string
-  handle: string
-  domains: string[]
+  id: string;
+  name: string;
+  handle: string;
+  domains: string[];
   branding: {
-    logo_url: string | null
-    primary_color: string | null
-  }
-}
+    logo_url: string | null;
+    primary_color: string | null;
+  };
+};
 
 type VendorMember = {
-  id: string
-  email: string
-  role: "owner" | "manager"
-  status: "active" | "disabled"
-}
+  id: string;
+  email: string;
+  role: "owner" | "manager";
+  status: "active" | "disabled";
+};
 
 type VendorProduct = {
-  id: string
-  title: string
-  handle: string
-  status: "draft" | "proposed" | "published" | "rejected"
-  thumbnail: string | null
-  description?: string | null
-  variants?: VendorProductVariant[]
-}
+  id: string;
+  title: string;
+  handle: string;
+  status: "draft" | "proposed" | "published" | "rejected";
+  thumbnail: string | null;
+  description?: string | null;
+  variants?: VendorProductVariant[];
+};
 
 type VendorProductPrice = {
-  id?: string
-  amount: number | string | null
-  currency_code: string | null
-}
+  id?: string;
+  amount: number | string | null;
+  currency_code: string | null;
+};
 
 type VendorProductVariant = {
-  id: string
-  title: string
-  sku: string | null
-  manage_inventory: boolean
-  allow_backorder?: boolean
-  prices?: VendorProductPrice[]
-}
+  id: string;
+  title: string;
+  sku: string | null;
+  manage_inventory: boolean;
+  allow_backorder?: boolean;
+  prices?: VendorProductPrice[];
+};
 
 type VendorOrderItem = {
-  id: string
-  title: string
-  quantity: number
-  unit_price: number | null
-  total: number
-  product_id: string | null
-  variant_title: string | null
-}
+  id: string;
+  title: string;
+  quantity: number;
+  unit_price: number | null;
+  total: number;
+  product_id: string | null;
+  variant_title: string | null;
+};
 
 type VendorOrder = {
-  id: string
-  display_id: number | string | null
-  status: string
-  email: string | null
-  currency_code: string | null
-  vendor_total: number
-  created_at: string
-  items: VendorOrderItem[]
-}
+  id: string;
+  display_id: number | string | null;
+  status: string;
+  email: string | null;
+  currency_code: string | null;
+  vendor_total: number;
+  created_at: string;
+  items: VendorOrderItem[];
+};
 
 type VendorMeResponse = {
-  vendor: Vendor
-  member: VendorMember
-}
+  vendor: Vendor;
+  member: VendorMember;
+  commerce: {
+    currency_code: string;
+  };
+};
 
 type ProductForm = {
-  title: string
-  handle: string
-  status: VendorProduct["status"]
-  description: string
-  thumbnail: string
-  price: string
-  currency_code: string
-  sku: string
-  variant_title: string
-}
+  title: string;
+  handle: string;
+  status: VendorProduct["status"];
+  description: string;
+  thumbnail: string;
+  price: string;
+  currency_code: string;
+  sku: string;
+  variant_title: string;
+};
 
 type PasswordForm = {
-  current_password: string
-  new_password: string
-  confirm_password: string
-}
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
+};
 
 type Notice = {
-  tone: "success" | "error" | "info"
-  text: string
-}
+  tone: "success" | "error" | "info";
+  text: string;
+};
 
-type TabId = "home" | "products" | "orders" | "profile" | "security"
+type TabId = "home" | "products" | "orders" | "profile" | "security";
 
 const emptyProductForm: ProductForm = {
   title: "",
@@ -101,42 +104,40 @@ const emptyProductForm: ProductForm = {
   description: "",
   thumbnail: "",
   price: "",
-  currency_code: "eur",
+  currency_code: "",
   sku: "",
   variant_title: "",
-}
+};
 
 const emptyPasswordForm: PasswordForm = {
   current_password: "",
   new_password: "",
   confirm_password: "",
-}
+};
 
 const defaultApiBase = () => {
   if (typeof window === "undefined" || !window.location.hostname) {
-    return "http://localhost:9000"
+    return "http://localhost:9000";
   }
 
-  return `${window.location.protocol}//${window.location.hostname}:9000`
-}
+  return `${window.location.protocol}//${window.location.hostname}:9000`;
+};
 
 const API_BASE = (
   import.meta.env.VITE_MEDUSA_BACKEND_URL || defaultApiBase()
-).replace(/\/$/, "")
+).replace(/\/$/, "");
 
 const statusLabels: Record<VendorProduct["status"], string> = {
   draft: "مسودة",
   proposed: "مقترح",
   published: "منشور",
   rejected: "مرفوض",
-}
+};
 
 const editableProductStatuses: VendorProduct["status"][] = [
   "published",
   "draft",
-]
-
-const currencyOptions = ["eur", "usd"] as const
+];
 
 const orderStatusLabels: Record<string, string> = {
   pending: "قيد المعالجة",
@@ -144,12 +145,12 @@ const orderStatusLabels: Record<string, string> = {
   canceled: "ملغي",
   archived: "مؤرشف",
   requires_action: "يتطلب إجراء",
-}
+};
 
 const navItems: {
-  id: TabId
-  label: string
-  icon: string
+  id: TabId;
+  label: string;
+  icon: string;
 }[] = [
   {
     id: "home",
@@ -176,9 +177,12 @@ const navItems: {
     label: "الحماية",
     icon: "M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6zM9.5 12l1.6 1.6L15 9.8",
   },
-]
+];
 
-const request = async <T,>(path: string, options: RequestInit = {}): Promise<T> => {
+const request = async <T,>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> => {
   const response = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
     ...options,
@@ -187,47 +191,50 @@ const request = async <T,>(path: string, options: RequestInit = {}): Promise<T> 
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
     },
-  })
+  });
 
   if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`
+    let message = `${response.status} ${response.statusText}`;
 
     try {
-      const data = await response.json()
-      message = data.message || message
+      const data = await response.json();
+      message = data.message || message;
     } catch {
       // Keep HTTP fallback.
     }
 
-    throw new Error(message)
+    throw new Error(message);
   }
 
-  return (await response.json()) as T
-}
+  return (await response.json()) as T;
+};
 
 const slugify = (value: string) =>
   value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/^-+|-+$/g, "");
 
-const getPrimaryVariant = (product: VendorProduct) => product.variants?.[0]
+const getPrimaryVariant = (product: VendorProduct) => product.variants?.[0];
 
 const getPrimaryPrice = (product: VendorProduct) =>
-  getPrimaryVariant(product)?.prices?.[0]
+  getPrimaryVariant(product)?.prices?.[0];
 
 const normalizeAmountValue = (amount: number | string | null | undefined) => {
   if (amount === null || amount === undefined || amount === "") {
-    return ""
+    return "";
   }
 
-  return String(amount)
-}
+  return String(amount);
+};
 
-const productToForm = (product: VendorProduct): ProductForm => {
-  const primaryVariant = getPrimaryVariant(product)
-  const primaryPrice = getPrimaryPrice(product)
+const productToForm = (
+  product: VendorProduct,
+  storeCurrency: string,
+): ProductForm => {
+  const primaryVariant = getPrimaryVariant(product);
+  const primaryPrice = getPrimaryPrice(product);
 
   return {
     title: product.title ?? "",
@@ -238,77 +245,77 @@ const productToForm = (product: VendorProduct): ProductForm => {
     description: product.description ?? "",
     thumbnail: product.thumbnail ?? "",
     price: normalizeAmountValue(primaryPrice?.amount),
-    currency_code: primaryPrice?.currency_code ?? "eur",
+    currency_code: storeCurrency,
     sku: primaryVariant?.sku ?? "",
     variant_title: primaryVariant?.title ?? product.title ?? "",
-  }
-}
+  };
+};
 
 const formatProductPrice = (product: VendorProduct) => {
-  const price = getPrimaryPrice(product)
+  const price = getPrimaryPrice(product);
 
   if (!price || price.amount === null || price.amount === undefined) {
-    return "بدون سعر"
+    return "بدون سعر";
   }
 
-  return formatAmount(Number(price.amount), price.currency_code)
-}
+  return formatAmount(Number(price.amount), price.currency_code);
+};
 
 const formatInventoryMode = (product: VendorProduct) => {
-  const variant = getPrimaryVariant(product)
+  const variant = getPrimaryVariant(product);
 
   if (!variant) {
-    return "بدون نسخة"
+    return "بدون نسخة";
   }
 
-  return variant.manage_inventory ? "متتبع" : "غير متتبع"
-}
+  return variant.manage_inventory ? "متتبع" : "غير متتبع";
+};
 
 const formatAmount = (amount: number, currency: string | null) => {
   const formatted = Number.isFinite(Number(amount))
     ? Number(amount).toLocaleString("ar")
-    : "0"
+    : "0";
 
-  return currency ? `${formatted} ${currency.toUpperCase()}` : formatted
-}
+  return currency ? `${formatted} ${currency.toUpperCase()}` : formatted;
+};
 
 const formatDate = (value: string) => {
-  const date = new Date(value)
+  const date = new Date(value);
 
   return Number.isNaN(date.getTime())
     ? value
     : new Intl.DateTimeFormat("ar", {
         dateStyle: "medium",
         timeStyle: "short",
-      }).format(date)
-}
+      }).format(date);
+};
 
 const Icon = ({ path }: { path: string }) => (
   <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
     <path d={path} />
   </svg>
-)
+);
 
 const StatusPill = ({ status }: { status: VendorProduct["status"] }) => (
   <span className={`status-pill status-${status}`}>{statusLabels[status]}</span>
-)
+);
 
 function LoginScreen({
   onLogin,
   isLoading,
   notice,
 }: {
-  onLogin: (email: string, password: string) => Promise<void>
-  isLoading: boolean
-  notice: Notice | null
+  onLogin: (email: string, password: string) => Promise<void>;
+  isLoading: boolean;
+  notice: Notice | null;
 }) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    await onLogin(email, password)
-  }
+    event.preventDefault();
+    await onLogin(email, password);
+  };
 
   return (
     <main className="login-page" dir="rtl">
@@ -321,10 +328,12 @@ function LoginScreen({
           </div>
         </div>
         <p className="login-copy">
-          استخدم حساب البائع المرتبط بمتجرك. ستظهر هنا بيانات المتجر
-          والمنتجات والطلبات الخاصة بك فقط.
+          استخدم حساب البائع المرتبط بمتجرك. ستظهر هنا بيانات المتجر والمنتجات
+          والطلبات الخاصة بك فقط.
         </p>
-        {notice && <div className={`notice notice-${notice.tone}`}>{notice.text}</div>}
+        {notice && (
+          <div className={`notice notice-${notice.tone}`}>{notice.text}</div>
+        )}
         <form className="login-form" onSubmit={submit}>
           <label>
             البريد الإلكتروني
@@ -373,7 +382,7 @@ function LoginScreen({
         </div>
       </aside>
     </main>
-  )
+  );
 }
 
 function Dashboard({
@@ -399,44 +408,48 @@ function Dashboard({
   onSaveProduct,
   onSavePassword,
 }: {
-  vendor: Vendor
-  member: VendorMember
-  products: VendorProduct[]
-  orders: VendorOrder[]
-  selectedProduct: VendorProduct | null
-  productForm: ProductForm
-  passwordForm: PasswordForm
-  activeTab: TabId
-  isCreatingProduct: boolean
-  isSavingProduct: boolean
-  isSavingPassword: boolean
-  notice: Notice | null
-  onLogout: () => Promise<void>
-  onTabChange: (tab: TabId) => void
-  onStartCreateProduct: () => void
-  onCancelProductEdit: () => void
-  onSelectProduct: (product: VendorProduct) => void
-  onProductFormChange: (form: ProductForm) => void
-  onPasswordFormChange: (form: PasswordForm) => void
-  onSaveProduct: () => Promise<void>
-  onSavePassword: () => Promise<void>
+  vendor: Vendor;
+  member: VendorMember;
+  products: VendorProduct[];
+  orders: VendorOrder[];
+  selectedProduct: VendorProduct | null;
+  productForm: ProductForm;
+  passwordForm: PasswordForm;
+  activeTab: TabId;
+  isCreatingProduct: boolean;
+  isSavingProduct: boolean;
+  isSavingPassword: boolean;
+  notice: Notice | null;
+  onLogout: () => Promise<void>;
+  onTabChange: (tab: TabId) => void;
+  onStartCreateProduct: () => void;
+  onCancelProductEdit: () => void;
+  onSelectProduct: (product: VendorProduct) => void;
+  onProductFormChange: (form: ProductForm) => void;
+  onPasswordFormChange: (form: PasswordForm) => void;
+  onSaveProduct: () => Promise<void>;
+  onSavePassword: () => Promise<void>;
 }) {
   const counts = useMemo(() => {
-    const draft = products.filter((product) => product.status === "draft").length
+    const draft = products.filter(
+      (product) => product.status === "draft",
+    ).length;
     const published = products.filter(
-      (product) => product.status === "published"
-    ).length
+      (product) => product.status === "published",
+    ).length;
 
     return {
       assigned: products.length,
       draft,
       published,
       orders: orders.length,
-    }
-  }, [orders.length, products])
+    };
+  }, [orders.length, products]);
 
-  const domains = vendor.domains.length ? vendor.domains.join("، ") : "بدون نطاق"
-  const canEditProduct = Boolean(selectedProduct || isCreatingProduct)
+  const domains = vendor.domains.length
+    ? vendor.domains.join("، ")
+    : "بدون نطاق";
+  const canEditProduct = Boolean(selectedProduct || isCreatingProduct);
 
   return (
     <main className="dashboard-shell" dir="rtl">
@@ -480,7 +493,9 @@ function Dashboard({
           </div>
         </header>
 
-        {notice && <div className={`notice notice-${notice.tone}`}>{notice.text}</div>}
+        {notice && (
+          <div className={`notice notice-${notice.tone}`}>{notice.text}</div>
+        )}
 
         <section className="metric-grid" aria-label="ملخص المتجر">
           <article>
@@ -542,7 +557,9 @@ function Dashboard({
                     {products.map((product) => (
                       <tr
                         className={
-                          selectedProduct?.id === product.id ? "selected-row" : ""
+                          selectedProduct?.id === product.id
+                            ? "selected-row"
+                            : ""
                         }
                         key={product.id}
                       >
@@ -634,13 +651,13 @@ function Dashboard({
                     الاسم
                     <input
                       onChange={(event) => {
-                        const title = event.target.value
+                        const title = event.target.value;
                         onProductFormChange({
                           ...productForm,
                           title,
                           handle: productForm.handle || slugify(title),
                           variant_title: productForm.variant_title || title,
-                        })
+                        });
                       }}
                       value={productForm.title}
                     />
@@ -696,22 +713,12 @@ function Dashboard({
                     </label>
                     <label>
                       العملة
-                      <select
+                      <input
+                        aria-readonly="true"
                         dir="ltr"
-                        onChange={(event) =>
-                          onProductFormChange({
-                            ...productForm,
-                            currency_code: event.target.value,
-                          })
-                        }
-                        value={productForm.currency_code}
-                      >
-                        {currencyOptions.map((currency) => (
-                          <option key={currency} value={currency}>
-                            {currency.toUpperCase()}
-                          </option>
-                        ))}
-                      </select>
+                        readOnly
+                        value={productForm.currency_code.toUpperCase()}
+                      />
                     </label>
                   </div>
                   <div className="form-row">
@@ -825,7 +832,10 @@ function Dashboard({
                           {orderStatusLabels[order.status] ?? order.status}
                         </span>
                         <strong>
-                          {formatAmount(order.vendor_total, order.currency_code)}
+                          {formatAmount(
+                            order.vendor_total,
+                            order.currency_code,
+                          )}
                         </strong>
                       </div>
                     </div>
@@ -835,7 +845,10 @@ function Dashboard({
                           <span>{item.title}</span>
                           <span>
                             {item.quantity} ×{" "}
-                            {formatAmount(item.unit_price ?? 0, order.currency_code)}
+                            {formatAmount(
+                              item.unit_price ?? 0,
+                              order.currency_code,
+                            )}
                           </span>
                         </div>
                       ))}
@@ -874,7 +887,8 @@ function Dashboard({
                 <dd className="color-row">
                   <span
                     style={{
-                      backgroundColor: vendor.branding.primary_color || "#14b8a6",
+                      backgroundColor:
+                        vendor.branding.primary_color || "#14b8a6",
                     }}
                   />
                   {vendor.branding.primary_color || "#14b8a6"}
@@ -895,8 +909,8 @@ function Dashboard({
             <form
               className="security-form"
               onSubmit={(event) => {
-                event.preventDefault()
-                void onSavePassword()
+                event.preventDefault();
+                void onSavePassword();
               }}
             >
               <label>
@@ -958,68 +972,75 @@ function Dashboard({
         )}
       </section>
     </main>
-  )
+  );
 }
 
 export default function App() {
-  const [me, setMe] = useState<VendorMeResponse | null>(null)
-  const [products, setProducts] = useState<VendorProduct[]>([])
-  const [orders, setOrders] = useState<VendorOrder[]>([])
-  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null)
-  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm)
+  const [me, setMe] = useState<VendorMeResponse | null>(null);
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [orders, setOrders] = useState<VendorOrder[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(
+    null,
+  );
+  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
   const [passwordForm, setPasswordForm] =
-    useState<PasswordForm>(emptyPasswordForm)
-  const [activeTab, setActiveTab] = useState<TabId>("home")
-  const [isCreatingProduct, setIsCreatingProduct] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const [isSavingProduct, setIsSavingProduct] = useState(false)
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
-  const [notice, setNotice] = useState<Notice | null>(null)
+    useState<PasswordForm>(emptyPasswordForm);
+  const [activeTab, setActiveTab] = useState<TabId>("home");
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   const loadVendor = async () => {
     const [vendorMe, productData, orderData] = await Promise.all([
       request<VendorMeResponse>("/vendor/me"),
       request<{ products: VendorProduct[]; count: number }>("/vendor/products"),
       request<{ orders: VendorOrder[]; count: number }>("/vendor/orders").catch(
-        () => ({ orders: [], count: 0 })
+        () => ({ orders: [], count: 0 }),
       ),
-    ])
+    ]);
 
-    setMe(vendorMe)
-    setProducts(productData.products)
-    setOrders(orderData.orders)
+    setMe(vendorMe);
+    setProducts(productData.products);
+    setOrders(orderData.orders);
 
     if (productData.products.length) {
-      setSelectedProduct(productData.products[0])
-      setProductForm(productToForm(productData.products[0]))
-      setIsCreatingProduct(false)
+      setSelectedProduct(productData.products[0]);
+      setProductForm(
+        productToForm(productData.products[0], vendorMe.commerce.currency_code),
+      );
+      setIsCreatingProduct(false);
     } else {
-      setSelectedProduct(null)
-      setProductForm(emptyProductForm)
+      setSelectedProduct(null);
+      setProductForm({
+        ...emptyProductForm,
+        currency_code: vendorMe.commerce.currency_code,
+      });
     }
-  }
+  };
 
   useEffect(() => {
     loadVendor()
       .catch(() => {
-        setMe(null)
+        setMe(null);
       })
-      .finally(() => setIsLoading(false))
-  }, [])
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoggingIn(true)
-    setNotice(null)
+    setIsLoggingIn(true);
+    setNotice(null);
 
     try {
       await request<VendorMeResponse>("/vendor/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      })
+      });
 
-      await loadVendor()
-      setNotice({ tone: "success", text: "تم تسجيل الدخول بنجاح." })
+      await loadVendor();
+      setNotice({ tone: "success", text: "تم تسجيل الدخول بنجاح." });
     } catch (error) {
       setNotice({
         tone: "error",
@@ -1027,86 +1048,94 @@ export default function App() {
           error instanceof Error
             ? error.message
             : "تعذر تسجيل الدخول إلى لوحة البائع.",
-      })
+      });
     } finally {
-      setIsLoggingIn(false)
+      setIsLoggingIn(false);
     }
-  }
+  };
 
   const logout = async () => {
-    await request("/vendor/auth/logout", { method: "POST" }).catch(() => null)
-    setMe(null)
-    setProducts([])
-    setOrders([])
-    setSelectedProduct(null)
-    setProductForm(emptyProductForm)
-    setPasswordForm(emptyPasswordForm)
-    setActiveTab("home")
-    setNotice({ tone: "info", text: "تم تسجيل الخروج." })
-  }
+    await request("/vendor/auth/logout", { method: "POST" }).catch(() => null);
+    setMe(null);
+    setProducts([]);
+    setOrders([]);
+    setSelectedProduct(null);
+    setProductForm(emptyProductForm);
+    setPasswordForm(emptyPasswordForm);
+    setActiveTab("home");
+    setNotice({ tone: "info", text: "تم تسجيل الخروج." });
+  };
 
   const selectProduct = (product: VendorProduct) => {
-    setActiveTab("products")
-    setIsCreatingProduct(false)
-    setSelectedProduct(product)
-    setProductForm(productToForm(product))
-  }
+    setActiveTab("products");
+    setIsCreatingProduct(false);
+    setSelectedProduct(product);
+    setProductForm(productToForm(product, me?.commerce.currency_code ?? ""));
+  };
 
   const startCreateProduct = () => {
-    setActiveTab("products")
-    setIsCreatingProduct(true)
-    setSelectedProduct(null)
-    setProductForm(emptyProductForm)
-  }
+    setActiveTab("products");
+    setIsCreatingProduct(true);
+    setSelectedProduct(null);
+    setProductForm({
+      ...emptyProductForm,
+      currency_code: me?.commerce.currency_code ?? "",
+    });
+  };
 
   const cancelProductEdit = () => {
-    setIsCreatingProduct(false)
+    setIsCreatingProduct(false);
 
     if (products.length) {
-      setSelectedProduct(products[0])
-      setProductForm(productToForm(products[0]))
+      setSelectedProduct(products[0]);
+      setProductForm(
+        productToForm(products[0], me?.commerce.currency_code ?? ""),
+      );
     } else {
-      setSelectedProduct(null)
-      setProductForm(emptyProductForm)
+      setSelectedProduct(null);
+      setProductForm({
+        ...emptyProductForm,
+        currency_code: me?.commerce.currency_code ?? "",
+      });
     }
-  }
+  };
 
   const saveProduct = async () => {
     if (!isCreatingProduct && !selectedProduct) {
-      return
+      return;
     }
 
-    setIsSavingProduct(true)
-    setNotice(null)
+    setIsSavingProduct(true);
+    setNotice(null);
 
     try {
-      const price = productForm.price.trim()
+      const price = productForm.price.trim();
 
       if (isCreatingProduct && !price) {
         setNotice({
           tone: "error",
           text: "السعر مطلوب قبل نشر المنتج.",
-        })
-        return
+        });
+        return;
       }
 
-      const hasVariant = Boolean(selectedProduct?.variants?.length)
-      const shouldSendVariant = isCreatingProduct || hasVariant || Boolean(price)
+      const hasVariant = Boolean(selectedProduct?.variants?.length);
+      const shouldSendVariant =
+        isCreatingProduct || hasVariant || Boolean(price);
       const payload: Record<string, string> = {
         title: productForm.title,
         handle: productForm.handle,
         status: productForm.status,
         description: productForm.description,
         thumbnail: productForm.thumbnail,
-      }
+      };
 
       if (shouldSendVariant) {
-        payload.currency_code = productForm.currency_code
-        payload.sku = productForm.sku
-        payload.variant_title = productForm.variant_title || productForm.title
+        payload.sku = productForm.sku;
+        payload.variant_title = productForm.variant_title || productForm.title;
 
         if (price) {
-          payload.price = price
+          payload.price = price;
         }
       }
 
@@ -1117,47 +1146,47 @@ export default function App() {
         {
           method: isCreatingProduct ? "POST" : "PATCH",
           body: JSON.stringify(payload),
-        }
-      )
+        },
+      );
 
       setProducts((current) =>
         isCreatingProduct
           ? [data.product, ...current]
           : current.map((product) =>
-              product.id === data.product.id ? data.product : product
-            )
-      )
-      setSelectedProduct(data.product)
-      setProductForm(productToForm(data.product))
-      setIsCreatingProduct(false)
+              product.id === data.product.id ? data.product : product,
+            ),
+      );
+      setSelectedProduct(data.product);
+      setProductForm(
+        productToForm(data.product, me?.commerce.currency_code ?? ""),
+      );
+      setIsCreatingProduct(false);
       setNotice({
         tone: "success",
         text: isCreatingProduct ? "تم إنشاء المنتج." : "تم حفظ المنتج.",
-      })
+      });
     } catch (error) {
       setNotice({
         tone: "error",
         text:
-          error instanceof Error
-            ? error.message
-            : "تعذر حفظ المنتج المحدد.",
-      })
+          error instanceof Error ? error.message : "تعذر حفظ المنتج المحدد.",
+      });
     } finally {
-      setIsSavingProduct(false)
+      setIsSavingProduct(false);
     }
-  }
+  };
 
   const savePassword = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       setNotice({
         tone: "error",
         text: "تأكيد كلمة المرور لا يطابق كلمة المرور الجديدة.",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSavingPassword(true)
-    setNotice(null)
+    setIsSavingPassword(true);
+    setNotice(null);
 
     try {
       await request<{ success: boolean }>("/vendor/auth/password", {
@@ -1166,21 +1195,19 @@ export default function App() {
           current_password: passwordForm.current_password,
           new_password: passwordForm.new_password,
         }),
-      })
-      setPasswordForm(emptyPasswordForm)
-      setNotice({ tone: "success", text: "تم تغيير كلمة المرور." })
+      });
+      setPasswordForm(emptyPasswordForm);
+      setNotice({ tone: "success", text: "تم تغيير كلمة المرور." });
     } catch (error) {
       setNotice({
         tone: "error",
         text:
-          error instanceof Error
-            ? error.message
-            : "تعذر تغيير كلمة المرور.",
-      })
+          error instanceof Error ? error.message : "تعذر تغيير كلمة المرور.",
+      });
     } finally {
-      setIsSavingPassword(false)
+      setIsSavingPassword(false);
     }
-  }
+  };
 
   if (isLoading) {
     return (
@@ -1188,11 +1215,13 @@ export default function App() {
         <div className="loader" />
         <span>جار تحميل لوحة البائع...</span>
       </main>
-    )
+    );
   }
 
   if (!me) {
-    return <LoginScreen isLoading={isLoggingIn} notice={notice} onLogin={login} />
+    return (
+      <LoginScreen isLoading={isLoggingIn} notice={notice} onLogin={login} />
+    );
   }
 
   return (
@@ -1219,5 +1248,5 @@ export default function App() {
       selectedProduct={selectedProduct}
       vendor={me.vendor}
     />
-  )
+  );
 }

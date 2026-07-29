@@ -144,5 +144,60 @@ moduleIntegrationTestRunner<SaasModuleService>({
         } as any)
       ).rejects.toThrow()
     })
+
+    it("allows only one commerce-readiness record per StoreProfile", async () => {
+      const tenant = await createTenant()
+      const store = await service.createStoreProfiles({
+        tenant_id: tenant.id,
+        handle: "readiness-store",
+        plan_code: "professional_commerce",
+      } as any)
+
+      await service.createStoreCommerceReadinesses({
+        store_profile_id: store.id,
+        capability: "online_checkout",
+        plan_code: "professional_commerce",
+        status: "pending",
+        shipping_option_ids: [],
+      } as any)
+      await expect(
+        service.createStoreCommerceReadinesses({
+          store_profile_id: store.id,
+          capability: "online_checkout",
+          plan_code: "professional_commerce",
+          status: "ready",
+          shipping_option_ids: ["so_invalid_duplicate"],
+        } as any),
+      ).rejects.toThrow()
+    })
+
+    it("reserves one unfinished commerce setup per StoreProfile", async () => {
+      const tenant = await createTenant()
+      const store = await service.createStoreProfiles({
+        tenant_id: tenant.id,
+        handle: "setup-reservation-store",
+        plan_code: "professional_commerce",
+      } as any)
+      const setup = {
+        request_hash: "a".repeat(64),
+        store_profile_id: store.id,
+        status: "pending",
+        current_step: "validate_store",
+        request_snapshot: {},
+        resource_state: {},
+        actor_id: "platform-test",
+      }
+
+      await service.createStoreCommerceSetups({
+        ...setup,
+        idempotency_key: "commerce:module:one",
+      } as any)
+      await expect(
+        service.createStoreCommerceSetups({
+          ...setup,
+          idempotency_key: "commerce:module:two",
+        } as any),
+      ).rejects.toThrow()
+    })
   },
 })

@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
+import { getSaasService } from "../../../_utils/legacy-vendor-compatibility"
 import {
   domainsForVendor,
   findDomainConflict,
@@ -13,11 +14,23 @@ import {
   serializeAdminVendor,
   statusOrDefault,
   stringOrNull,
+  syncLegacyVendorProducts,
   syncVendorMembers,
-  syncVendorProducts,
   type VendorPayload,
 } from "../../../_utils/vendors"
 import { normalizeVendorPassword } from "../../../_utils/vendor-auth"
+
+const hasPermanentStoreMapping = async (
+  req: MedusaRequest,
+  legacyVendorId: string
+): Promise<boolean> => {
+  const saas = getSaasService(req)
+  const profiles = await saas.listStoreProfiles({
+    legacy_vendor_id: legacyVendorId,
+  } as any)
+
+  return profiles.length > 0
+}
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const marketplace = getMarketplaceService(req)
@@ -65,6 +78,14 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
   if (!existing) {
     return res.status(404).json({
       message: "Vendor was not found.",
+    })
+  }
+
+  if (await hasPermanentStoreMapping(req, id)) {
+    return res.status(409).json({
+      code: "canonical_store_compatibility_read_only",
+      message:
+        "This compatibility Vendor is linked to a permanent Store and cannot be changed through the legacy route.",
     })
   }
 
@@ -198,6 +219,14 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     })
   }
 
+  if (await hasPermanentStoreMapping(req, id)) {
+    return res.status(409).json({
+      code: "canonical_store_delete_blocked",
+      message:
+        "A compatibility Vendor linked to a permanent Store cannot be deleted.",
+    })
+  }
+
   const allDomains = await marketplace.listVendorDomains()
   const currentDomains = domainsForVendor(allDomains, id)
 
@@ -215,7 +244,7 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     )
   }
 
-  await syncVendorProducts(req, id, [])
+  await syncLegacyVendorProducts(req, id, [])
   await marketplace.deleteVendors(id)
 
   res.status(204).send()

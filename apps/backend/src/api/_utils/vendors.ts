@@ -448,7 +448,7 @@ export const assertProductBelongsExclusivelyToVendor = async (
   }
 }
 
-const syncLegacyVendorProducts = async (
+export const syncLegacyVendorProducts = async (
   req: MedusaRequest,
   vendorId: string,
   productIds: string[]

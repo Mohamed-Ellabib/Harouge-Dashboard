@@ -38,6 +38,7 @@ import {
   withProvisioningLease,
   type ProvisioningRecord,
 } from "./provisioning-state";
+import { ensureStoreCommerceReadiness } from "./commerce-readiness-state";
 
 const completeProvisioningGraph = async (
   container: MedusaContainer,
@@ -52,6 +53,9 @@ const completeProvisioningGraph = async (
   );
   const profileId = requiredProvisioningId(record, "store_profile_id");
   const vendorId = requiredProvisioningId(record, "legacy_vendor_id");
+  const profile = await saas.retrieveStoreProfile(profileId);
+
+  await ensureStoreCommerceReadiness(container, profile);
 
   await saas.updateStoreProfiles({ id: profileId, status: "active" });
   await marketplace.updateVendors({ id: vendorId, status: "active" });

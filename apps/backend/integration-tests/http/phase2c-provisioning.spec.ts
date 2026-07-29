@@ -2,6 +2,11 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
 import { Modules } from "@medusajs/framework/utils";
 
 import { POST as provisionApi } from "../../src/api/admin/saas/provisioning/route";
+import { POST as createLegacyVendorApi } from "../../src/api/admin/vendors/route";
+import {
+  DELETE as deleteLegacyVendorApi,
+  PATCH as updateLegacyVendorApi,
+} from "../../src/api/admin/vendors/[id]/route";
 import { platformProvisioningRateLimiter } from "../../src/api/_utils/platform-provisioning-rate-limit";
 import { resolveMerchantStoreContext } from "../../src/api/_utils/merchant-store-context";
 import { resolvePublicStoreContext } from "../../src/api/_utils/public-store-context";
@@ -64,6 +69,10 @@ const responseRecorder = () => {
         state.body = body;
         return this;
       },
+      send(body?: unknown) {
+        state.body = body ?? null;
+        return this;
+      },
       setHeader() {
         return this;
       },
@@ -113,6 +122,7 @@ medusaIntegrationTestRunner({
           domains,
           brands,
           memberships,
+          readinessRecords,
           events,
         ] = await Promise.all([
           saas.retrieveStoreProfile(result.store_profile_id),
@@ -128,6 +138,9 @@ medusaIntegrationTestRunner({
             store_profile_id: result.store_profile_id,
           }),
           saas.listMerchantMemberships({
+            store_profile_id: result.store_profile_id,
+          }),
+          saas.listStoreCommerceReadinesses({
             store_profile_id: result.store_profile_id,
           }),
           saas.listStoreProvisioningEvents({
@@ -152,6 +165,12 @@ medusaIntegrationTestRunner({
         expect(brands).toHaveLength(1);
         expect(memberships).toHaveLength(1);
         expect(memberships[0].role).toBe("owner");
+        expect(readinessRecords).toHaveLength(1);
+        expect(readinessRecords[0]).toMatchObject({
+          plan_code: "starter_whatsapp",
+          status: "not_required",
+          shipping_option_ids: [],
+        });
         expect(
           events.some((event: any) => event.event_type === "completed"),
         ).toBe(true);
@@ -165,6 +184,103 @@ medusaIntegrationTestRunner({
         expect(
           await marketplace.retrieveVendor(profile.legacy_vendor_id),
         ).toMatchObject({ status: "active", handle: request.store.handle });
+      });
+
+      it("freezes mapped legacy Vendor lifecycle writes while preserving unmapped cleanup", async () => {
+        const id = suffix("legacy-freeze");
+        const request = provisioningRequest({ suffix: id });
+        const result = await provision(
+          getContainer(),
+          "provision:" + id,
+          request,
+        );
+        const container = getContainer();
+        const saas = container.resolve(SAAS_MODULE) as any;
+        const marketplace = container.resolve(MARKETPLACE_MODULE) as any;
+        const profile = await saas.retrieveStoreProfile(result.store_profile_id);
+        const mappedVendorId = profile.legacy_vendor_id;
+
+        const createRecorder = responseRecorder();
+        await createLegacyVendorApi(
+          {
+            scope: container,
+            body: {
+              name: "Blocked standalone Vendor",
+              handle: "blocked-" + id,
+            },
+          } as any,
+          createRecorder.response as any,
+        );
+        expect(createRecorder.state.statusCode).toBe(409);
+        expect(createRecorder.state.body).toMatchObject({
+          code: "legacy_vendor_creation_disabled",
+        });
+        expect(
+          await marketplace.listVendors({ handle: "blocked-" + id }),
+        ).toHaveLength(0);
+
+        const updateRecorder = responseRecorder();
+        await updateLegacyVendorApi(
+          {
+            scope: container,
+            params: { id: mappedVendorId },
+            body: { status: "suspended" },
+          } as any,
+          updateRecorder.response as any,
+        );
+        expect(updateRecorder.state.statusCode).toBe(409);
+        expect(updateRecorder.state.body).toMatchObject({
+          code: "canonical_store_compatibility_read_only",
+        });
+        expect((await marketplace.retrieveVendor(mappedVendorId)).status).toBe(
+          "active",
+        );
+
+        const deleteRecorder = responseRecorder();
+        await deleteLegacyVendorApi(
+          {
+            scope: container,
+            params: { id: mappedVendorId },
+          } as any,
+          deleteRecorder.response as any,
+        );
+        expect(deleteRecorder.state.statusCode).toBe(409);
+        expect(deleteRecorder.state.body).toMatchObject({
+          code: "canonical_store_delete_blocked",
+        });
+        expect(await marketplace.retrieveVendor(mappedVendorId)).toBeTruthy();
+
+        const unmappedVendor = await marketplace.createVendors({
+          name: "Unmapped legacy cleanup",
+          handle: "unmapped-" + id,
+          status: "draft",
+        });
+        const unmappedUpdateRecorder = responseRecorder();
+        await updateLegacyVendorApi(
+          {
+            scope: container,
+            params: { id: unmappedVendor.id },
+            body: { status: "suspended" },
+          } as any,
+          unmappedUpdateRecorder.response as any,
+        );
+        expect(unmappedUpdateRecorder.state.statusCode).toBe(200);
+        expect((await marketplace.retrieveVendor(unmappedVendor.id)).status).toBe(
+          "suspended",
+        );
+
+        const unmappedDeleteRecorder = responseRecorder();
+        await deleteLegacyVendorApi(
+          {
+            scope: container,
+            params: { id: unmappedVendor.id },
+          } as any,
+          unmappedDeleteRecorder.response as any,
+        );
+        expect(unmappedDeleteRecorder.state.statusCode).toBe(204);
+        expect(
+          await marketplace.retrieveVendor(unmappedVendor.id).catch(() => null),
+        ).toBeNull();
       });
 
       it("provisions Professional branding and a pending custom domain", async () => {
@@ -181,12 +297,15 @@ medusaIntegrationTestRunner({
           request,
         );
         const saas = getContainer().resolve(SAAS_MODULE) as any;
-        const [profile, domains, brands] = await Promise.all([
+        const [profile, domains, brands, readinessRecords] = await Promise.all([
           saas.retrieveStoreProfile(result.store_profile_id),
           saas.listStoreDomains({
             store_profile_id: result.store_profile_id,
           }),
           saas.listStoreBrands({
+            store_profile_id: result.store_profile_id,
+          }),
+          saas.listStoreCommerceReadinesses({
             store_profile_id: result.store_profile_id,
           }),
         ]);
@@ -204,6 +323,12 @@ medusaIntegrationTestRunner({
           primary_color: "#1257A6",
           secondary_color: "#F2B134",
           typography_key: "cairo",
+        });
+        expect(readinessRecords).toHaveLength(1);
+        expect(readinessRecords[0]).toMatchObject({
+          plan_code: "professional_commerce",
+          status: "pending",
+          shipping_option_ids: [],
         });
       });
 

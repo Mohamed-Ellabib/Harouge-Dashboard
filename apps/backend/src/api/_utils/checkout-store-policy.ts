@@ -39,6 +39,72 @@ export const getCheckoutStore = async (
   });
 };
 
+export type StoreCommerceConfiguration = {
+  currencyCode: string;
+  countryCodes: string[];
+  regionId: string;
+};
+
+export const resolveStoreCommerceConfiguration = async (
+  input: CheckoutScopeInput,
+  storeId: string,
+): Promise<StoreCommerceConfiguration> => {
+  const store = await getCheckoutStore(input, storeId);
+  const allowedRegionIds = metadataList(store, "saas_allowed_region_ids");
+  const supportedCurrencies = [
+    ...new Set(
+      (store.supported_currencies ?? [])
+        .map((entry: any) =>
+          String(entry.currency_code ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter((entry: string) => /^[a-z]{3}$/.test(entry)),
+    ),
+  ];
+
+  if (
+    allowedRegionIds.length !== 1 ||
+    store.default_region_id !== allowedRegionIds[0] ||
+    supportedCurrencies.length !== 1
+  ) {
+    throw invalid("The Store commerce currency is unavailable.");
+  }
+
+  const regionService = checkoutScopeFor(input).resolve(Modules.REGION) as any;
+  const region = await regionService
+    .retrieveRegion(allowedRegionIds[0], { relations: ["countries"] })
+    .catch(() => null);
+  const currencyCode = String(region?.currency_code ?? "")
+    .trim()
+    .toLowerCase();
+  const countryCodes: string[] = [
+    ...new Set(
+      (region?.countries ?? [])
+        .map((country: any) =>
+          String(country.iso_2 ?? "")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter((countryCode: string) => /^[a-z]{2}$/.test(countryCode)),
+    ),
+  ].sort() as string[];
+
+  if (
+    !region ||
+    currencyCode !== supportedCurrencies[0] ||
+    !countryCodes.length
+  ) {
+    throw invalid("The Store commerce currency is unavailable.");
+  }
+
+  return {
+    currencyCode,
+    countryCodes,
+    regionId: region.id,
+  };
+};
+
 export const allowedRegionIdsForStore = async (
   input: CheckoutScopeInput,
   storeId: string,

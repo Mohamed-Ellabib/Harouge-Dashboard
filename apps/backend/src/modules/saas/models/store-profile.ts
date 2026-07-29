@@ -3,6 +3,7 @@ import { model } from "@medusajs/framework/utils"
 
 import MerchantMembership from "./merchant-membership"
 import StoreBrand from "./store-brand"
+import StoreCommerceReadiness from "./store-commerce-readiness"
 import StoreDomain from "./store-domain"
 import Tenant from "./tenant"
 
@@ -25,6 +26,9 @@ const StoreProfile = model
     whatsapp_number: model.text().nullable(),
     domains: model.hasMany(() => StoreDomain, { mappedBy: "store_profile" }),
     brand: model.hasOne(() => StoreBrand, { mappedBy: "store_profile" }),
+    commerce_readiness: model.hasOne(() => StoreCommerceReadiness, {
+      mappedBy: "store_profile",
+    }),
     memberships: model.hasMany(() => MerchantMembership, {
       mappedBy: "store_profile",
     }),

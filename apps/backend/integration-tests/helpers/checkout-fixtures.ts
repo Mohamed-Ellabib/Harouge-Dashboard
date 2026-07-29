@@ -1,5 +1,4 @@
 import {
-  createRegionsWorkflow,
   createShippingOptionsWorkflow,
   createStockLocationsWorkflow,
 } from "@medusajs/core-flows";
@@ -7,6 +6,12 @@ import type { MedusaContainer } from "@medusajs/framework/types";
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils";
 
 import { vendorLoginRateLimiter } from "../../src/api/_utils/vendor-login-rate-limit";
+import { SAAS_MODULE } from "../../src/modules/saas";
+import {
+  commerceFulfillmentSetName,
+  commerceServiceZoneName,
+  commerceShippingOptionCode,
+} from "../../src/workflows/commerce-readiness-contract";
 import {
   createSecurityFixtures,
   type SecurityFixtures,
@@ -36,25 +41,7 @@ export const createCheckoutFixtures = async (
 ): Promise<CheckoutFixtures> => {
   vendorLoginRateLimiter.reset();
   const base = await createSecurityFixtures(container);
-  const { result: regions } = await createRegionsWorkflow(container).run({
-    input: {
-      regions: [
-        {
-          name: "Phase 2B Region A",
-          currency_code: "lyd",
-          countries: ["ly"],
-          payment_providers: ["pp_system_default"],
-        },
-        {
-          name: "Phase 2B Region B",
-          currency_code: "lyd",
-          countries: ["tn"],
-          payment_providers: ["pp_system_default"],
-        },
-      ],
-    },
-  });
-  const [regionA, regionB] = regions;
+  const { regionA, regionB } = base;
   const customerService = container.resolve(Modules.CUSTOMER) as any;
   const [customerA, customerB] = await customerService.createCustomers([
     { email: "customer-a@example.test", has_account: true },
@@ -135,21 +122,21 @@ export const createCheckoutFixtures = async (
       (profile: any) => profile.id === productA.shipping_profile_id,
     ) ?? profiles[0];
   const fulfillmentSetA = await fulfillment.createFulfillmentSets({
-    name: "Phase 2B Delivery A",
+    name: commerceFulfillmentSetName(base.storeProfileA.id),
     type: "shipping",
     service_zones: [
       {
-        name: "Phase 2B Zone A",
+        name: commerceServiceZoneName(base.storeProfileA.id),
         geo_zones: [{ country_code: "ly", type: "country" }],
       },
     ],
   });
   const fulfillmentSetB = await fulfillment.createFulfillmentSets({
-    name: "Phase 2B Delivery B",
+    name: commerceFulfillmentSetName(base.storeProfileB.id),
     type: "shipping",
     service_zones: [
       {
-        name: "Phase 2B Zone B",
+        name: commerceServiceZoneName(base.storeProfileB.id),
         geo_zones: [{ country_code: "tn", type: "country" }],
       },
     ],
@@ -207,7 +194,7 @@ export const createCheckoutFixtures = async (
         type: {
           label: "Store A",
           description: "Store A test shipping",
-          code: "phase-2b-a",
+          code: commerceShippingOptionCode(base.storeProfileA.id),
         },
         prices: [
           { currency_code: "lyd", amount: 100 },
@@ -227,7 +214,7 @@ export const createCheckoutFixtures = async (
         type: {
           label: "Store B",
           description: "Store B test shipping",
-          code: "phase-2b-b",
+          code: commerceShippingOptionCode(base.storeProfileB.id),
         },
         prices: [
           { currency_code: "lyd", amount: 120 },
@@ -244,19 +231,105 @@ export const createCheckoutFixtures = async (
   const stores = container.resolve(Modules.STORE) as any;
 
   await stores.updateStores(base.medusaStoreA.id, {
+    default_region_id: regionA.id,
+    default_location_id: locationA.id,
     metadata: {
       saas_allowed_region_ids: [regionA.id],
       saas_allowed_shipping_option_ids: [shippingOptionA.id],
       saas_allowed_promotion_codes: [],
+      saas_shipping_profile_id: shippingProfile.id,
     },
   });
   await stores.updateStores(base.medusaStoreB.id, {
+    default_region_id: regionB.id,
+    default_location_id: locationB.id,
     metadata: {
       saas_allowed_region_ids: [regionB.id],
       saas_allowed_shipping_option_ids: [shippingOptionB.id],
       saas_allowed_promotion_codes: [],
+      saas_shipping_profile_id: shippingProfile.id,
     },
   });
+
+  const saas = container.resolve(SAAS_MODULE) as any;
+  const [setupA, setupB] = await saas.createStoreCommerceSetups([
+    {
+      idempotency_key: "phase-2b-commerce-a",
+      request_hash: "phase-2b-commerce-a",
+      store_profile_id: base.storeProfileA.id,
+      status: "completed",
+      current_step: "complete",
+      request_snapshot: {
+        store_profile_id: base.storeProfileA.id,
+        shipping_option: {
+          name: "Phase 2B Shipping A",
+          amount: 100,
+        },
+      },
+      result_snapshot: {
+        store_profile_id: base.storeProfileA.id,
+        readiness_status: "ready",
+      },
+      actor_id: "phase-2b-fixture",
+      completed_at: new Date(),
+    },
+    {
+      idempotency_key: "phase-2b-commerce-b",
+      request_hash: "phase-2b-commerce-b",
+      store_profile_id: base.storeProfileB.id,
+      status: "completed",
+      current_step: "complete",
+      request_snapshot: {
+        store_profile_id: base.storeProfileB.id,
+        shipping_option: {
+          name: "Phase 2B Shipping B",
+          amount: 120,
+        },
+      },
+      result_snapshot: {
+        store_profile_id: base.storeProfileB.id,
+        readiness_status: "ready",
+      },
+      actor_id: "phase-2b-fixture",
+      completed_at: new Date(),
+    },
+  ]);
+  await saas.createStoreCommerceReadinesses([
+    {
+      store_profile_id: base.storeProfileA.id,
+      capability: "online_checkout",
+      plan_code: "professional_commerce",
+      status: "ready",
+      medusa_store_id: base.medusaStoreA.id,
+      region_id: regionA.id,
+      stock_location_id: locationA.id,
+      fulfillment_provider_id: "manual_manual",
+      shipping_profile_id: shippingProfile.id,
+      fulfillment_set_id: fulfillmentSetA.id,
+      service_zone_id: fulfillmentSetA.service_zones[0].id,
+      shipping_option_ids: [shippingOptionA.id],
+      last_setup_id: setupA.id,
+      validated_at: new Date(),
+      revision: 1,
+    },
+    {
+      store_profile_id: base.storeProfileB.id,
+      capability: "online_checkout",
+      plan_code: "professional_commerce",
+      status: "ready",
+      medusa_store_id: base.medusaStoreB.id,
+      region_id: regionB.id,
+      stock_location_id: locationB.id,
+      fulfillment_provider_id: "manual_manual",
+      shipping_profile_id: shippingProfile.id,
+      fulfillment_set_id: fulfillmentSetB.id,
+      service_zone_id: fulfillmentSetB.service_zones[0].id,
+      shipping_option_ids: [shippingOptionB.id],
+      last_setup_id: setupB.id,
+      validated_at: new Date(),
+      revision: 1,
+    },
+  ]);
 
   return {
     ...base,

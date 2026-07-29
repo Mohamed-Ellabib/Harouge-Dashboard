@@ -20,6 +20,8 @@ import {
   validateVariantsForStore,
 } from "./checkout-store-policy";
 import { getPublicStoreContext } from "./public-store-context";
+import { assertStoreOnlineCheckoutReady } from "./store-commerce-readiness";
+import { COMMERCE_GATE_PAYMENT_PROVIDER_ID } from "../../workflows/commerce-readiness-contract";
 
 const CONTEXT_KEY = "cart_store_context";
 
@@ -106,6 +108,13 @@ const prepareCreateCart = async (req: MedusaRequest): Promise<void> => {
     throw invalid("A verified Store context is required to create a Cart.");
   }
 
+  await assertStoreOnlineCheckoutReady(
+    req,
+    publicContext.storeProfileId,
+    publicContext.medusaStoreId,
+    { validateGraph: true },
+  );
+
   const body = requestBody(req);
   const controlledFields = [
     "store_id",
@@ -181,6 +190,19 @@ const validateExistingCartRequest = async (
   const body = requestBody(req);
   const method = String((req as any).method ?? "GET").toUpperCase();
   const actorId = (req as any).auth_context?.actor_id;
+  const requiresCheckoutReadiness =
+    method !== "GET" ||
+    path.startsWith("/store/shipping-options") ||
+    path.startsWith("/store/payment-collections");
+
+  if (requiresCheckoutReadiness) {
+    await assertStoreOnlineCheckoutReady(
+      req,
+      context.storeProfileId,
+      context.medusaStoreId,
+      { validateGraph: true },
+    );
+  }
 
   if (
     context.cart.customer_id &&
@@ -235,6 +257,16 @@ const validateExistingCartRequest = async (
       context.medusaStoreId,
       payload.map((entry: any) => entry.option_id),
     );
+  }
+
+  if (
+    path.match(
+      /^\/store\/payment-collections\/[^/]+\/payment-sessions$/,
+    ) &&
+    method === "POST" &&
+    body.provider_id !== COMMERCE_GATE_PAYMENT_PROVIDER_ID
+  ) {
+    throw invalid("The payment provider is not available for this Store.");
   }
 
   if (path.endsWith("/promotions")) {
