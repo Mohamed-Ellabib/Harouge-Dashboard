@@ -14,7 +14,16 @@
     "backend:seed": "turbo seed --filter=@dtc/backend",
     "backend:dev": "turbo dev --filter=@dtc/backend",
     "vendor:dev": "turbo dev --filter=@dtc/vendor-dashboard",
-    "vendor:build": "turbo build --filter=@dtc/vendor-dashboard"
+    "vendor:build": "turbo build --filter=@dtc/vendor-dashboard",
+    "platform:dev": "turbo dev --filter=@dtc/platform-dashboard",
+    "platform:build": "turbo build --filter=@dtc/platform-dashboard",
+    "platform:typecheck": "npm run typecheck --workspace @dtc/platform-dashboard",
+    "storefront:dev": "turbo dev --filter=@dtc/storefront",
+    "storefront:build": "turbo build --filter=@dtc/storefront",
+    "storefront:typecheck": "npm run typecheck --workspace @dtc/storefront",
+    "storefront:test": "npm run test --workspace @dtc/storefront",
+    "storefront:accept": "npm run accept:phase3a-storefront --workspace @dtc/backend",
+    "commerce:accept": "npm run accept:phase3b-commerce --workspace @dtc/backend"
   },
   "devDependencies": {
     "@medusajs/eslint-plugin": "2.16.0",

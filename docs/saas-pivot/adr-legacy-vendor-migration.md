@@ -9,3 +9,7 @@ The migration is separate from schema migration, defaults to dry-run, uses deter
 Existing Medusa Store reuse is allowed only when there is one Vendor and exactly one unlinked Store. Ambiguous mappings are reported and skipped. Legacy product links remain until the removal plan is completed.
 
 Temporary dual writing is centralized in legacy-vendor-compatibility.ts and syncVendorProducts. Permanent writes happen first and are compensated if the legacy write fails. This boundary is scheduled for removal after all routes and dashboards stop using Vendor terminology.
+
+## Current lifecycle freeze
+
+The uncommitted Phase 2C gate-closure working tree disables standalone legacy Vendor creation. A Vendor already mapped to a permanent StoreProfile is read-only through the legacy Admin route and cannot be deleted there. Unmapped historical Vendors keep transitional update/delete cleanup, and VendorMember authentication plus product compatibility remain. This narrows the compatibility layer without authorizing its removal.

@@ -40,3 +40,11 @@ A verified temporary hostname is generated from the configured base domain. A cu
 ## Deferred
 
 The platform dashboard, public self-service signup, billing, DNS and SSL automation, distributed runtime infrastructure, production deployment, and Neon migration remain deferred.
+
+## Gate-closure clarification
+
+On 2026-07-18, the owner accepted exact compatible Region sharing and approved `adr-store-commerce-readiness.md` as a follow-up decision. Completion of this provisioning workflow proves the permanent Store identity graph; it does not prove online-checkout readiness. Base shipping configuration and validation belong to a separate durable, idempotent StoreCommerceSetup workflow.
+
+That separate gate-closure workflow is now implemented in the current uncommitted working tree. Provisioning creates/ensures one readiness row: Starter is `not_required`; Professional is `pending`. StoreCommerceSetup later configures and validates the deterministic Store fulfillment graph before Professional readiness becomes `ready`. This does not expand the identity-provisioning contract and does not start Phase 3.
+
+Legacy compatibility is frozen further in the same working tree. Standalone `POST /admin/vendors` returns a deterministic conflict, and compatibility Vendors mapped to a permanent Store cannot be changed or deleted through legacy PATCH/DELETE. The legacy row and VendorMember authentication layer remain in place; removal is still a separately approved migration phase.

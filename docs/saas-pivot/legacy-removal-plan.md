@@ -22,3 +22,16 @@ Cart and Order authorization now uses canonical whole-resource Medusa Store link
 Provisioning still creates one draft-then-active legacy Vendor as a compatibility adapter. The permanent authority is Tenant, StoreProfile, Medusa Store, MerchantMembership, StoreDomain, and canonical Product/Cart/Order links. StoreProvisioning records legacy_vendor_id only for retry and later reconciliation.
 
 Legacy removal remains blocked until merchant authentication no longer stores identity credentials in VendorMember, all dashboard routes use MerchantMembership and Medusa Store, and domain/product/order compatibility reads have been removed.
+
+## Phase 2C gate-closure lifecycle freeze
+
+The current uncommitted working tree advances steps 2 and 3 without deleting compatibility data:
+
+- standalone `POST /admin/vendors` is disabled and returns a canonical-provisioning conflict;
+- PATCH of a Vendor mapped by `StoreProfile.legacy_vendor_id` is rejected as read-only compatibility;
+- DELETE of a mapped Vendor is rejected;
+- the owner platform dashboard no longer presents fake Vendor/Store lifecycle mutations and directs new client/first-Store creation through canonical SaaS provisioning;
+- unmapped historical Vendors retain legacy PATCH/DELETE and product-link cleanup for migration compatibility;
+- VendorMember account/authentication controls and legacy product dual writing remain.
+
+This is a freeze, not removal. Do not drop models, routes, rows, identity storage, or dual writes until reconciliation, observation, reversible migration design, and separate owner approval are complete. The current Phase 3A storefront and implemented bounded Phase 3B commerce pilot do not authorize removal. Phase 3B continues to use the legacy VendorMember authentication and compatibility layer where explicitly documented.
