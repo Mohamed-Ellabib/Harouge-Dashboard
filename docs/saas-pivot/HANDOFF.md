@@ -1,6 +1,6 @@
 # Medusa SaaS Pivot Handoff
 
-Last reconciled: 2026-07-22
+Last reconciled: 2026-07-29
 
 This is the canonical orientation document for a new laptop, developer, or Codex session. Read it before changing the repository. Detailed decisions live in the other files in this directory.
 
@@ -8,14 +8,13 @@ This is the canonical orientation document for a new laptop, developer, or Codex
 
 - Branch: `feat/saas-multi-store-pivot`
 - Accepted Phase 2C implementation commit: `8b02475aba2ae89637f7b51057c5da7de2dfbf06`
-- Later handoff documentation commit at the time of this reconciliation: `4a7497f`
-- Current Phase 2C gate-closure, legacy-freeze, platform-dashboard, and Phase 3A storefront work: present only in the uncommitted working tree
-- Working tree: intentionally dirty; preserve existing/user changes and inspect `git status` before editing
-- Configured Git remotes: none
-- Nothing has been pushed from this repository
+- Later handoff documentation commit: `4a7497f`
+- Phase 2C gate-closure, legacy-freeze, platform-dashboard, Phase 3A storefront, and Phase 3B pilot work: committed on 2026-07-29 as `8d58549` (backend), `0cc8903` (platform dashboard), `a369c34` (storefront), and `d043ce7` (docs/manifests)
+- Working tree: clean at that reconciliation; inspect `git status` before editing
+- Configured Git remotes: `origin` at `https://github.com/Ellabib-tech/EcommernceSaas.git`; `feat/saas-multi-store-pivot` and `master` pushed on 2026-07-29
 - Runtime contract: Node.js 20 through 23, npm workspaces/Turbo, Medusa 2.17, PostgreSQL
-- Phase 3A browse-only storefront: implemented locally; guarded real-backend Store A/Store B browser matrix and manual keyboard acceptance recorded, with the guarded-local exit gate closed on 2026-07-22
-- Owner-approved Phase 3B guarded-local commerce pilot: implemented in the uncommitted working tree; guarded API/browser/restart/cleanup evidence passed on 2026-07-22, while the distinct owner-performed physical-keyboard check remains pending and keeps the exit gate open
+- Phase 3A browse-only storefront: implemented; guarded real-backend Store A/Store B browser matrix and manual keyboard acceptance recorded, with the guarded-local exit gate closed on 2026-07-22
+- Owner-approved Phase 3B guarded-local commerce pilot: implemented; guarded API/browser/restart/cleanup evidence passed on 2026-07-22, and the owner performed the distinct physical-keyboard Cart-to-confirmation journey on 2026-07-29, closing the guarded-local exit gate
 - Production storefront: not deployed and not production-ready
 
 Do not invent a gate-closure commit. Do not clean, reset, overwrite, or commit the working tree without inspecting ownership/scope and receiving any needed owner approval.
@@ -247,7 +246,7 @@ Recorded Phase 3B storefront evidence, kept separate from the Phase 2C API rerun
 
 The owner-selected current-tree Phase 2C real-backend API rerun also passed inside the guarded harness, but remains a separate evidence set: a runtime-only synthetic platform administrator authenticated through real HTTP, provisioned an additional Professional Store through the real Admin surface, and completed commerce setup/readiness without real credentials or Neon. This does not rewrite the historical 2026-07-14 evidence.
 
-Automated semantic inspection is not physical-keyboard acceptance. The owner-performed Phase 3B keyboard-only journey through add-to-Cart, quantity/removal, checkout fields, shipping selection, review, and completion is still pending. Therefore the Phase 3B exit gate is open even though the automated, real-browser, persistence, regression, and cleanup checks passed.
+Automated semantic inspection is not physical-keyboard acceptance. On 2026-07-29 the owner performed the distinct Phase 3B keyboard-only journey through add-to-Cart, quantity/removal, checkout fields, shipping selection, review, and completion inside the guarded harness; focus remained visible and no pointer input was required. Together with the automated, real-browser, persistence, regression, and cleanup checks recorded on 2026-07-22, this closed the Phase 3B guarded-local exit gate.
 
 `npm.cmd run storefront:accept` is destructive only to the exact loopback `medusa_phase05_disposable` schema. It requires Node 20 through 23, free ports 9000/5175/5176, and exclusive use of the disposable database. The wrapper records both wrapper and child ownership, refuses overlap, starts the built backend bound to `127.0.0.1`, supplies runtime-only synthetic session secrets, keeps backend secrets out of Vite, verifies A/B/crossed contexts before and after restart, and on normal shutdown scrubs the synthetic schema and stops embedded PostgreSQL. During the 2026-07-22 acceptance shutdown, owned HTTP processes and the schema stopped cleanly, but the third-party Windows embedded-PostgreSQL stop path waited on an already-fired process event; the exact owned process was terminated and ports, lock, schema handoff, and temporary artifacts were verified clean. The wrapper now performs a bounded `pg_ctl` stop against only its owned Windows data directory and clears the stale process reference; a fresh guarded wrapper probe then exited successfully with the disposable port and lock released. The local Vite `/store` proxy is acceptance infrastructure; it does not certify or replace the production edge allowlist, forwarding-header stripping, timeout, and redacted-logging contract.
 

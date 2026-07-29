@@ -1,6 +1,6 @@
 # Phase 3B Guarded-Local Commerce Pilot Contract
 
-Status: approved by the owner and implemented in the uncommitted working tree on 2026-07-22. The selected current-tree Phase 2C real-backend API rerun and Phase 3B automated/browser/restart/cleanup evidence passed on guarded disposable local PostgreSQL. The distinct owner-performed physical-keyboard journey is pending, so the Phase 3B exit gate remains open. No public use, deployment, production readiness, or Neon access is claimed.
+Status: approved by the owner and implemented on 2026-07-22; committed on 2026-07-29. The selected current-tree Phase 2C real-backend API rerun and Phase 3B automated/browser/restart/cleanup evidence passed on guarded disposable local PostgreSQL on 2026-07-22. The distinct owner-performed physical-keyboard journey passed on 2026-07-29, closing the Phase 3B guarded-local exit gate. No public use, deployment, production readiness, or Neon access is claimed.
 
 ## Objective
 
@@ -456,7 +456,7 @@ Cleanup evidence:
 - the exclusive lock and temporary smoke entries were absent;
 - no owned Phase 3B process remained and the disposable schema was scrubbed.
 
-Physical-keyboard evidence remains separate and pending. Automated semantics inspection does not satisfy it.
+Physical-keyboard evidence remains separate. Automated semantics inspection does not satisfy it; the owner performed the keyboard-only journey on 2026-07-29 inside the guarded harness.
 
 ## Exit gate
 
@@ -476,7 +476,7 @@ Phase 3B is complete only when:
 
 Closing this gate authorizes no MVP, public pilot traffic, or production work. Those require a separate launch contract covering production infrastructure and provider operations.
 
-As of 2026-07-22, exit items 1-6 and 8-11 are satisfied by the recorded guarded-local evidence. Item 7 is only partially satisfied: responsive and semantic browser checks passed, but the distinct owner-performed keyboard-only journey is pending. The gate is therefore open.
+As of 2026-07-22, exit items 1-6 and 8-11 were satisfied by the recorded guarded-local evidence, with item 7 partially satisfied. On 2026-07-29 the owner performed the distinct keyboard-only journey through add-to-Cart, quantity/removal, checkout fields, shipping selection, review, and completion inside the guarded harness, completing item 7. The gate is closed.
 
 ## Explicitly out of scope
 

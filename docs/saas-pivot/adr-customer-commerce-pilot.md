@@ -1,6 +1,6 @@
 # ADR: Customer Commerce Pilot
 
-Status: accepted by the owner and implemented in the uncommitted working tree on 2026-07-22. The selected current-tree Phase 2C real-backend API rerun and Phase 3B automated/browser/restart/cleanup evidence passed on guarded disposable local PostgreSQL. The distinct owner-performed Phase 3B physical-keyboard journey is pending, so the exit gate remains open. This decision does not authorize public use, deployment, production providers, production migration, or Neon access.
+Status: accepted by the owner and implemented on 2026-07-22; committed on 2026-07-29. The selected current-tree Phase 2C real-backend API rerun and Phase 3B automated/browser/restart/cleanup evidence passed on guarded disposable local PostgreSQL. The distinct owner-performed Phase 3B physical-keyboard journey passed on 2026-07-29, closing the exit gate. This decision does not authorize public use, deployment, production providers, production migration, or Neon access.
 
 ## Context
 

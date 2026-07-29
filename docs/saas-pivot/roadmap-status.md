@@ -1,6 +1,6 @@
 # SaaS Pivot Roadmap Status
 
-Last updated: 2026-07-22
+Last updated: 2026-07-29
 
 ## Current phase
 
@@ -8,7 +8,7 @@ Phase 2C Store identity provisioning is implemented at historical commit `8b0247
 
 The owner-authorized Phase 3A Customer Storefront Foundation is implemented in the same uncommitted working tree. Its guarded-local automated, visual-preview, real-backend browser, and manual keyboard evidence is recorded below. The Store A/Store B real-backend matrix, backend-only restart, and physical keyboard pass are recorded; the guarded-local Phase 3A exit gate closed on 2026-07-22.
 
-The owner-approved Phase 3B guarded-local commerce pilot is implemented in the same uncommitted working tree. The exact capability/purchase contracts, Store-currency Product authority, guest Cart-to-Order journey, hostile two-Store matrix, merchant Order isolation, backend-restart persistence, responsive browser QA, regression, and cleanup passed on guarded disposable local PostgreSQL on 2026-07-22. Its distinct owner-performed physical-keyboard journey is still pending, so the Phase 3B exit gate remains open. No public pilot or production readiness is claimed.
+The owner-approved Phase 3B guarded-local commerce pilot is implemented in the same working tree. The exact capability/purchase contracts, Store-currency Product authority, guest Cart-to-Order journey, hostile two-Store matrix, merchant Order isolation, backend-restart persistence, responsive browser QA, regression, and cleanup passed on guarded disposable local PostgreSQL on 2026-07-22. The owner performed the distinct physical-keyboard Cart-to-confirmation journey on 2026-07-29, closing the Phase 3B guarded-local exit gate. No public pilot or production readiness is claimed.
 
 The owner accepted exact compatible Region sharing on 2026-07-18. Store identity provisioning remains separate from online-checkout readiness. Starter checkout is `not_required` and disabled; Professional checkout is `pending` until a durable setup completes and the live deterministic Store fulfillment graph validates as `ready`.
 
@@ -126,7 +126,7 @@ Customer accounts, multi-variant selection, tracked inventory, promotions, tax, 
 
 - The selected current-tree Phase 2C real-backend API rerun passed; keep it separate from historical, Phase 3B browser, physical-keyboard, and cleanup evidence.
 - Phase 3A keyboard order, skip-link activation, and Enter/Space mobile-menu activation were manually accepted on 2026-07-22; automated HTTP, real-backend browser, physical keyboard, and visual-preview evidence remain separate.
-- Phase 3B responsive and semantic browser QA passed, but its full owner-performed keyboard-only Cart-to-confirmation journey remains pending and keeps that exit gate open.
+- Phase 3B responsive and semantic browser QA passed on 2026-07-22, and the owner performed the full keyboard-only Cart-to-confirmation journey on 2026-07-29, closing that exit gate.
 - Review the trusted no-hook Medusa internal workflow boundary; public HTTP is guarded, but arbitrary new direct core imports are not universally intercepted.
 - The empty-promotion internal Cart-bootstrap exception remains deliberately narrow.
 - The setup SHA-256 digest/request snapshot pins a versioned policy derived from one completed provisioning record; the digest remains stable across authentication/session secret rotation, while retry and completion re-resolve the policy and fail on Store/plan/Region/location/channel/currency/country/provider drift. Its focused unit result is 2 suites/9 tests passing.
@@ -141,6 +141,6 @@ The previously exposed Neon credential rotation is unverified. Production migrat
 
 ## Gate
 
-Phase 3A's guarded-local exit gate is complete. Phase 3B is implemented and its automated, real-browser, restart, regression, and cleanup evidence passed, but its exit gate remains open pending the distinct owner-performed physical-keyboard journey. The selected current-tree Phase 2C real-backend API rerun passed and remains a separate evidence set.
+Phase 3A's guarded-local exit gate is complete. Phase 3B's guarded-local exit gate closed on 2026-07-29: its automated, real-browser, restart, regression, and cleanup evidence passed on 2026-07-22, and the owner performed the distinct physical-keyboard journey on 2026-07-29. The selected current-tree Phase 2C real-backend API rerun passed and remains a separate evidence set.
 
 Do not begin Phase 3C or extend the approved pilot automatically. Customer authentication/OTP, WhatsApp, billing, DNS/SSL/deployment automation, production providers or migration, and Vendor removal require separate owner approval and contracts. Production remains blocked, including by the unverified Neon credential rotation and provisioning-fingerprint key rotation design.
