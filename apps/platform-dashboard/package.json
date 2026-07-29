@@ -1,0 +1,31 @@
+{
+  "name": "@dtc/platform-dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174 --strictPort",
+    "build": "tsc -b && vite build",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --host 127.0.0.1 --port 4174 --strictPort"
+  },
+  "dependencies": {
+    "@fontsource-variable/cairo": "5.2.7",
+    "@medusajs/icons": "2.17.0",
+    "@medusajs/js-sdk": "2.17.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.7.0",
+    "vite": "^5.4.14"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.2.25",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=20 <24"
+  }
+}
