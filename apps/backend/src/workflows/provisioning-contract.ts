@@ -387,23 +387,119 @@ export const safeRequestSnapshot = (input: ProvisionStoreInput) => ({
   domain: input.domain,
 });
 
-const fingerprintSecret = (): string => {
-  const secret =
+type ProvisioningFingerprintKey = {
+  id: string;
+  secret: string;
+  versioned: boolean;
+};
+
+const dedicatedFingerprintKeys = (): ProvisioningFingerprintKey[] | null => {
+  const activeKeyId = process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID?.trim();
+  const serializedKeys = process.env.PROVISIONING_FINGERPRINT_KEYS?.trim();
+
+  if (!activeKeyId && !serializedKeys) {
+    return null;
+  }
+
+  if (!activeKeyId || !serializedKeys) {
+    throw invalidInput(
+      "Provisioning fingerprint key configuration is incomplete.",
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(serializedKeys);
+  } catch {
+    throw invalidInput("Provisioning fingerprint keys must be valid JSON.");
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw invalidInput("Provisioning fingerprint keys must be a JSON object.");
+  }
+
+  const entries = Object.entries(parsed);
+  if (entries.length < 1 || entries.length > 5) {
+    throw invalidInput("Provisioning fingerprint key count is invalid.");
+  }
+
+  const keys = entries.map(([id, secret]) => {
+    if (!/^[a-z0-9][a-z0-9_-]{0,31}$/i.test(id)) {
+      throw invalidInput("Provisioning fingerprint key ID is invalid.");
+    }
+
+    if (typeof secret !== "string" || secret.length < 32) {
+      throw invalidInput("Provisioning fingerprint key is invalid.");
+    }
+
+    return { id, secret, versioned: true };
+  });
+  const activeIndex = keys.findIndex((key) => key.id === activeKeyId);
+
+  if (activeIndex < 0) {
+    throw invalidInput(
+      "The active provisioning fingerprint key is not in the key-ring.",
+    );
+  }
+
+  return [keys[activeIndex], ...keys.filter((_, index) => index !== activeIndex)];
+};
+
+const provisioningFingerprintKeys = (): ProvisioningFingerprintKey[] => {
+  const dedicatedKeys = dedicatedFingerprintKeys();
+  if (dedicatedKeys) {
+    return dedicatedKeys;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw invalidInput(
+      "Dedicated provisioning fingerprint keys must be configured in production.",
+    );
+  }
+
+  const legacySecret =
     process.env.VENDOR_SESSION_SECRET ||
     process.env.JWT_SECRET ||
     process.env.COOKIE_SECRET;
 
-  if (!secret) {
+  if (!legacySecret) {
     throw invalidInput("A server secret is required for provisioning.");
   }
 
-  return secret;
+  return [
+    { id: "legacy-session-secret", secret: legacySecret, versioned: false },
+  ];
+};
+
+const hashProvisioningRequest = (
+  input: ProvisionStoreInput,
+  key: ProvisioningFingerprintKey,
+): string =>
+  createHmac("sha256", key.secret)
+    .update(JSON.stringify(input))
+    .digest("hex");
+
+const storedProvisioningRequestHash = (
+  input: ProvisionStoreInput,
+  key: ProvisioningFingerprintKey,
+): string => {
+  const hash = hashProvisioningRequest(input, key);
+
+  return key.versioned ? `${key.id}:${hash}` : hash;
 };
 
 export const provisioningRequestHash = (input: ProvisionStoreInput): string =>
-  createHmac("sha256", fingerprintSecret())
-    .update(JSON.stringify(input))
-    .digest("hex");
+  storedProvisioningRequestHash(input, provisioningFingerprintKeys()[0]);
+
+export const provisioningRequestHashMatches = (
+  input: ProvisionStoreInput,
+  storedHash: string,
+): boolean =>
+  provisioningFingerprintKeys().some((key) => {
+    const hash = hashProvisioningRequest(input, key);
+
+    return storedHash === hash || storedHash === `${key.id}:${hash}`;
+  });
 
 export const safeProvisioningError = (
   error: unknown,

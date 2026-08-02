@@ -28,7 +28,9 @@ It does not contain passwords, password hashes, publishable key tokens, request 
 
 The request fingerprint is an HMAC over the normalized complete input. The raw password is not stored. The same key and input returns the original result. The same key with materially different input is rejected.
 
-Because the normalized input contains the initial owner password, this fingerprint must remain keyed; replacing it with an unkeyed digest would weaken password confidentiality. The current implementation derives that HMAC key from the first available vendor/JWT/cookie session secret. Rotating, reprioritizing, or removing those secrets can therefore change the fingerprint for an unfinished or replayed provisioning request. Production rollout is blocked on a dedicated versioned provisioning-fingerprint key/key-ring and an explicit rotation/migration runbook.
+Because the normalized input contains the initial owner password, this fingerprint must remain keyed; replacing it with an unkeyed digest would weaken password confidentiality. Phase 3C introduces a dedicated versioned key-ring configured by `PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID` and `PROVISIONING_FINGERPRINT_KEYS`. New records store the active key ID with the HMAC. Replay checks that versioned value against active and retained previous keys and also accepts historical unversioned HMACs during migration. Production fails closed when the dedicated configuration is missing or invalid; only non-production retains the legacy session-secret fallback for local compatibility.
+
+Historical request hashes do not store a key ID because those rows predate key versioning. A previous key still cannot be retired while any retained provisioning record may be replayed with it. Follow `provisioning-fingerprint-key-rotation.md`; key retirement requires an explicit retention decision and sanitized record reconciliation rather than silently invalidating idempotency.
 
 ## Gate-closure clarification
 

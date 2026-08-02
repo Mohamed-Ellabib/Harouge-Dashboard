@@ -2,6 +2,7 @@ import {
   entitlementsForPlan,
   normalizeProvisionStoreInput,
   provisioningRequestHash,
+  provisioningRequestHashMatches,
   safeRequestSnapshot,
   temporaryDomainForHandle,
 } from "../provisioning-contract";
@@ -46,10 +47,18 @@ const validRequest = () => ({
 });
 
 describe("Phase 2C provisioning input contract", () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
   beforeAll(() => {
     process.env.VENDOR_SESSION_SECRET =
       "phase-2c-unit-secret-not-for-production";
     process.env.SAAS_TEMPORARY_DOMAIN_BASE = "local.test";
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = originalNodeEnv;
+    delete process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID;
+    delete process.env.PROVISIONING_FINGERPRINT_KEYS;
   });
 
   it("normalizes a valid Starter request deterministically", () => {
@@ -131,6 +140,62 @@ describe("Phase 2C provisioning input contract", () => {
     expect(provisioningRequestHash(first)).not.toContain(
       first.owner.initial_password as string,
     );
+  });
+
+  it("uses the active dedicated key and accepts previous-key replay hashes", () => {
+    const normalized = normalizeProvisionStoreInput(validRequest());
+    process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID = "v1";
+    process.env.PROVISIONING_FINGERPRINT_KEYS = JSON.stringify({
+      v1: "phase-3c-fingerprint-key-v1-not-for-production",
+    });
+    const previousHash = provisioningRequestHash(normalized);
+
+    process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID = "v2";
+    process.env.PROVISIONING_FINGERPRINT_KEYS = JSON.stringify({
+      v2: "phase-3c-fingerprint-key-v2-not-for-production",
+      v1: "phase-3c-fingerprint-key-v1-not-for-production",
+    });
+    const activeHash = provisioningRequestHash(normalized);
+
+    expect(previousHash).toMatch(/^v1:[a-f0-9]{64}$/);
+    expect(activeHash).toMatch(/^v2:[a-f0-9]{64}$/);
+    expect(activeHash).not.toBe(previousHash);
+    expect(provisioningRequestHashMatches(normalized, previousHash)).toBe(true);
+  });
+
+  it("accepts historical unversioned hashes during dedicated-key migration", () => {
+    const normalized = normalizeProvisionStoreInput(validRequest());
+    process.env.VENDOR_SESSION_SECRET =
+      "phase-3c-legacy-session-key-not-for-production";
+    const historicalHash = provisioningRequestHash(normalized);
+
+    process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID = "v2";
+    process.env.PROVISIONING_FINGERPRINT_KEYS = JSON.stringify({
+      v2: "phase-3c-fingerprint-key-v2-not-for-production",
+      legacy_session_v1: "phase-3c-legacy-session-key-not-for-production",
+    });
+
+    expect(historicalHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(provisioningRequestHashMatches(normalized, historicalHash)).toBe(
+      true,
+    );
+  });
+
+  it("requires dedicated fingerprint keys in production", () => {
+    process.env.NODE_ENV = "production";
+
+    expect(() =>
+      provisioningRequestHash(normalizeProvisionStoreInput(validRequest())),
+    ).toThrow(/dedicated provisioning fingerprint keys/i);
+  });
+
+  it("rejects incomplete or weak dedicated key configuration", () => {
+    process.env.PROVISIONING_FINGERPRINT_ACTIVE_KEY_ID = "v1";
+    process.env.PROVISIONING_FINGERPRINT_KEYS = JSON.stringify({ v1: "short" });
+
+    expect(() =>
+      provisioningRequestHash(normalizeProvisionStoreInput(validRequest())),
+    ).toThrow(/fingerprint key is invalid/i);
   });
 
   it("derives the temporary hostname from configuration", () => {

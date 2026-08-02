@@ -13,6 +13,7 @@ import {
   normalizeIdempotencyKey,
   normalizeProvisionStoreInput,
   provisioningRequestHash,
+  provisioningRequestHashMatches,
   safeRequestSnapshot,
   temporaryDomainForHandle,
   type ProvisioningStep,
@@ -199,7 +200,7 @@ export const createOrResolveProvisioningRecord = async (
   }
 
   if (existing.length === 1) {
-    if (existing[0].request_hash !== requestHash) {
+    if (!provisioningRequestHashMatches(normalized, existing[0].request_hash)) {
       throw provisioningConflict(
         "The idempotency key was already used with different provisioning input.",
       );

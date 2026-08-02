@@ -281,7 +281,7 @@ The historical status API did not expose raw Brand/Domain/Membership IDs. It pro
 
 Never use Neon for development tests, migrations, diagnostics, acceptance, or backfills. The previously exposed Neon password rotation has not been verified. Never reproduce the old value in prompts, documents, commands, fixtures, or logs. Production migration is blocked until rotation is confirmed and the owner explicitly approves the runbook.
 
-Identity provisioning fingerprints the normalized password-bearing request with HMAC, so it must not be converted to an unkeyed digest. Its key currently follows the first available vendor/JWT/cookie session secret. Before production, introduce a dedicated versioned provisioning-fingerprint key/key-ring and rotation/migration runbook; otherwise authentication-secret rotation or priority changes can strand unfinished/replayed provisioning operations. This is separate from the commerce-setup SHA-256 digest, whose payload contains no credential and is intentionally stable across session-secret rotation.
+Identity provisioning fingerprints the normalized password-bearing request with HMAC, so it must not be converted to an unkeyed digest. Phase 3C implements a dedicated versioned key-ring: new hashes carry the active key ID, replay accepts retained versioned keys and historical unversioned hashes, and production fails closed without dedicated configuration. Before public traffic, provision real keys through the deployment secret manager and rehearse the migration and rotation runbook in an approved isolated restore. This is separate from the commerce-setup SHA-256 digest, whose payload contains no credential and is intentionally stable across session-secret rotation.
 
 Tests require `NODE_ENV=test`, a dedicated `TEST_DATABASE_URL`, disposable acknowledgement, a URL different from `DATABASE_URL`, and local PostgreSQL or an explicitly isolated disposable branch. Never silently fall back to `DATABASE_URL`.
 
@@ -322,24 +322,24 @@ URLs:
 
 Phase 3A was separately authorized. Its browse-only implementation, guarded real-backend browser matrix, backend-only restart, and distinct physical keyboard pass are recorded. The guarded-local Phase 3A exit gate closed on 2026-07-22. This result remains uncommitted, local-only evidence and does not authorize production or external acceptance.
 
-`adr-customer-commerce-pilot.md` and `phase-3b-commerce-pilot-contract.md` define the owner-approved and now implemented Phase 3B boundary: an assisted guarded-local Professional Store, one simple Store-currency Product variant, explicit public checkout capability, guest Cart/shipping/local-payment completion, reduced confirmation, and owning-merchant Order visibility with hostile Store B denial. The vendor Product currency authority is fixed and covered. The remaining exit-gate item is the distinct owner-performed physical-keyboard journey.
+`adr-customer-commerce-pilot.md` and `phase-3b-commerce-pilot-contract.md` define the owner-approved and implemented Phase 3B boundary: an assisted guarded-local Professional Store, one simple Store-currency Product variant, explicit public checkout capability, guest Cart/shipping/local-payment completion, reduced confirmation, and owning-merchant Order visibility with hostile Store B denial. The vendor Product currency authority is fixed and covered. The owner completed the distinct physical-keyboard journey on 2026-07-29, closing the Phase 3B guarded-local exit gate.
 
 Continue to keep automated HTTP, real-backend browser, physical keyboard, and earlier visual-preview evidence separate. Preserve the trusted internal no-hook workflow boundary when reviewing new call sites. Commit only if/when requested; never push or configure a remote without explicit approval.
 
-The owner-selected current-tree Phase 2C real-backend rerun passed on guarded disposable local PostgreSQL on 2026-07-22 and is reported separately from Phase 3B Storefront browser, pending physical accessibility, and cleanup evidence. Neither evidence set used Neon.
+The owner-selected current-tree Phase 2C real-backend rerun passed on guarded disposable local PostgreSQL on 2026-07-22 and is reported separately from Phase 3B Storefront browser, physical accessibility, and cleanup evidence. Neither evidence set used Neon.
 
-Do not extend Cart/checkout beyond the approved Phase 3B contract, close its gate without the physical-keyboard record, or add customer authentication/OTP, WhatsApp, billing, DNS/SSL or deployment automation, production providers/migration, or Vendor removal unless separately approved. Resolve the provisioning-fingerprint key-versioning/rotation blocker and the other documented operational blockers before any production rollout. Neon remains prohibited for development and acceptance. Local storefront and commerce success is not production readiness.
+On 2026-08-01 the owner approved Phase 3C planning and implementation under `phase-3c-mvp-contract.md`. Follow that exact concierge MVP boundary. Customer authentication/OTP, automated billing, online payments, courier integration, returns, public merchant signup, production migration, and Vendor removal remain excluded. The provisioning-fingerprint key-ring is implemented and locally verified; protected-environment configuration and rotation rehearsal remain required with the other operational blockers before rollout. Neon remains prohibited for development and acceptance. Production deployment and public traffic require separate owner approval after the Phase 3C staging gate.
 
 ## New Codex session bootstrap prompt
 
 ```text
 Read AGENTS.md and docs/saas-pivot/HANDOFF.md completely before doing anything.
 Then run git status --short --branch and git log --oneline -8.
-Confirm the expected branch, historical Phase 2C commit, uncommitted gate-closure
-and completed guarded-local Phase 3A working tree, database safety rules,
-remaining production blockers, and exact requested phase boundary. Do not access Neon, expose environment
-values, reset the dirty tree, expand beyond Phase 3A, commit, push, or change scope
-without approval.
+Confirm the expected branch, historical Phase 2C commit, committed Phase 3A/3B
+work, closed guarded-local gates, Phase 3C contract, database safety rules,
+remaining production blockers, and exact requested implementation slice. Do not
+access Neon, expose environment values, deploy production, remove Vendor, or
+change Phase 3C scope without approval.
 ```
 
 ## Detailed source documents
@@ -354,9 +354,11 @@ without approval.
 - `phase-2c-gate-closure-contract.md`
 - `phase-2c-gate-closure-failure-matrix.md`
 - `phase-2c-gate-closure-operational-runbook.md`
+- `provisioning-fingerprint-key-rotation.md`
 - `neon-migration-runbook.md`
 - `legacy-removal-plan.md`
 - `adr-customer-storefront-foundation.md`
 - `phase-3a-storefront-contract.md`
 - `adr-customer-commerce-pilot.md`
 - `phase-3b-commerce-pilot-contract.md`
+- `phase-3c-mvp-contract.md`

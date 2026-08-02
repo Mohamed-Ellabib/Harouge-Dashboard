@@ -1,14 +1,16 @@
 # SaaS Pivot Roadmap Status
 
-Last updated: 2026-07-29
+Last updated: 2026-08-01
 
 ## Current phase
 
-Phase 2C Store identity provisioning is implemented at historical commit `8b02475`. A later documentation handoff exists at `4a7497f`. The approved Phase 2C commerce-readiness gate-closure package and legacy Vendor lifecycle freeze are implemented only in the current uncommitted working tree.
+Phase 2C Store identity provisioning is implemented at historical commit `8b02475`. The commerce-readiness gate closure, legacy Vendor freeze, platform dashboard, storefront, and guarded commerce pilot were committed and pushed on 2026-07-29.
 
-The owner-authorized Phase 3A Customer Storefront Foundation is implemented in the same uncommitted working tree. Its guarded-local automated, visual-preview, real-backend browser, and manual keyboard evidence is recorded below. The Store A/Store B real-backend matrix, backend-only restart, and physical keyboard pass are recorded; the guarded-local Phase 3A exit gate closed on 2026-07-22.
+The owner-authorized Phase 3A Customer Storefront Foundation is implemented. Its Store A/Store B real-backend matrix, backend-only restart, and physical keyboard pass are recorded; the guarded-local Phase 3A exit gate closed on 2026-07-22.
 
 The owner-approved Phase 3B guarded-local commerce pilot is implemented in the same working tree. The exact capability/purchase contracts, Store-currency Product authority, guest Cart-to-Order journey, hostile two-Store matrix, merchant Order isolation, backend-restart persistence, responsive browser QA, regression, and cleanup passed on guarded disposable local PostgreSQL on 2026-07-22. The owner performed the distinct physical-keyboard Cart-to-confirmation journey on 2026-07-29, closing the Phase 3B guarded-local exit gate. No public pilot or production readiness is claimed.
+
+On 2026-08-01 the owner approved Phase 3C planning and implementation under `phase-3c-mvp-contract.md`. The current work is the production security foundation, beginning with the dedicated versioned provisioning-fingerprint key/key-ring. The contract then adds Store-owned size/color variants and stock, COD/manual bank transfer, merchant Order operations and WhatsApp alerts, three shared Arabic/English templates, custom-domain operations, and staging acceptance. Production deployment and public traffic require a separate exit-gate approval.
 
 The owner accepted exact compatible Region sharing on 2026-07-18. Store identity provisioning remains separate from online-checkout readiness. Starter checkout is `not_required` and disabled; Professional checkout is `pending` until a durable setup completes and the live deterministic Store fulfillment graph validates as `ready`.
 
@@ -24,7 +26,7 @@ Earlier accepted phase commits:
 | `a769519` | Phase 2B  | immutable Cart and Order Store ownership             |
 | `8b02475` | Phase 2C  | idempotent platform-only Store identity provisioning |
 
-The branch remains local and has no configured remote.
+The branch is pushed to the configured private `origin` remote.
 
 ## Delivered in committed Phase 2C
 
@@ -135,7 +137,7 @@ Customer accounts, multi-variant selection, tracked inventory, promotions, tax, 
 
 ## Enterprise and production backlog
 
-Local gate evidence and the guarded-local Phase 3A/3B storefront are not enterprise production readiness. Required future work still includes a dedicated versioned provisioning-fingerprint key/key-ring, production payment/fulfillment providers, shared rate limiting/locks/events, monitoring/alerting, backups and restore drills, DNS/SSL/deployment automation, billing/entitlements, operational repair/attention workflows, audit/observability expansion, later storefront customer/account/commerce capabilities, and a controlled Vendor-removal migration.
+Local gate evidence and the guarded-local Phase 3A/3B storefront are not enterprise production readiness. Phase 3C implements the dedicated versioned provisioning-fingerprint key/key-ring and rotation runbook; protected-environment key provisioning and isolated rehearsal remain required. Other future work includes shared rate limiting/locks/events, monitoring/alerting, backups and restore drills, DNS/SSL/deployment operations, manual-payment and fulfillment operations, audit/observability expansion, and a controlled Vendor-removal migration.
 
 The previously exposed Neon credential rotation is unverified. Production migration remains blocked, and Neon must not be used for tests, diagnostics, migrations, backfills, or acceptance.
 
@@ -143,4 +145,4 @@ The previously exposed Neon credential rotation is unverified. Production migrat
 
 Phase 3A's guarded-local exit gate is complete. Phase 3B's guarded-local exit gate closed on 2026-07-29: its automated, real-browser, restart, regression, and cleanup evidence passed on 2026-07-22, and the owner performed the distinct physical-keyboard journey on 2026-07-29. The selected current-tree Phase 2C real-backend API rerun passed and remains a separate evidence set.
 
-Do not begin Phase 3C or extend the approved pilot automatically. Customer authentication/OTP, WhatsApp, billing, DNS/SSL/deployment automation, production providers or migration, and Vendor removal require separate owner approval and contracts. Production remains blocked, including by the unverified Neon credential rotation and provisioning-fingerprint key rotation design.
+Phase 3C planning and implementation are owner-authorized as of 2026-08-01 only within `phase-3c-mvp-contract.md`. Customer accounts/OTP, automated billing, online payments, courier integration, returns, public merchant signup, production migration, and Vendor removal remain excluded. Production deployment and public traffic require separate owner approval. Production remains blocked until the Phase 3C exit conditions pass, including protected-environment fingerprint-key rotation rehearsal, shared runtime infrastructure, backups/restore, monitoring, edge/DNS/SSL, and staging isolation evidence.
