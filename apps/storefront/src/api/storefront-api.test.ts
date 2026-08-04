@@ -121,14 +121,28 @@ describe("storefront response allowlists", () => {
       {
         product_handle: "quiet-vase",
         currency_code: "lyd",
-        variant: {
-          id: "variant_public_reference",
-          title: "Default",
-          unit_price: 120,
-          available_for_sale: true,
-          sku: "private",
-          inventory_quantity: 999,
-        },
+        options: [
+          { name: "size", values: ["M", "L"], option_id: "private" },
+          { name: "color", values: ["Black"] },
+        ],
+        variants: [
+          {
+            id: "variant_public_reference",
+            title: "M / Black",
+            options: { size: "M", color: "Black", private: "discarded" },
+            unit_price: 120,
+            available_for_sale: true,
+            sku: "private",
+            inventory_quantity: 999,
+          },
+          {
+            id: "variant_second_reference",
+            title: "L / Black",
+            options: { size: "L", color: "Black" },
+            unit_price: 125,
+            available_for_sale: true,
+          },
+        ],
         product_id: "prod_private",
       },
       "quiet-vase",
@@ -145,12 +159,26 @@ describe("storefront response allowlists", () => {
     expect(purchase).toEqual({
       product_handle: "quiet-vase",
       currency_code: "lyd",
-      variant: {
-        id: "variant_public_reference",
-        title: "Default",
-        unit_price: 120,
-        available_for_sale: true,
-      },
+      options: [
+        { name: "size", values: ["M", "L"] },
+        { name: "color", values: ["Black"] },
+      ],
+      variants: [
+        {
+          id: "variant_public_reference",
+          title: "M / Black",
+          options: { size: "M", color: "Black" },
+          unit_price: 120,
+          available_for_sale: true,
+        },
+        {
+          id: "variant_second_reference",
+          title: "L / Black",
+          options: { size: "L", color: "Black" },
+          unit_price: 125,
+          available_for_sale: true,
+        },
+      ],
     });
     expect(JSON.stringify({ capability, purchase })).not.toMatch(
       /private|readiness|professional|inventory|sku|product_id/,

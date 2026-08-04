@@ -470,34 +470,72 @@ export const mapStorefrontPurchaseOptionsResponse = (
   expectedHandle: string,
   expectedCurrency: string,
 ): StorefrontPurchaseOptionsDto => {
-  if (!isRecord(payload) || !isRecord(payload.variant)) {
+  if (!isRecord(payload)) {
     throw new StorefrontApiError("invalid_response");
   }
   const handle = requiredHandle(payload.product_handle);
   const currency = currencyCode(payload.currency_code);
-  const available = payload.variant.available_for_sale;
+  const rawVariants = Array.isArray(payload.variants)
+    ? payload.variants
+    : isRecord(payload.variant)
+      ? [payload.variant]
+      : null;
 
   if (
     handle !== expectedHandle ||
     currency !== expectedCurrency ||
-    available !== true
+    !rawVariants ||
+    rawVariants.length < 1 ||
+    rawVariants.length > 50
   ) {
     throw new StorefrontApiError("invalid_response");
   }
 
+  const variants = rawVariants.map((rawVariant) => {
+    if (!isRecord(rawVariant) || rawVariant.available_for_sale !== true) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const rawOptions = isRecord(rawVariant.options) ? rawVariant.options : {};
+    const size =
+      rawOptions.size === null || rawOptions.size === undefined
+        ? null
+        : inlineText(rawOptions.size, 60, true);
+    const color =
+      rawOptions.color === null || rawOptions.color === undefined
+        ? null
+        : inlineText(rawOptions.color, 60, true);
+
+    return {
+      id: opaqueId(rawVariant.id),
+      title: inlineText(rawVariant.title, MAX_TITLE_LENGTH, true) as string,
+      options: { size, color },
+      unit_price: safeAmount(rawVariant.unit_price),
+      available_for_sale: true as const,
+    };
+  });
+  const rawOptions = Array.isArray(payload.options) ? payload.options : [];
+  const options = rawOptions.map((rawOption) => {
+    if (!isRecord(rawOption) || !Array.isArray(rawOption.values)) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const name = rawOption.name;
+    if (name !== "size" && name !== "color") {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const values = rawOption.values.map(
+      (value) => inlineText(value, 60, true) as string,
+    );
+    if (values.length < 1 || new Set(values).size !== values.length) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    return { name: name as "size" | "color", values };
+  });
+
   return {
     product_handle: handle,
     currency_code: currency,
-    variant: {
-      id: opaqueId(payload.variant.id),
-      title: inlineText(
-        payload.variant.title,
-        MAX_TITLE_LENGTH,
-        true,
-      ) as string,
-      unit_price: safeAmount(payload.variant.unit_price),
-      available_for_sale: true,
-    },
+    options,
+    variants,
   };
 };
 

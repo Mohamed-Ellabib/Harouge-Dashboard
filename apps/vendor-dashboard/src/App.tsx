@@ -82,6 +82,14 @@ type ProductForm = {
   currency_code: string;
   sku: string;
   variant_title: string;
+  variants: ProductVariantForm[];
+};
+
+type ProductVariantForm = {
+  size: string;
+  color: string;
+  price: string;
+  sku: string;
 };
 
 type PasswordForm = {
@@ -107,6 +115,7 @@ const emptyProductForm: ProductForm = {
   currency_code: "",
   sku: "",
   variant_title: "",
+  variants: [{ size: "", color: "", price: "", sku: "" }],
 };
 
 const emptyPasswordForm: PasswordForm = {
@@ -248,6 +257,7 @@ const productToForm = (
     currency_code: storeCurrency,
     sku: primaryVariant?.sku ?? "",
     variant_title: primaryVariant?.title ?? product.title ?? "",
+    variants: [{ size: "", color: "", price: "", sku: "" }],
   };
 };
 
@@ -693,63 +703,125 @@ function Dashboard({
                       ))}
                     </select>
                   </label>
-                  <div className="form-row">
-                    <label>
-                      السعر
-                      <input
-                        dir="ltr"
-                        inputMode="decimal"
-                        min="0"
-                        onChange={(event) =>
-                          onProductFormChange({
-                            ...productForm,
-                            price: event.target.value,
-                          })
-                        }
-                        placeholder="15"
-                        type="number"
-                        value={productForm.price}
-                      />
-                    </label>
-                    <label>
-                      العملة
-                      <input
-                        aria-readonly="true"
-                        dir="ltr"
-                        readOnly
-                        value={productForm.currency_code.toUpperCase()}
-                      />
-                    </label>
-                  </div>
-                  <div className="form-row">
-                    <label>
-                      رمز المنتج
-                      <input
-                        dir="ltr"
-                        onChange={(event) =>
-                          onProductFormChange({
-                            ...productForm,
-                            sku: event.target.value,
-                          })
-                        }
-                        placeholder="SKU-001"
-                        value={productForm.sku}
-                      />
-                    </label>
-                    <label>
-                      اسم النسخة
-                      <input
-                        onChange={(event) =>
-                          onProductFormChange({
-                            ...productForm,
-                            variant_title: event.target.value,
-                          })
-                        }
-                        placeholder={productForm.title || "Default"}
-                        value={productForm.variant_title}
-                      />
-                    </label>
-                  </div>
+                  {isCreatingProduct ? (
+                    <section className="variant-editor" aria-labelledby="variant-editor-title">
+                      <div className="variant-editor__heading">
+                        <div>
+                          <h3 id="variant-editor-title">المقاسات والألوان</h3>
+                          <p>أضف سعراً لكل تركيبة متاحة. العملة {productForm.currency_code.toUpperCase()}.</p>
+                        </div>
+                        <button
+                          className="secondary-button"
+                          disabled={productForm.variants.length >= 50}
+                          onClick={() =>
+                            onProductFormChange({
+                              ...productForm,
+                              variants: [
+                                ...productForm.variants,
+                                { size: "", color: "", price: "", sku: "" },
+                              ],
+                            })
+                          }
+                          type="button"
+                        >
+                          إضافة نسخة
+                        </button>
+                      </div>
+                      <div className="variant-editor__rows">
+                        {productForm.variants.map((variant, index) => (
+                          <div className="variant-row" key={index}>
+                            {(["size", "color", "price", "sku"] as const).map((field) => (
+                              <label key={field}>
+                                {{ size: "المقاس", color: "اللون", price: "السعر", sku: "SKU" }[field]}
+                                <input
+                                  dir={field === "color" ? undefined : "ltr"}
+                                  inputMode={field === "price" ? "decimal" : undefined}
+                                  min={field === "price" ? "0" : undefined}
+                                  onChange={(event) =>
+                                    onProductFormChange({
+                                      ...productForm,
+                                      variants: productForm.variants.map((entry, entryIndex) =>
+                                        entryIndex === index
+                                          ? { ...entry, [field]: event.target.value }
+                                          : entry,
+                                      ),
+                                    })
+                                  }
+                                  placeholder={{ size: "M", color: "أسود", price: "15", sku: "TS-M-BLK" }[field]}
+                                  type={field === "price" ? "number" : "text"}
+                                  value={variant[field]}
+                                />
+                              </label>
+                            ))}
+                            <button
+                              className="text-button variant-row__remove"
+                              disabled={productForm.variants.length === 1}
+                              onClick={() =>
+                                onProductFormChange({
+                                  ...productForm,
+                                  variants: productForm.variants.filter((_, entryIndex) => entryIndex !== index),
+                                })
+                              }
+                              type="button"
+                            >
+                              حذف
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : (
+                    <>
+                      <div className="form-row">
+                        <label>
+                          السعر
+                          <input
+                            dir="ltr"
+                            inputMode="decimal"
+                            min="0"
+                            onChange={(event) =>
+                              onProductFormChange({ ...productForm, price: event.target.value })
+                            }
+                            placeholder="15"
+                            type="number"
+                            value={productForm.price}
+                          />
+                        </label>
+                        <label>
+                          العملة
+                          <input
+                            aria-readonly="true"
+                            dir="ltr"
+                            readOnly
+                            value={productForm.currency_code.toUpperCase()}
+                          />
+                        </label>
+                      </div>
+                      <div className="form-row">
+                        <label>
+                          رمز المنتج
+                          <input
+                            dir="ltr"
+                            onChange={(event) =>
+                              onProductFormChange({ ...productForm, sku: event.target.value })
+                            }
+                            placeholder="SKU-001"
+                            value={productForm.sku}
+                          />
+                        </label>
+                        <label>
+                          اسم النسخة
+                          <input
+                            onChange={(event) =>
+                              onProductFormChange({ ...productForm, variant_title: event.target.value })
+                            }
+                            placeholder={productForm.title || "Default"}
+                            value={productForm.variant_title}
+                          />
+                        </label>
+                      </div>
+                    </>
+                  )}
                   <label>
                     رابط الصورة
                     <input
@@ -1111,10 +1183,18 @@ export default function App() {
     try {
       const price = productForm.price.trim();
 
-      if (isCreatingProduct && !price) {
+      if (
+        isCreatingProduct &&
+        productForm.variants.some(
+          (variant) =>
+            !variant.size.trim() ||
+            !variant.color.trim() ||
+            !variant.price.trim(),
+        )
+      ) {
         setNotice({
           tone: "error",
-          text: "السعر مطلوب قبل نشر المنتج.",
+          text: "المقاس واللون والسعر مطلوبة لكل نسخة.",
         });
         return;
       }
@@ -1122,7 +1202,7 @@ export default function App() {
       const hasVariant = Boolean(selectedProduct?.variants?.length);
       const shouldSendVariant =
         isCreatingProduct || hasVariant || Boolean(price);
-      const payload: Record<string, string> = {
+      const payload: Record<string, unknown> = {
         title: productForm.title,
         handle: productForm.handle,
         status: productForm.status,
@@ -1130,7 +1210,14 @@ export default function App() {
         thumbnail: productForm.thumbnail,
       };
 
-      if (shouldSendVariant) {
+      if (isCreatingProduct) {
+        payload.variants = productForm.variants.map((variant) => ({
+          size: variant.size,
+          color: variant.color,
+          price: variant.price,
+          sku: variant.sku,
+        }));
+      } else if (shouldSendVariant) {
         payload.sku = productForm.sku;
         payload.variant_title = productForm.variant_title || productForm.title;
 

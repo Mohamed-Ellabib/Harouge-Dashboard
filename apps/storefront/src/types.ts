@@ -59,12 +59,20 @@ export type StorefrontCommerceCapabilitiesDto = {
 export type StorefrontPurchaseOptionsDto = {
   product_handle: string;
   currency_code: string;
-  variant: {
+  options: Array<{
+    name: "size" | "color";
+    values: string[];
+  }>;
+  variants: Array<{
     id: string;
     title: string;
+    options: {
+      size: string | null;
+      color: string | null;
+    };
     unit_price: number;
     available_for_sale: boolean;
-  };
+  }>;
 };
 
 export type StorefrontCartDto = {

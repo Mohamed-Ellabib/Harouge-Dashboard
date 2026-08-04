@@ -813,9 +813,12 @@ const verifyLiveCommerceMatrix = async (context) => {
   if (
     purchaseA?.product_handle !== context.storeAProducts[0] ||
     purchaseA?.currency_code !== "lyd" ||
-    typeof purchaseA?.variant?.id !== "string" ||
-    !Number.isSafeInteger(purchaseA?.variant?.unit_price) ||
-    purchaseA?.variant?.available_for_sale !== true
+    !Array.isArray(purchaseA?.options) ||
+    !Array.isArray(purchaseA?.variants) ||
+    purchaseA.variants.length < 1 ||
+    typeof purchaseA.variants[0]?.id !== "string" ||
+    !Number.isSafeInteger(purchaseA.variants[0]?.unit_price) ||
+    purchaseA.variants[0]?.available_for_sale !== true
   ) {
     throw new Error("The guarded purchase-option probe failed.");
   }

@@ -43,12 +43,52 @@ const oneChannelOnly = (
 export type StorefrontPurchaseOptions = {
   product_handle: string;
   currency_code: string;
-  variant: {
+  options: Array<{
+    name: "size" | "color";
+    values: string[];
+  }>;
+  variants: Array<{
     id: string;
     title: string;
+    options: {
+      size: string | null;
+      color: string | null;
+    };
     unit_price: number;
     available_for_sale: boolean;
-  };
+  }>;
+};
+
+const publicVariantOptions = (
+  variant: Record<string, any>,
+): { size: string | null; color: string | null } | null => {
+  const entries = Array.isArray(variant.options) ? variant.options : [];
+  const result = { size: null as string | null, color: null as string | null };
+
+  for (const entry of entries) {
+    const title = String(entry?.option?.title ?? "").trim().toLowerCase();
+    const value = String(entry?.value ?? "").trim();
+
+    if (title === "default") {
+      continue;
+    }
+    if (
+      !value ||
+      value.length > 60 ||
+      (title !== "size" && title !== "color") ||
+      result[title] !== null
+    ) {
+      return null;
+    }
+    result[title] = value;
+  }
+
+  const isLegacy = entries.every(
+    (entry: any) =>
+      String(entry?.option?.title ?? "").trim().toLowerCase() === "default",
+  );
+
+  return isLegacy || (result.size && result.color) ? result : null;
 };
 
 export const resolveStorefrontPurchaseOptions = async (
@@ -77,8 +117,11 @@ export const resolveStorefrontPurchaseOptions = async (
       "sales_channels.id",
       "variants.id",
       "variants.title",
+      "variants.variant_rank",
       "variants.manage_inventory",
       "variants.allow_backorder",
+      "variants.options.value",
+      "variants.options.option.title",
       "variants.prices.amount",
       "variants.prices.currency_code",
       "variants.calculated_price.calculated_amount",
@@ -100,45 +143,80 @@ export const resolveStorefrontPurchaseOptions = async (
     },
   } as any);
   const product = products.length === 1 ? products[0] : null;
-  const variants = Array.isArray(product?.variants) ? product.variants : [];
-  const variant = variants.length === 1 ? variants[0] : null;
-  const prices = Array.isArray(variant?.prices) ? variant.prices : [];
-  const price = prices.length === 1 ? prices[0] : null;
-  const calculatedPrice = variant?.calculated_price;
-  const unitPrice = Number(calculatedPrice?.calculated_amount);
+  const variants = Array.isArray(product?.variants)
+    ? [...product.variants].sort((left, right) => {
+        const leftRank = Number(left?.variant_rank);
+        const rightRank = Number(right?.variant_rank);
+
+        if (Number.isFinite(leftRank) && Number.isFinite(rightRank)) {
+          return leftRank - rightRank;
+        }
+
+        return String(left?.id ?? "").localeCompare(String(right?.id ?? ""));
+      })
+    : [];
 
   if (
     !product ||
     product.handle !== handle ||
     product.status !== "published" ||
     !oneChannelOnly(product, context.salesChannelId) ||
-    !variant ||
-    typeof variant.id !== "string" ||
-    !variant.id ||
-    typeof variant.title !== "string" ||
-    !variant.title.trim() ||
-    variant.title.length > 240 ||
-    variant.manage_inventory !== false ||
-    variant.allow_backorder !== true ||
-    !price ||
-    String(price.currency_code ?? "").toLowerCase() !== commerce.currencyCode ||
-    Number(price.amount) !== unitPrice ||
-    String(calculatedPrice?.currency_code ?? "").toLowerCase() !==
-      commerce.currencyCode ||
-    !Number.isFinite(unitPrice) ||
-    unitPrice < 0
+    variants.length < 1 ||
+    variants.length > 50
   ) {
     throw notFound();
   }
 
+  const publicVariants = variants.map((variant: Record<string, any>) => {
+    const prices = Array.isArray(variant?.prices) ? variant.prices : [];
+    const price = prices.length === 1 ? prices[0] : null;
+    const calculatedPrice = variant?.calculated_price;
+    const unitPrice = Number(calculatedPrice?.calculated_amount);
+    const options = publicVariantOptions(variant);
+
+    if (
+      typeof variant.id !== "string" ||
+      !variant.id ||
+      typeof variant.title !== "string" ||
+      !variant.title.trim() ||
+      variant.title.length > 240 ||
+      variant.manage_inventory !== false ||
+      variant.allow_backorder !== true ||
+      !options ||
+      !price ||
+      String(price.currency_code ?? "").toLowerCase() !== commerce.currencyCode ||
+      Number(price.amount) !== unitPrice ||
+      String(calculatedPrice?.currency_code ?? "").toLowerCase() !==
+        commerce.currencyCode ||
+      !Number.isFinite(unitPrice) ||
+      unitPrice < 0
+    ) {
+      throw notFound();
+    }
+
+    return {
+      id: variant.id,
+      title: variant.title.trim(),
+      options,
+      unit_price: unitPrice,
+      available_for_sale: true as const,
+    };
+  });
+  const valuesFor = (name: "size" | "color"): string[] => {
+    const values = publicVariants
+      .map((variant) => variant.options[name])
+      .filter((value): value is string => typeof value === "string");
+
+    return [...new Set<string>(values)];
+  };
+  const options = (["size", "color"] as const)
+    .map((name) => ({ name, values: valuesFor(name) }))
+    .filter((option) => option.values.length > 0);
+
   return {
     product_handle: handle,
     currency_code: commerce.currencyCode,
-    variant: {
-      id: variant.id,
-      title: variant.title.trim(),
-      unit_price: unitPrice,
-      available_for_sale: true,
-    },
+    options,
+    variants: publicVariants,
   };
 };

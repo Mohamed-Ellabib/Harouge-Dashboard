@@ -36,6 +36,10 @@ export const ProductDetailPage = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [purchaseOptions, setPurchaseOptions] =
     useState<StorefrontPurchaseOptionsDto | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<{
+    size: string | null;
+    color: string | null;
+  }>({ size: null, color: null });
   const [addStatus, setAddStatus] = useState<"idle" | "added">("idle");
   const [imageFailed, setImageFailed] = useState(false);
   const [status, setStatus] = useState<
@@ -49,6 +53,7 @@ export const ProductDetailPage = ({
     setRelated([]);
     setSelectedImage(null);
     setPurchaseOptions(null);
+    setSelectedOptions({ size: null, color: null });
     setAddStatus("idle");
     setStatus("loading");
     document.title = `المنتج | ${profile.name}`;
@@ -74,6 +79,9 @@ export const ProductDetailPage = ({
       .then(([detail, catalog, purchase]) => {
         setProduct(detail);
         setPurchaseOptions(purchase);
+        setSelectedOptions(
+          purchase?.variants[0]?.options ?? { size: null, color: null },
+        );
         setSelectedImage(detail.image_urls[0] ?? detail.thumbnail_url);
         setRelated(
           catalog?.products
@@ -106,10 +114,41 @@ export const ProductDetailPage = ({
     return [...new Set(candidates)];
   }, [product]);
 
-  const addToCart = async () => {
+  const selectedVariant = useMemo(() => {
+    if (!purchaseOptions) return null;
+
+    return (
+      purchaseOptions.variants.find(
+        (variant) =>
+          variant.options.size === selectedOptions.size &&
+          variant.options.color === selectedOptions.color,
+      ) ?? purchaseOptions.variants[0]
+    );
+  }, [purchaseOptions, selectedOptions]);
+
+  const selectOption = (name: "size" | "color", value: string) => {
     if (!purchaseOptions) return;
+    const nextOptions = { ...selectedOptions, [name]: value };
+    const matchingVariant =
+      purchaseOptions.variants.find(
+        (variant) =>
+          variant.options.size === nextOptions.size &&
+          variant.options.color === nextOptions.color,
+      ) ??
+      purchaseOptions.variants.find(
+        (variant) => variant.options[name] === value,
+      );
+
+    if (matchingVariant) {
+      setSelectedOptions(matchingVariant.options);
+      setAddStatus("idle");
+    }
+  };
+
+  const addToCart = async () => {
+    if (!selectedVariant) return;
     try {
-      await addItem(purchaseOptions.variant.id);
+      await addItem(selectedVariant.id);
       setAddStatus("added");
     } catch {
       setAddStatus("idle");
@@ -223,7 +262,7 @@ export const ProductDetailPage = ({
             {product.subtitle ? (
               <p className="product-detail__subtitle">{product.subtitle}</p>
             ) : null}
-            {purchaseOptions ? (
+            {purchaseOptions && selectedVariant ? (
               <section
                 className="purchase-panel"
                 aria-labelledby="purchase-title"
@@ -232,12 +271,33 @@ export const ProductDetailPage = ({
                   <h2 id="purchase-title">السعر</h2>
                   <strong className="purchase-panel__price">
                     {formatStorefrontMoney(
-                      purchaseOptions.variant.unit_price,
+                      selectedVariant.unit_price,
                       purchaseOptions.currency_code,
                     )}
                   </strong>
-                  <span>{purchaseOptions.variant.title}</span>
+                  <span>{selectedVariant.title}</span>
                 </div>
+                {purchaseOptions.options.length > 0 ? (
+                  <div className="purchase-options">
+                    {purchaseOptions.options.map((option) => (
+                      <label key={option.name}>
+                        {option.name === "size" ? "المقاس" : "اللون"}
+                        <select
+                          value={selectedOptions[option.name] ?? ""}
+                          onChange={(event) =>
+                            selectOption(option.name, event.target.value)
+                          }
+                        >
+                          {option.values.map((value) => (
+                            <option key={value} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                ) : null}
                 <button
                   className="button button--primary"
                   disabled={pending}

@@ -19,6 +19,7 @@ import {
   productPriceOrNull,
   resolveMerchantProductCurrency,
 } from "../../_utils/merchant-product-price";
+import { normalizeMerchantProductVariants } from "../../_utils/merchant-product-variants";
 
 const PRODUCT_STATUSES = ["draft", "published"] as const;
 
@@ -34,6 +35,7 @@ type VendorProductCreateBody = {
   currency_code?: unknown;
   sku?: unknown;
   variant_title?: unknown;
+  variants?: unknown;
 };
 
 const statusOrDefault = (value: unknown): ProductStatus =>
@@ -96,7 +98,13 @@ export async function POST(
     context.medusaStoreId,
     body.currency_code,
   );
-  const price = productPriceOrNull(body.price, currencyCode);
+  const variantInput =
+    body.variants === undefined
+      ? null
+      : normalizeMerchantProductVariants(body.variants, currencyCode);
+  const price = variantInput
+    ? null
+    : productPriceOrNull(body.price, currencyCode);
 
   if (!handle) {
     throw new MedusaError(
@@ -112,7 +120,7 @@ export async function POST(
     );
   }
 
-  if (price === null) {
+  if (!variantInput && price === null) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Product price is required.",
@@ -134,15 +142,17 @@ export async function POST(
           description: stringOrNull(body.description),
           shipping_profile_id: shippingProfileId,
           sales_channels: [{ id: context.allowedSalesChannelId }],
-          options: [{ title: "Default", values: ["Default"] }],
-          variants: [
+          options: variantInput?.options ?? [
+            { title: "Default", values: ["Default"] },
+          ],
+          variants: variantInput?.variants ?? [
             {
               title: stringOrNull(body.variant_title) ?? title,
               sku: stringOrNull(body.sku),
               manage_inventory: false,
               allow_backorder: true,
               options: { Default: "Default" },
-              prices: [{ amount: price, currency_code: currencyCode }],
+              prices: [{ amount: price as number, currency_code: currencyCode }],
             },
           ],
         },

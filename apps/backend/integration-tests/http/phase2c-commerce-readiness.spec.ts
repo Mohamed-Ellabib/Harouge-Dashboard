@@ -712,11 +712,30 @@ medusaIntegrationTestRunner({
           { headers: { Cookie: cookieB } },
         )
       ).data.product;
+      const variantProductA = (
+        await api.post(
+          "/vendor/products",
+          {
+            title: "Variant Product A",
+            handle: `variant-product-${suffixA}`,
+            status: "published",
+            variants: [
+              { size: "M", color: "Black", price: 1600, sku: `M-${suffixA}` },
+              { size: "L", color: "Black", price: 1700, sku: `L-${suffixA}` },
+            ],
+          },
+          { headers: { Cookie: cookieA } },
+        )
+      ).data.product;
       const capabilityA = await api.get("/store/saas/commerce-capabilities", {
         headers: headersA,
       });
       const purchaseA = await api.get(
         `/store/saas/products/${productA.handle}/purchase-options`,
+        { headers: headersA },
+      );
+      const variantPurchaseA = await api.get(
+        `/store/saas/products/${variantProductA.handle}/purchase-options`,
         { headers: headersA },
       );
       const crossedCapability = await api.get(
@@ -744,12 +763,38 @@ medusaIntegrationTestRunner({
       expect(purchaseA.data).toEqual({
         product_handle: productA.handle,
         currency_code: "lyd",
-        variant: {
-          id: productA.variants[0].id,
-          title: productA.variants[0].title,
-          unit_price: 1500,
-          available_for_sale: true,
-        },
+        options: [],
+        variants: [
+          {
+            id: productA.variants[0].id,
+            title: productA.variants[0].title,
+            options: { size: null, color: null },
+            unit_price: 1500,
+            available_for_sale: true,
+          },
+        ],
+      });
+      expect(variantPurchaseA.data).toEqual({
+        product_handle: variantProductA.handle,
+        currency_code: "lyd",
+        options: [
+          { name: "size", values: ["M", "L"] },
+          { name: "color", values: ["Black"] },
+        ],
+        variants: expect.arrayContaining([
+          expect.objectContaining({
+            title: "M / Black",
+            options: { size: "M", color: "Black" },
+            unit_price: 1600,
+            available_for_sale: true,
+          }),
+          expect.objectContaining({
+            title: "L / Black",
+            options: { size: "L", color: "Black" },
+            unit_price: 1700,
+            available_for_sale: true,
+          }),
+        ]),
       });
       expect(crossedCapability.status).toBe(404);
       expect(crossStorePurchase.status).toBe(404);
