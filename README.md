@@ -221,10 +221,11 @@ npm run api:db:indexes
 
 ## Deployment
 
-The React frontend can be published through Hostinger's GitHub static-site
-deployment. The Express API requires a Hostinger VPS Node.js site. See
-`docs/36-hostinger-deployment.md` for the build settings, environment variables,
-and PM2 startup command.
+Hostinger Business and Cloud plans can deploy this full-stack Node.js app
+directly from GitHub. Express serves both the API and the built React frontend
+from one managed application. See `docs/36-hostinger-deployment.md` for the
+build settings, entry file, and environment variables.
 
 Production secrets such as `MONGODB_URI` and `SESSION_SECRET` must be configured
-on the Hostinger VPS. They must not be committed to the repository.
+in Hostinger's application environment. They must not be committed to the
+repository.

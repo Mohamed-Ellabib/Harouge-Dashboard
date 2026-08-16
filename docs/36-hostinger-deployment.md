@@ -6,62 +6,44 @@ The production frontend is published at:
 https://violet-gerbil-872211.hostingersite.com
 ```
 
-This repository contains two runtime parts:
+Hostinger Business and Cloud plans support managed Node.js web apps deployed
+directly from GitHub. This project runs as one Express application: Express
+serves `/api/*` and the built React frontend from the same HTTPS origin.
 
-- a React static frontend in `apps/web`
-- a Node.js and Express API in `apps/api`
+## GitHub Deployment Settings
 
-Hostinger's GitHub build-and-output deployment publishes static files only. It
-does not run the Express API. A Hostinger VPS with a Node.js site is required to
-host the API without using an external application host.
-
-## Static Frontend Deployment
-
-Use these settings in the Hostinger GitHub import screen:
+Choose **Deploy Web App**, import the GitHub repository, and use:
 
 ```text
 Framework preset: Other
 Branch: main
 Node version: 20.x
 Root directory: ./
-Build command: npm run web:build
-Output directory: apps/web/dist
+Build command: npm run build
+Output directory: apps/api/dist
+Entry file: server.js
+Start command (if shown): npm start
 ```
 
-Add this build-time environment variable after the Hostinger VPS API has a
-public HTTPS URL:
+The entry file is relative to the selected output directory. If hPanel asks for
+a project-root-relative entry instead, use `apps/api/dist/server.js`.
 
-```text
-VITE_API_BASE_URL=https://api.example.com
-```
+The root `build` script compiles the API and places the React build under
+`apps/api/dist/web`. The root `start` script launches the compiled Express
+server. Do not set `VITE_API_BASE_URL`; leaving it unset keeps all browser API
+requests on the same Hostinger origin.
 
-Replace `api.example.com` with the real Hostinger VPS API domain. Vite embeds
-this public URL during the build, so redeploy the frontend after changing it.
+## Environment Variables
 
-The `apps/web/public/.htaccess` file provides the fallback required when a user
-refreshes a React Router route such as `/dashboard`.
-
-## Hostinger VPS API Deployment
-
-Create a Node.js site in Hostinger CloudPanel, point an HTTPS domain such as
-`api.example.com` to it, and select Node.js 20 or a compatible newer LTS
-version.
-
-Clone the GitHub repository on the VPS and run:
-
-```bash
-npm ci
-npm run api:build
-```
-
-Create a root `.env` on the VPS with production values:
+Use **Import .env** in Hostinger or add these values individually before the
+first deployment:
 
 ```dotenv
 NODE_ENV=production
 APP_NAME="ERP Sprint Progress System"
 API_HOST=0.0.0.0
-API_PORT=5000
-API_BASE_URL=https://api.example.com
+API_PORT=3000
+API_BASE_URL=https://violet-gerbil-872211.hostingersite.com
 TRUST_PROXY_HOPS=1
 
 MONGODB_URI=mongodb+srv://USER:PASSWORD@CLUSTER/itdcc?retryWrites=true&w=majority
@@ -77,7 +59,7 @@ AUTH_PROVIDER=local
 SESSION_SECRET=GENERATE_A_RANDOM_SECRET_OF_AT_LEAST_48_CHARACTERS
 COOKIE_NAME=itdcc_session
 COOKIE_SECURE=true
-COOKIE_SAME_SITE=none
+COOKIE_SAME_SITE=lax
 CSRF_COOKIE_NAME=itdcc_csrf
 CSRF_HEADER_NAME=x-csrf-token
 SESSION_TTL_HOURS=8
@@ -93,44 +75,32 @@ CORS_ORIGIN=https://violet-gerbil-872211.hostingersite.com
 AUDIT_LOG_ENABLED=true
 ```
 
-Start and persist the API with PM2:
+Hostinger requires managed Node.js applications to listen on port `3000`.
+`API_HOST=0.0.0.0` allows the platform proxy to reach Express, and
+`TRUST_PROXY_HOPS=1` allows secure-cookie and client-address handling behind the
+Hostinger proxy.
 
-```bash
-npm install --global pm2
-pm2 start npm --name erp-sprint-api -- run api:start
-pm2 save
-pm2 startup
-```
+The MongoDB Atlas connection string and session secret are secrets. Do not add
+`INITIAL_ADMIN_PASSWORD` or development seed passwords unless intentionally
+running a one-time seed.
 
-Configure the CloudPanel reverse proxy to send the API domain to port `5000`.
-Then verify:
+## Verify Deployment
+
+After Hostinger reports the app as running, verify:
 
 ```text
-https://api.example.com/api/health
+https://violet-gerbil-872211.hostingersite.com/api/health
 ```
 
-The response must report `success: true` and a connected database before the
-frontend is deployed with `VITE_API_BASE_URL`.
-
-## Single Hostinger VPS Alternative
-
-For a same-origin deployment, point the final application domain directly to
-the Hostinger VPS and run:
-
-```bash
-npm ci
-npm run build
-pm2 start npm --name erp-sprint-system -- start
-```
-
-Express serves both `/api/*` and the built frontend in this mode. Leave
-`VITE_API_BASE_URL` unset, set `CORS_ORIGIN` and `API_BASE_URL` to the same final
-HTTPS domain, and use `COOKIE_SAME_SITE=lax`.
+The response must report `success: true` and a connected database. Then open
+`/login`, sign in, refresh a protected route, and confirm the session remains
+active. Hostinger automatically redeploys when new commits reach `main`.
 
 ## Security
 
 - Never commit `.env`.
-- Allow the Hostinger VPS outbound IP in MongoDB Atlas Network Access.
+- Use Hostinger's MongoDB Atlas connection wizard or allow the Hostinger app's
+  outbound access in MongoDB Atlas Network Access.
 - Rotate any database or account password that has been shared outside the
   Hostinger secret configuration.
 - Keep HTTPS enabled before using secure authentication cookies.

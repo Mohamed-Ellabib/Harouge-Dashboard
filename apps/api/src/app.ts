@@ -38,7 +38,7 @@ function registerFrontendMiddleware(app: express.Application): void {
     return;
   }
 
-  const webDistPath = path.resolve(__dirname, "../../web/dist");
+  const webDistPath = path.resolve(__dirname, "web");
   const indexPath = path.join(webDistPath, "index.html");
 
   if (!fs.existsSync(indexPath)) {
@@ -52,6 +52,6 @@ function registerFrontendMiddleware(app: express.Application): void {
       return;
     }
 
-    res.sendFile(indexPath);
+    res.sendFile("index.html", { root: webDistPath });
   });
 }

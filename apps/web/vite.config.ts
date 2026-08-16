@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      emptyOutDir: false,
+      outDir: path.resolve(projectRoot, "apps/api/dist/web")
+    },
     server: {
       host: env.WEB_HOST ?? "127.0.0.1",
       port: Number(env.WEB_PORT ?? 3000),
