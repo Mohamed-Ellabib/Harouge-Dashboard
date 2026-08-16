@@ -46,7 +46,7 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: COOKIE_SAME_SITE
-        value: lax
+        value: none
       - key: CSRF_COOKIE_NAME
         value: itdcc_csrf
       - key: CSRF_HEADER_NAME
@@ -68,7 +68,7 @@ services:
       - key: RATE_LIMIT_MAX_REQUESTS
         value: "300"
       - key: CORS_ORIGIN
-        value: https://erp-sprint-progress-system.onrender.com
+        value: https://violet-gerbil-872211.hostingersite.com
       - key: AUDIT_LOG_ENABLED
         value: "true"
       - key: ALLOW_DEVELOPMENT_SEED
