@@ -628,10 +628,7 @@ let appDataRefreshSessionKey: string | undefined;
 let appDataRefreshPromise: Promise<void> | undefined;
 let sessionRequestPromise: Promise<Session | null> | undefined;
 
-const configuredApiBaseUrl = (
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.DEV ? "" : "https://harouge-dashboard.onrender.com")
-)
+const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "")
   .trim()
   .replace(/\/+$/, "");
 

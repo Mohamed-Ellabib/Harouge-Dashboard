@@ -46,7 +46,7 @@ The durable state should be taken from the files in this repository, especially:
 
 - `AGENTS.md`
 - `docs/35-current-project-state.md`
-- `docs/36-render-deployment.md`
+- `docs/36-hostinger-deployment.md`
 - the stage documents in `docs/`
 - `database/schema.sql`
 
@@ -60,10 +60,10 @@ The final replies extracted from the previous session indicate these later
 milestones. These should be verified against the current repository before new
 work depends on them:
 
-- Render deployment preparation was added, including `render.yaml`, API static
-  serving for the built frontend, Render port handling, and the deployment guide
-  in `docs/36-render-deployment.md`.
-- Render build hardening was added after deployment failures: the build command
+- Hostinger deployment preparation includes API static serving for the built
+  frontend, platform port handling, and the deployment guide in
+  `docs/36-hostinger-deployment.md`.
+- Production build hardening was added after deployment failures: the build command
   installs dev dependencies and `SESSION_SECRET` must be supplied explicitly.
 - Frontend data loading was optimized with API caching, post-login protected
   data preload, background refresh, cache invalidation after mutations, and

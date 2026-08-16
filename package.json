@@ -12,6 +12,8 @@
     "apps/web"
   ],
   "scripts": {
+    "build": "npm run api:build && npm run web:build",
+    "start": "npm run api:start",
     "api:build": "npm run build --workspace @itdcc/api",
     "api:db:check": "npm run db:check --workspace @itdcc/api",
     "api:db:clean-demo": "npm run db:clean-demo --workspace @itdcc/api",

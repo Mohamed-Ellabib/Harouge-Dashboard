@@ -137,7 +137,6 @@ IT-Department-Control-Center/
     web/                 React + Vite frontend
   database/              Database reference and MongoDB planning
   docs/                  Project documentation and decisions
-  render.yaml            Render deployment blueprint
   .env.example           Environment variable template
   package.json           npm workspace scripts
 ```
@@ -222,11 +221,10 @@ npm run api:db:indexes
 
 ## Deployment
 
-The repository includes a Render Blueprint:
-
-```text
-render.yaml
-```
+The React frontend can be published through Hostinger's GitHub static-site
+deployment. The Express API requires a Hostinger VPS Node.js site. See
+`docs/36-hostinger-deployment.md` for the build settings, environment variables,
+and PM2 startup command.
 
 Production secrets such as `MONGODB_URI` and `SESSION_SECRET` must be configured
-in Render environment variables. They must not be committed to the repository.
+on the Hostinger VPS. They must not be committed to the repository.
