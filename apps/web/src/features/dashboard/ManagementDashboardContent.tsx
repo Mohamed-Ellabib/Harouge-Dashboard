@@ -30,6 +30,7 @@ import {
 } from "../../api/client";
 import { loadProgressTasks, mergeProgressCatalog, moduleProgressKey } from "./moduleProgress";
 import { useI18n } from "../../i18n";
+import { CommitteeReport } from "./CommitteeReport";
 import {
   getSprintAreaByCategory,
   sprintAreaDefinitions
@@ -269,6 +270,8 @@ function ManagementDashboardContentView({
           );
         })}
       </section>
+
+      <CommitteeReport />
 
       <section className="management-v2-module-card" aria-label="Module progress">
         <header className="management-v2-module-header">

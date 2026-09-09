@@ -668,6 +668,26 @@ describe("API hardening", () => {
 });
 
 
+describe("Committee report pages", () => {
+  it("requires authentication to view the original report images", async () => {
+    const response = await request(app).get("/api/committee-reports/erp-development-2026-09-02/pages/1");
+    expect(response.status).toBe(401);
+  });
+
+  it("serves both original pages to dashboard readers and rejects unknown pages", async () => {
+    const session = await login("manager.integration@example.com", managerPassword);
+    for (const page of [1, 2]) {
+      const response = await session.agent.get(`/api/committee-reports/erp-development-2026-09-02/pages/${page}`);
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toMatch(/image\/png/);
+      expect(response.headers["cache-control"]).toBe("private, no-store");
+      expect(response.body.length).toBeGreaterThan(100000);
+    }
+    const missing = await session.agent.get("/api/committee-reports/erp-development-2026-09-02/pages/3");
+    expect(missing.status).toBe(404);
+  });
+});
+
 describe("Manual project progress", () => {
   it("persists independent overall and sprint percentages, including decreases", async () => {
     const session = await login("manager.integration@example.com", managerPassword);

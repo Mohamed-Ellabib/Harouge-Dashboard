@@ -430,6 +430,8 @@ export function DashboardShell({ onSignOut, session }: DashboardShellProps) {
             <p>{pageChrome.subtitle}</p>
           </section>
 
+          {isManagementDashboardPage ? <div id="committee-header-alert" className="committee-header-alert-slot" /> : null}
+
           <div className="dashboard-search" role="search">
             <Search size={20} strokeWidth={2.1} />
             <input
