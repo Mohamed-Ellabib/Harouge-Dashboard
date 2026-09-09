@@ -1,6 +1,5 @@
 import {
   Activity,
-  ArrowRight,
   Building2,
   ChartColumn,
   ChevronDown,
@@ -21,7 +20,6 @@ import {
   useState,
   type CSSProperties
 } from "react";
-import { useNavigate } from "react-router-dom";
 
 import {
   api,
@@ -30,6 +28,7 @@ import {
   type SprintAreaKey,
   type TaskReportRow
 } from "../../api/client";
+import { loadProgressTasks, mergeProgressCatalog, moduleProgressKey } from "./moduleProgress";
 import { useI18n } from "../../i18n";
 import {
   getSprintAreaByCategory,
@@ -53,27 +52,10 @@ type ManagementDashboardState =
 
 type SprintSummary = {
   areaKey: SprintAreaKey;
-  completedCount: number;
   icon: LucideIcon;
   label: string;
-  pendingCount: number;
   progress: number;
   tone: "blue" | "green" | "orange" | "purple";
-  weight: number;
-};
-
-type SprintAreaWeights = {
-  development: number;
-  facility: number;
-  infrastructure: number;
-  master_data_collection: number;
-};
-
-const defaultSprintAreaWeights: SprintAreaWeights = {
-  development: 40,
-  facility: 10,
-  infrastructure: 20,
-  master_data_collection: 30
 };
 
 type ModuleSummary = {
@@ -99,7 +81,6 @@ function ManagementDashboardContentView({
   session: Session;
 }) {
   const { t } = useI18n();
-  const navigate = useNavigate();
   const [state, setState] = useState<ManagementDashboardState>({
     isRefreshing: true,
     items: [],
@@ -117,8 +98,7 @@ function ManagementDashboardContentView({
         : { isRefreshing: true, items: [], status: "ready" }
     );
 
-        api
-          .getTaskReport({ limit: 100 })
+        loadProgressTasks()
       .then((taskResult) => {
         if (!isMounted) {
           return;
@@ -127,7 +107,7 @@ function ManagementDashboardContentView({
         setState((current) => ({
           ...(current.status === "ready" ? current : {}),
           isRefreshing: false,
-          items: taskResult.data,
+          items: taskResult,
           status: "ready"
         }));
       })
@@ -179,17 +159,13 @@ function ManagementDashboardContentView({
 
   const items = state.status === "ready" ? state.items : [];
   const projectProgress = state.status === "ready" ? state.projectProgress : undefined;
-  const sprintAreaWeights = projectProgress?.areaWeights ?? defaultSprintAreaWeights;
   const sprintSummaries = useMemo(
-    () => buildSprintSummaries(items, t, sprintAreaWeights),
-    [items, t, sprintAreaWeights]
+    () => buildSprintSummaries(t, projectProgress?.sprintPercentages),
+    [t, projectProgress?.sprintPercentages]
   );
-  const overallProgress = useMemo(
-    () => calculateWeightedOverallProgress(sprintSummaries),
-    [sprintSummaries]
-  );
+  const overallProgress = projectProgress?.percentage ?? 0;
   const moduleCatalog = useMemo(() => getTaskModuleCatalog(), [catalogVersion]);
-  const moduleRows = useMemo(() => buildModuleRows(items, moduleCatalog), [items, moduleCatalog]);
+  const moduleRows = useMemo(() => buildModuleRows(items, mergeProgressCatalog(moduleCatalog, items, projectProgress?.modulePercentages ?? []), projectProgress?.modulePercentages ?? []), [items, moduleCatalog, projectProgress?.modulePercentages]);
   const visibleModuleRows = useMemo(
     () =>
       moduleRows.filter((row) => {
@@ -289,31 +265,6 @@ function ManagementDashboardContentView({
                 <strong>{sprint.progress}%</strong>
               </div>
 
-              <dl>
-                <div>
-                  <dt>Completed</dt>
-                  <dd className={sprint.completedCount === 0 ? "is-zero" : undefined}>
-                    {sprint.completedCount}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Pending</dt>
-                  <dd>{sprint.pendingCount}</dd>
-                </div>
-                <div>
-                  <dt>Target</dt>
-                  <dd>{sprint.weight}%</dd>
-                </div>
-              </dl>
-
-              <button
-                className="management-v2-sprint-open-button"
-                onClick={() => navigate(`/sprints/${sprint.areaKey}`)}
-                type="button"
-              >
-                Open
-                <ArrowRight size={15} strokeWidth={2.45} aria-hidden="true" />
-              </button>
             </article>
           );
         })}
@@ -417,46 +368,28 @@ function ManagementDashboardContentView({
 export const ManagementDashboardContent = memo(ManagementDashboardContentView);
 
 function buildSprintSummaries(
-  items: TaskReportRow[],
   t: (key: string) => string,
-  weights: SprintAreaWeights
+  percentages?: ProjectProgressRecord["sprintPercentages"]
 ): SprintSummary[] {
   return sprintAreaDefinitions.map((area) => {
-    const areaItems = filterItemsBySprintArea(items, area.key);
-    const completedCount = areaItems.filter((item) => item.status === "completed").length;
-    const pendingCount = areaItems.filter((item) => !["completed", "cancelled"].includes(item.status)).length;
-    const progress = calculateAverageProgress(areaItems);
+    const progress = percentages?.[area.key] ?? 0;
 
     return {
       areaKey: area.key,
-      completedCount,
       icon: getSprintIcon(area.key),
       label: t(area.labelKey),
-      pendingCount,
       progress,
-      tone: area.tone,
-      weight: weights[area.key]
+      tone: area.tone
     };
   });
 }
 
-function calculateWeightedOverallProgress(summaries: SprintSummary[]): number {
-  if (summaries.length === 0) {
-    return 0;
-  }
-
-  const weighted = summaries.reduce(
-    (sum, summary) => sum + (summary.progress * summary.weight) / 100,
-    0
-  );
-
-  return Math.round(weighted);
-}
-
 function buildModuleRows(
   items: TaskReportRow[],
-  catalog: TaskModuleDefinition[]
+  catalog: TaskModuleDefinition[],
+  percentages: ProjectProgressRecord["modulePercentages"]
 ): ModuleSummary[] {
+  const progressByKey = new Map(percentages.map((entry) => [moduleProgressKey(entry.module, entry.subModule), entry.percentage]));
   const catalogByName = new Map(catalog.map((module) => [module.name, module]));
   const moduleOrderFromItems: string[] = [];
   const seenModuleNames = new Set<string>();
@@ -510,7 +443,7 @@ function buildModuleRows(
         id: moduleId,
         indent: 0 as const,
         label: module.name,
-        progress: calculateAverageProgress(moduleItems),
+        progress: progressByKey.get(moduleProgressKey(module.name)) ?? 0,
         rowType: "module" as const
       },
       ...subModules.flatMap((subModule) => {
@@ -526,7 +459,7 @@ function buildModuleRows(
             label: subModule,
             moduleId,
             parentId: moduleId,
-            progress: calculateAverageProgress(subModuleItems),
+            progress: progressByKey.get(moduleProgressKey(module.name, subModule)) ?? 0,
             rowType: "submodule" as const
           },
           ...subModuleItems.map((item) => ({
@@ -558,18 +491,6 @@ function getSprintIcon(areaKey: SprintAreaKey): LucideIcon {
   };
 
   return icons[areaKey];
-}
-
-function filterItemsBySprintArea(items: TaskReportRow[], areaKey: SprintAreaKey): TaskReportRow[] {
-  return items.filter((item) => getSprintAreaByCategory(item.category)?.key === areaKey);
-}
-
-function calculateAverageProgress(items: TaskReportRow[]): number {
-  if (items.length === 0) {
-    return 0;
-  }
-
-  return Math.round(items.reduce((sum, item) => sum + item.progress, 0) / items.length);
 }
 
 function uniqueStrings(values: string[]): string[] {

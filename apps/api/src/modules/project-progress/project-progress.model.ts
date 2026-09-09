@@ -48,7 +48,15 @@ export const defaultProjectProgressTimelineStages: ProjectProgressTimelineStage[
   { date: "2026-10-30", id: "go-live", label: "Go-Live", status: "future" }
 ];
 
+export interface ModuleProgress {
+  module: string;
+  subModule?: string;
+  percentage: number;
+}
+
 export interface ProjectProgress {
+  modulePercentages: ModuleProgress[];
+  sprintPercentages: ProjectProgressAreaWeights;
   areaWeights: ProjectProgressAreaWeights;
   createdAt?: Date;
   key: typeof OVERALL_PROJECT_PROGRESS_KEY;
@@ -93,6 +101,23 @@ const projectProgressTimelineStageSchema =
 
 const projectProgressSchema = new Schema<ProjectProgress>(
   {
+    modulePercentages: {
+      default: () => [],
+      type: [new Schema<ModuleProgress>({
+        module: { type: String, required: true, trim: true, maxlength: 120 },
+        subModule: { type: String, trim: true, maxlength: 120 },
+        percentage: { type: Number, required: true, min: 0, max: 100 }
+      }, { _id: false })]
+    },
+    sprintPercentages: {
+      default: () => ({ development: 0, facility: 0, infrastructure: 0, master_data_collection: 0 }),
+      type: new Schema<ProjectProgressAreaWeights>({
+        development: { type: Number, min: 0, max: 100, default: 0, required: true },
+        facility: { type: Number, min: 0, max: 100, default: 0, required: true },
+        infrastructure: { type: Number, min: 0, max: 100, default: 0, required: true },
+        master_data_collection: { type: Number, min: 0, max: 100, default: 0, required: true }
+      }, { _id: false })
+    },
     areaWeights: {
       default: () => ({ ...defaultProjectProgressAreaWeights }),
       required: true,

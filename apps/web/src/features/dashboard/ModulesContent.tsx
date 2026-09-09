@@ -33,6 +33,7 @@ import { useNavigate } from "react-router-dom";
 
 import {
   api,
+  type ModuleProgressRecord,
   type Session,
   type TaskPriority,
   type TaskRecord,
@@ -41,6 +42,9 @@ import {
   type TaskStatus,
   type UpdateSprintItemPayload
 } from "../../api/client";
+import { useI18n } from "../../i18n";
+import { ModuleProgressEditor } from "./ModuleProgressEditor";
+import { loadProgressTasks, moduleProgressKey } from "./moduleProgress";
 import {
   getSprintAreaByCategory,
   sprintAreaDefinitions
@@ -147,6 +151,12 @@ function ModulesContentView({
   session: Session;
 }) {
   const navigate = useNavigate();
+  const { language } = useI18n();
+  const [savedPercentages, setSavedPercentages] = useState<ModuleProgressRecord[]>([]);
+  const [progressDraft, setProgressDraft] = useState<ModuleProgressRecord[] | null>(null);
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
+  const [progressMessage, setProgressMessage] = useState("");
+  const canEditProgress = session.roleCode === "super_admin" || session.roleCode === "it_manager";
   const [state, setState] = useState<ModulesState>({ status: "loading" });
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [selectedModuleName, setSelectedModuleName] = useState("");
@@ -178,12 +188,11 @@ function ModulesContentView({
 
     setState((current) => (current.status === "ready" ? current : { status: "loading" }));
 
-    api.getTaskReport({
-      limit: 100
-    })
-      .then((result) => {
+    Promise.all([loadProgressTasks(), api.getProjectProgress()])
+      .then(([items, progress]) => {
         if (isMounted) {
-          setState({ items: result.data, status: "ready" });
+          setState({ items, status: "ready" });
+          setSavedPercentages(progress.modulePercentages ?? []);
         }
       })
       .catch((error: unknown) => {
@@ -205,7 +214,11 @@ function ModulesContentView({
 
   const catalog = useMemo(() => getTaskModuleCatalog(), [catalogVersion]);
   const items = state.status === "ready" ? state.items : [];
-  const modules = useMemo(() => buildModuleSummaries(catalog, items), [catalog, items]);
+  const modules = useMemo(() => buildModuleSummaries(catalog, items, savedPercentages), [catalog, items, savedPercentages]);
+  const progressCatalog = useMemo(() => modules.map((module) => ({
+    name: module.name,
+    subModules: module.subModules.map((subModule) => subModule.name)
+  })), [modules]);
   const filteredModules = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -698,6 +711,27 @@ function ModulesContentView({
     });
   }
 
+  async function saveModuleProgress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canEditProgress || !progressDraft || isSavingProgress) return;
+    setIsSavingProgress(true);
+    setProgressMessage("");
+    try {
+      // Merge only edited entries into the latest saved values.
+      const latest = await api.getProjectProgress();
+      const merged = new Map((latest.modulePercentages ?? []).map((entry) => [moduleProgressKey(entry.module, entry.subModule), entry]));
+      for (const entry of progressDraft) merged.set(moduleProgressKey(entry.module, entry.subModule), entry);
+      const updated = await api.updateProjectProgress({ modulePercentages: [...merged.values()] });
+      setSavedPercentages(updated.modulePercentages ?? []);
+      setProgressDraft(null);
+      setProgressMessage(language === "ar" ? "تم حفظ نسب التقدم." : "Module and submodule percentages saved.");
+    } catch (error) {
+      setProgressMessage(error instanceof Error ? error.message : "Progress could not be saved.");
+    } finally {
+      setIsSavingProgress(false);
+    }
+  }
+
   return (
     <section
       className={`modules-page${sprintItemDetail ? " has-modal-open" : ""}`}
@@ -747,6 +781,38 @@ function ModulesContentView({
       </section>
 
       {formMessage ? <p className="modules-form-message">{formMessage}</p> : null}
+
+      {state.status === "ready" && canEditProgress ? (
+        <div className="modules-progress-edit">
+          {progressDraft === null ? (
+            <button className="modules-progress-button" type="button" onClick={() => { setProgressDraft([]); setProgressMessage(""); }}>
+              <Pencil size={16} aria-hidden="true" /> {language === "ar" ? "تعديل نسب تقدم الوحدات" : "Edit module percentages"}
+            </button>
+          ) : (
+            <form onSubmit={saveModuleProgress}>
+              <ModuleProgressEditor modules={progressCatalog}
+                percentages={[...savedPercentages, ...progressDraft]}
+                disabled={isSavingProgress} language={language}
+                onChange={(module, subModule, percentage) => {
+                  setProgressMessage("");
+                  setProgressDraft((current) => [
+                    ...(current ?? []).filter((entry) => moduleProgressKey(entry.module, entry.subModule) !== moduleProgressKey(module, subModule)),
+                    { module, ...(subModule ? { subModule } : {}), percentage }
+                  ]);
+                }} />
+              <div className="modules-progress-actions">
+                <button className="modules-progress-button" type="submit" disabled={isSavingProgress || progressDraft.length === 0}>
+                  {isSavingProgress ? (language === "ar" ? "جارٍ الحفظ..." : "Saving...") : (language === "ar" ? "حفظ النسب" : "Save percentages")}
+                </button>
+                <button className="modules-progress-button is-secondary" type="button" disabled={isSavingProgress} onClick={() => { setProgressDraft(null); setProgressMessage(""); }}>
+                  {language === "ar" ? "إلغاء" : "Cancel"}
+                </button>
+              </div>
+            </form>
+          )}
+          {progressMessage ? <p role="status">{progressMessage}</p> : null}
+        </div>
+      ) : null}
 
       {state.status === "loading" ? (
         <p className="dashboard-empty-state">Loading modules...</p>
@@ -1736,8 +1802,10 @@ function parseDelimitedModuleValues(value: string): string[] {
 
 function buildModuleSummaries(
   catalog: TaskModuleDefinition[],
-  items: TaskReportRow[]
+  items: TaskReportRow[],
+  percentages: ModuleProgressRecord[]
 ): ModuleSummary[] {
+  const progressValues = new Map(percentages.map((entry) => [moduleProgressKey(entry.module, entry.subModule), entry.percentage]));
   const catalogMap = new Map(catalog.map((module) => [module.name, module]));
   const catalogOrder = new Map(catalog.map((module, index) => [module.name, index]));
 
@@ -1766,7 +1834,7 @@ function buildModuleSummaries(
 
         return {
           name,
-          progress: calculateAverageProgress(subModuleTasks),
+          progress: progressValues.get(moduleProgressKey(module.name, name)) ?? 0,
           taskCount: subModuleTasks.length
         };
       });
@@ -1776,7 +1844,7 @@ function buildModuleSummaries(
         completedCount: moduleTasks.filter((item) => item.status === "completed").length,
         name: module.name,
         pendingCount: moduleTasks.filter((item) => !["cancelled", "completed"].includes(item.status)).length,
-        progress: calculateAverageProgress(moduleTasks),
+        progress: progressValues.get(moduleProgressKey(module.name)) ?? 0,
         subModules,
         taskCount: moduleTasks.length,
         tasks: moduleTasks

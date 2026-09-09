@@ -21,6 +21,7 @@ import {
   memo,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type FormEvent
@@ -32,8 +33,14 @@ import {
   type ProjectProgressRecord,
   type ProjectProgressTimelineStage,
   type ProjectProgressTimelineStageStatus,
+  type ModuleProgressRecord,
+  type TaskReportRow,
   type Session
 } from "../../api/client";
+import { ModuleProgressEditor } from "./ModuleProgressEditor";
+import { loadProgressTasks, mergeProgressCatalog, moduleProgressKey } from "./moduleProgress";
+import { getTaskModuleCatalog, subscribeToTaskModuleCatalogChanges } from "./taskModules";
+import { sprintAreaDefinitions } from "./sprintAreas";
 import { useI18n } from "../../i18n";
 import type { AppLanguage } from "../../i18n/locale";
 
@@ -69,16 +76,23 @@ function ProjectProgressContentView({
   refreshSignal?: number;
   session: Session;
 }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const navigate = useNavigate();
   const text = copy[language];
   const timelineText = timelineCopy[language];
   const [state, setState] = useState<ProjectProgressState>({ status: "loading" });
   const [percentage, setPercentage] = useState(0);
+  const [sprintPercentages, setSprintPercentages] = useState<ProjectProgressRecord["sprintPercentages"]>({ development: 0, facility: 0, infrastructure: 0, master_data_collection: 0 });
+  const [modulePercentages, setModulePercentages] = useState<ModuleProgressRecord[]>([]);
+  const [moduleItems, setModuleItems] = useState<TaskReportRow[]>([]);
+  const [moduleCatalog, setModuleCatalog] = useState(getTaskModuleCatalog);
+  useEffect(() => subscribeToTaskModuleCatalogChanges(() => setModuleCatalog(getTaskModuleCatalog())), []);
+  const modules = useMemo(() => mergeProgressCatalog(moduleCatalog, moduleItems, modulePercentages), [moduleCatalog, moduleItems, modulePercentages]);
   const [note, setNote] = useState("");
   const [timelineStages, setTimelineStages] = useState<ProjectProgressTimelineStage[]>(
     defaultTimelineStages
   );
+  const hasUnsavedChanges = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -89,17 +103,20 @@ function ProjectProgressContentView({
 
     setState((current) => (current.status === "ready" ? current : { status: "loading" }));
 
-    api
-      .getProjectProgress()
-      .then((projectProgress) => {
+    Promise.all([api.getProjectProgress(), loadProgressTasks()])
+      .then(([projectProgress, items]) => {
         if (!isMounted) {
           return;
         }
 
+        setModuleItems(items);
         const history = buildProjectProgressHistory(projectProgress, text.notRecorded);
 
         setState({ history, projectProgress, status: "ready" });
+        if (hasUnsavedChanges.current) return;
         setPercentage(projectProgress.percentage);
+        setSprintPercentages(projectProgress.sprintPercentages);
+      setModulePercentages(projectProgress.modulePercentages ?? []);
         setNote(projectProgress.note ?? "");
         setTimelineStages(resolveTimelineStages(projectProgress));
       })
@@ -141,12 +158,21 @@ function ProjectProgressContentView({
       const projectProgress = await api.updateProjectProgress({
         note,
         percentage,
+        sprintPercentages,
+        modulePercentages: modules.flatMap((module) => [undefined, ...module.subModules].map((subModule) => ({
+          module: module.name,
+          ...(subModule ? { subModule } : {}),
+          percentage: modulePercentages.find((entry) => moduleProgressKey(entry.module, entry.subModule) === moduleProgressKey(module.name, subModule))?.percentage ?? 0
+        }))),
         timelineStages: nextTimelineStages
       });
       const history = buildProjectProgressHistory(projectProgress, text.notRecorded);
 
+      hasUnsavedChanges.current = false;
       setState({ history, projectProgress, status: "ready" });
       setPercentage(projectProgress.percentage);
+      setSprintPercentages(projectProgress.sprintPercentages);
+      setModulePercentages(projectProgress.modulePercentages ?? []);
       setNote(projectProgress.note ?? "");
       setTimelineStages(resolveTimelineStages(projectProgress));
       setSaveSuccess(text.saved);
@@ -177,11 +203,13 @@ function ProjectProgressContentView({
   }
 
   function addTimelineStage() {
+    hasUnsavedChanges.current = true;
     setTimelineStages((currentStages) => [...currentStages, createTimelineStage()]);
     setSaveSuccess("");
   }
 
   function removeTimelineStage(id: string) {
+    hasUnsavedChanges.current = true;
     setTimelineStages((currentStages) =>
       currentStages.length <= 1 ? currentStages : currentStages.filter((stage) => stage.id !== id)
     );
@@ -189,6 +217,7 @@ function ProjectProgressContentView({
   }
 
   function moveTimelineStage(id: string, direction: -1 | 1) {
+    hasUnsavedChanges.current = true;
     setTimelineStages((currentStages) => {
       const currentIndex = currentStages.findIndex((stage) => stage.id === id);
       const nextIndex = currentIndex + direction;
@@ -244,7 +273,7 @@ function ProjectProgressContentView({
           <p className="dashboard-empty-state">{state.message}</p>
         </section>
       ) : (
-        <form className="project-progress-form" onSubmit={handleSubmit}>
+        <form className="project-progress-form" onSubmit={handleSubmit} onChange={() => { hasUnsavedChanges.current = true; }}>
           <section className="project-progress-overview-card">
             <div className="project-progress-overview-ring" style={progressStyle}>
               <strong>{percentage}%</strong>
@@ -252,8 +281,8 @@ function ProjectProgressContentView({
             </div>
             <ProjectProgressSummaryItem
               icon={Calculator}
-              label={text.source}
-              value={text.sourceValue}
+              label={text.sprintAreas}
+              value={String(sprintAreaDefinitions.length)}
             />
             <ProjectProgressSummaryItem
               icon={CalendarDays}
@@ -278,7 +307,7 @@ function ProjectProgressContentView({
                 <div className="project-progress-slider-row">
                   <div className="project-progress-range-wrap">
                     <input
-                      disabled={!canEdit || state.status === "loading"}
+                      disabled={!canEdit || isSaving || state.status === "loading"}
                       max={100}
                       min={0}
                       onChange={(event) => {
@@ -286,6 +315,7 @@ function ProjectProgressContentView({
                         setSaveSuccess("");
                       }}
                       step={1}
+                      aria-label={text.overallProgress}
                       type="range"
                       value={percentage}
                     />
@@ -297,7 +327,7 @@ function ProjectProgressContentView({
                   </div>
                   <div className="project-progress-number-shell">
                     <input
-                      disabled={!canEdit || state.status === "loading"}
+                      disabled={!canEdit || isSaving || state.status === "loading"}
                       max={100}
                       min={0}
                       onChange={(event) => {
@@ -309,6 +339,9 @@ function ProjectProgressContentView({
                         );
                         setSaveSuccess("");
                       }}
+                      aria-label={text.percentageLabel}
+                      step={1}
+                      required
                       type="number"
                       value={percentage}
                     />
@@ -319,7 +352,7 @@ function ProjectProgressContentView({
               <label className="project-progress-note-field">
                 <span>{text.noteLabel}</span>
                 <textarea
-                  disabled={!canEdit || state.status === "loading"}
+                  disabled={!canEdit || isSaving || state.status === "loading"}
                   maxLength={500}
                   onChange={(event) => {
                     setNote(event.target.value);
@@ -353,9 +386,59 @@ function ProjectProgressContentView({
             </aside>
           </section>
 
+          <section className="project-progress-sprints-panel">
+            <header>
+              <div>
+                <h3>{language === "ar" ? "تقدم السبرنتات" : "Sprint Progress"}</h3>
+                <p>{language === "ar" ? "تظهر القيم المحفوظة في لوحة لجنة الإدارة." : "Set each sprint percentage. Saved values also appear in the Management Committee overview."}</p>
+              </div>
+            </header>
+            <div className="project-progress-sprints-grid">
+              {sprintAreaDefinitions.map((area) => {
+                const Icon = area.icon;
+                const value = sprintPercentages[area.key];
+                const label = t(area.labelKey);
+                return (
+                  <article className={`project-progress-sprint-editor is-${area.tone}`} key={area.key}>
+                    <header><span><Icon size={19} aria-hidden="true" /></span><h4>{label}</h4><strong>{value}%</strong></header>
+                    <div className="project-progress-sprint-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}>
+                      <span style={{ width: `${value}%` }} />
+                    </div>
+                    <div className="project-progress-sprint-controls">
+                      <input aria-label={`${label} ${language === "ar" ? "شريط النسبة" : "slider"}`} type="range" min={0} max={100} step={1} value={value}
+                        disabled={!canEdit || isSaving || state.status === "loading"}
+                        onChange={(event) => { setSprintPercentages((current) => ({ ...current, [area.key]: Number(event.target.value) })); setSaveSuccess(""); }} />
+                      <div className="project-progress-number-shell">
+                        <input aria-label={`${label} ${language === "ar" ? "النسبة المئوية" : "percentage"}`} type="number" min={0} max={100} step={1} required value={value}
+                          disabled={!canEdit || isSaving || state.status === "loading"}
+                          onChange={(event) => { setSprintPercentages((current) => ({ ...current, [area.key]: Math.min(100, Math.max(0, Number(event.target.value))) })); setSaveSuccess(""); }} />
+                        <span>%</span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <ModuleProgressEditor
+            modules={modules}
+            percentages={modulePercentages}
+            disabled={!canEdit || isSaving || state.status === "loading"}
+            language={language}
+            onChange={(module, subModule, value) => {
+              hasUnsavedChanges.current = true;
+              setSaveSuccess("");
+              setModulePercentages((current) => [
+                ...current.filter((entry) => moduleProgressKey(entry.module, entry.subModule) !== moduleProgressKey(module, subModule)),
+                { module, ...(subModule ? { subModule } : {}), percentage: value }
+              ]);
+            }}
+          />
+
           <ProjectProgressTimelineEditor
             canEdit={canEdit}
-            disabled={!canEdit || state.status === "loading"}
+            disabled={!canEdit || isSaving || state.status === "loading"}
             onAdd={addTimelineStage}
             onMove={moveTimelineStage}
             onRemove={removeTimelineStage}
@@ -714,15 +797,14 @@ const copy = {
     notePlaceholder: "اكتب ملاحظة أو تقريراً قصيراً عن تقدم المشروع العام...",
     overallProgress: "التقدم العام",
     percentageLabel: "نسبة التقدم الحالية",
-    policyAdmin: "يمكن للمديرين تحديث هذه القيمة يدوياً لأنها تمثل تقدم المشروع على مستوى الإدارة.",
+    policyAdmin: "راجع تقدم المشروع والسبرنتات. تظهر التحديثات المحفوظة في لوحات المتابعة.",
     policyReadonly: "هذه النسبة للعرض فقط. التعديل متاح للمديرين فقط.",
     save: "حفظ التقدم",
     saveError: "تعذر حفظ تقدم المشروع العام.",
-    saved: "تم حفظ تقدم المشروع العام.",
+    saved: "تم حفظ تقدم المشروع والسبرنتات.",
     saving: "جار الحفظ...",
-    source: "طريقة الحساب",
-    sourceValue: "يدوي",
-    subtitle: "هذه النسبة تعدل يدوياً وهي مستقلة عن تقدم السبرنتات.",
+    sprintAreas: "مجالات السبرنت",
+    subtitle: "تابع تقدم المشروع وجميع السبرنتات في مكان واحد.",
     title: "تقدم المشروع العام",
     updatedBy: "تم التحديث بواسطة",
     viewHistory: "عرض كل السجل"
@@ -747,15 +829,14 @@ const copy = {
     notePlaceholder: "Write a short note or report about the overall project progress...",
     overallProgress: "Overall Progress",
     percentageLabel: "Current Progress Percentage",
-    policyAdmin: "Admins can update this value manually because it represents management-level overall project progress.",
+    policyAdmin: "Review project and sprint progress together. Saved updates appear across the dashboards.",
     policyReadonly: "This percentage is read-only for your account. Editing is restricted to admins.",
     save: "Save Progress",
     saveError: "Overall project progress could not be saved.",
-    saved: "Overall project progress was saved.",
+    saved: "Overall and sprint progress saved. Dashboard values are up to date.",
     saving: "Saving...",
-    source: "Calculation",
-    sourceValue: "Manual",
-    subtitle: "This percentage is edited manually and is independent from sprint progress.",
+    sprintAreas: "Sprint Areas",
+    subtitle: "Track overall project progress and all sprint areas in one place.",
     title: "Overall Project Progress",
     updatedBy: "Updated By",
     viewHistory: "View all history"

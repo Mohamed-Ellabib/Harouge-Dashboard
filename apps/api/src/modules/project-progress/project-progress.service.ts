@@ -61,6 +61,14 @@ export async function updateProjectProgress(
     projectProgress.percentage = body.percentage;
   }
 
+  if (body.modulePercentages !== undefined) {
+    projectProgress.modulePercentages = body.modulePercentages;
+  }
+
+  if (body.sprintPercentages !== undefined) {
+    projectProgress.sprintPercentages = body.sprintPercentages;
+  }
+
   if (body.note !== undefined) {
     projectProgress.note = body.note;
   } else if (Object.prototype.hasOwnProperty.call(body, "note")) {

@@ -666,3 +666,51 @@ describe("API hardening", () => {
     expect(permission).toBeTruthy();
   });
 });
+
+
+describe("Manual project progress", () => {
+  it("persists independent overall and sprint percentages, including decreases", async () => {
+    const session = await login("manager.integration@example.com", managerPassword);
+    const sprintPercentages = { development: 83, facility: 0, infrastructure: 100, master_data_collection: 26 };
+    const updated = await session.agent.patch("/api/project-progress")
+      .set("x-csrf-token", session.csrfToken)
+      .send({ percentage: 37, sprintPercentages, note: "Manual reporting" });
+    expect(updated.status).toBe(200);
+    expect(updated.body.data.projectProgress.percentage).toBe(37);
+    expect(updated.body.data.projectProgress.sprintPercentages).toEqual(sprintPercentages);
+    const read = await session.agent.get("/api/project-progress");
+    expect(read.body.data.projectProgress.sprintPercentages).toEqual(sprintPercentages);
+    const decreased = await session.agent.patch("/api/project-progress")
+      .set("x-csrf-token", session.csrfToken)
+      .send({ sprintPercentages: { ...sprintPercentages, development: 12 } });
+    expect(decreased.status).toBe(200);
+    expect(decreased.body.data.projectProgress.percentage).toBe(37);
+    expect(decreased.body.data.projectProgress.sprintPercentages.development).toBe(12);
+    const noteOnly = await session.agent.patch("/api/project-progress")
+      .set("x-csrf-token", session.csrfToken).send({ note: "Keep percentages" });
+    expect(noteOnly.body.data.projectProgress.sprintPercentages.development).toBe(12);
+    const audit = await AuditLogModel.findOne({ entityType: "project_progress", "newValue.note": "Manual reporting" });
+    expect(audit?.newValue).toMatchObject({ percentage: 37, sprintPercentages });
+  });
+
+  it("rejects invalid or incomplete sprint percentages", async () => {
+    const session = await login("manager.integration@example.com", managerPassword);
+    for (const development of [-1, 101, 12.5, "50", null]) {
+      const response = await session.agent.patch("/api/project-progress")
+        .set("x-csrf-token", session.csrfToken)
+        .send({ sprintPercentages: { development, facility: 0, infrastructure: 0, master_data_collection: 0 } });
+      expect(response.status).toBe(400);
+    }
+    const response = await session.agent.patch("/api/project-progress")
+      .set("x-csrf-token", session.csrfToken).send({ sprintPercentages: { development: 20 } });
+    expect(response.status).toBe(400);
+  });
+
+  it("keeps manual progress editing restricted to administrators", async () => {
+    const session = await login("viewer.integration@example.com", viewerPassword);
+    const response = await session.agent.patch("/api/project-progress")
+      .set("x-csrf-token", session.csrfToken)
+      .send({ sprintPercentages: { development: 90, facility: 90, infrastructure: 90, master_data_collection: 90 } });
+    expect(response.status).toBe(403);
+  });
+});

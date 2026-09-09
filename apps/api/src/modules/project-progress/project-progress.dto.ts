@@ -2,10 +2,14 @@ import type { SprintOwnerDto } from "../sprints/sprint.dto";
 import {
   defaultProjectProgressTimelineStages,
   type ProjectProgressDocument,
+  type ModuleProgress,
+  type ProjectProgressAreaWeights,
   type ProjectProgressTimelineStage
 } from "./project-progress.model";
 
 export interface ProjectProgressDto {
+  modulePercentages: ModuleProgress[];
+  sprintPercentages: ProjectProgressAreaWeights;
   areaWeights: {
     development: number;
     facility: number;
@@ -44,6 +48,17 @@ export function serializeProjectProgress(
   history: ProjectProgressHistoryDto[] = []
 ): ProjectProgressDto {
   return {
+    modulePercentages: (projectProgress.modulePercentages ?? []).map((entry) => ({
+      module: entry.module,
+      ...(entry.subModule ? { subModule: entry.subModule } : {}),
+      percentage: entry.percentage
+    })),
+    sprintPercentages: {
+      development: projectProgress.sprintPercentages?.development ?? 0,
+      facility: projectProgress.sprintPercentages?.facility ?? 0,
+      infrastructure: projectProgress.sprintPercentages?.infrastructure ?? 0,
+      master_data_collection: projectProgress.sprintPercentages?.master_data_collection ?? 0
+    },
     areaWeights: {
       development: projectProgress.areaWeights.development,
       facility: projectProgress.areaWeights.facility,

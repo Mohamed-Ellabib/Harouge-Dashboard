@@ -118,9 +118,7 @@ function DashboardContentView({
       api
         .getTaskReport({ limit: 100, sortBy: "lastProgressUpdateAt", sortOrder: "desc" })
         .catch(() => null),
-      canManageProjectProgress
-        ? api.getProjectProgress().catch(() => null)
-        : Promise.resolve(null)
+      api.getProjectProgress().catch(() => null)
     ])
       .then(([overview, taskReport, projectProgress]) => {
         if (isMounted) {
@@ -157,9 +155,9 @@ function DashboardContentView({
   const sprintAreaCards = useMemo(
     () =>
       overview
-        ? buildSprintAreaCards(sprintItems)
+        ? buildSprintAreaCards(sprintItems, projectProgress?.sprintPercentages)
         : loadingSprintAreaCards,
-    [overview, sprintItems]
+    [overview, sprintItems, projectProgress?.sprintPercentages]
   );
   const teamCard = useMemo(
     () => (overview ? buildDashboardTeamCard(overview) : buildDashboardTeamCard()),
@@ -742,13 +740,13 @@ function Avatar({ initials, variant = "dark" }: AvatarProps) {
   return <span className={`dashboard-mini-avatar dashboard-mini-avatar-${variant}`}>{initials}</span>;
 }
 
-function buildSprintAreaCards(items: TaskReportRow[]): SprintAreaCard[] {
+function buildSprintAreaCards(items: TaskReportRow[], percentages?: ProjectProgressRecord["sprintPercentages"]): SprintAreaCard[] {
   return sprintAreaDefinitions.map((area) => {
     const areaItems = items.filter((item) => area.categories.includes(item.category));
     const completedItems = areaItems.filter((item) => item.status === "completed").length;
     const blockedItems = areaItems.filter((item) => item.status === "blocked").length;
     const openItems = areaItems.filter((item) => isOpenSprintItem(item)).length;
-    const progress = calculateAverageProgress(areaItems);
+    const progress = percentages?.[area.key] ?? 0;
 
     return {
       blockedItems,
@@ -1169,7 +1167,6 @@ function getTeamCardLabels(language: AppLanguage): {
 
 function getProjectProgressCardLabels(language: AppLanguage): {
   erp: string;
-  manual: string;
   notSet: string;
   progress: string;
   projectStatus?: string;
@@ -1185,7 +1182,6 @@ function getProjectProgressCardLabels(language: AppLanguage): {
   if (language === "ar") {
     return {
       erp: "ERP",
-      manual: "يدوي",
       notSet: "غير محدد",
       progress: "التقدم",
       scope: "النطاق",
@@ -1198,7 +1194,6 @@ function getProjectProgressCardLabels(language: AppLanguage): {
 
   return {
     erp: "ERP",
-    manual: "Manual",
     notSet: "Not set",
     progress: "progress",
     projectStatus: "Project Status",

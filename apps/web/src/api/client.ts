@@ -412,7 +412,15 @@ export type CreateSprintPayload = {
 
 export type UpdateSprintPayload = Partial<CreateSprintPayload>;
 
+export type ModuleProgressRecord = {
+  module: string;
+  subModule?: string;
+  percentage: number;
+};
+
 export type ProjectProgressRecord = {
+  modulePercentages: ModuleProgressRecord[];
+  sprintPercentages: Record<SprintAreaKey, number>;
   areaWeights: {
     development: number;
     facility: number;
@@ -448,6 +456,8 @@ export type ProjectProgressHistoryRecord = {
 };
 
 export type UpdateProjectProgressPayload = {
+  modulePercentages?: ModuleProgressRecord[];
+  sprintPercentages?: Record<SprintAreaKey, number>;
   note?: string;
   percentage?: number;
   timelineStages?: ProjectProgressTimelineStage[];
