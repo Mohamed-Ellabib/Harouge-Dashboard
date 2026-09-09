@@ -1,0 +1,59 @@
+.urbx-cart{font-family:var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;min-height:100dvh}
+html:has(.urbx-cart){scrollbar-width:none}
+html:has(.urbx-cart)::-webkit-scrollbar{display:none}
+.urbx-cart .urbx-home__header{height:13.7cqw;padding-inline:5cqw}
+.urbx-cart__back{display:grid;place-items:center;width:5.5cqw;height:8cqw}
+.urbx-cart .urbx-home__identity{width:27cqw}
+.urbx-cart__content{padding:0 5cqw 3.8cqw}
+.urbx-cart__heading{display:flex;align-items:center;justify-content:space-between;gap:1cqw;padding:1.2cqw 0 1.9cqw}
+.urbx-cart__heading h1{font:400 9.2cqw/1.25 var(--urbx-heading-font,"URBX Marker"),cursive;letter-spacing:-.25cqw;transform:skewX(-12deg) scaleX(.9);transform-origin:left;white-space:nowrap}
+.urbx-cart__heading>span{flex:none;color:var(--urbx-accent);font-size:3.7cqw;font-weight:600}
+.urbx-cart__items{display:grid;gap:3.8cqw;padding-bottom:4cqw;border-bottom:2px solid #303330}
+.urbx-cart__item{display:grid;grid-template-columns:39.6% minmax(0,1fr);column-gap:4cqw;position:relative;min-width:0}
+.urbx-cart__photo{display:flex;align-items:center;justify-content:center;aspect-ratio:1;overflow:hidden;border:2px solid #626562;border-radius:1.8cqw;background:#191a19;color:var(--urbx-muted,#aaa);font-size:3cqw}
+.urbx-cart__photo img{display:block;width:100%;height:100%;object-fit:cover}
+.urbx-cart__item-details{padding-top:1.8cqw;min-width:0}
+.urbx-cart__item h2{padding-right:5.4cqw;font-size:4.6cqw;font-weight:600;line-height:1.15;overflow-wrap:anywhere}
+.urbx-cart__variant{margin-top:1.2cqw!important;color:var(--urbx-muted,#959795);font-size:3.9cqw;line-height:1.3;overflow-wrap:anywhere}
+.urbx-cart__price{display:block;margin-top:2.2cqw;font-size:4.65cqw;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.urbx-cart .urbx-cart__remove{position:absolute;right:0;top:1.8cqw;width:5.5cqw;height:6cqw;display:grid;place-items:center;color:var(--urbx-muted,#b5b6b5)}
+.urbx-cart__remove svg{width:5.2cqw;height:5.2cqw}
+.urbx-cart__quantity{display:grid;grid-template-columns:1fr 1.3fr 1fr;width:32.2cqw;height:8.7cqw;border:2px solid #505350;border-radius:1.25cqw;margin-top:3.1cqw;overflow:hidden}
+.urbx-cart__quantity>*{display:grid;place-items:center;min-width:0;font-size:4.2cqw;font-weight:500}
+.urbx-cart__quantity output{border-inline:2px solid #414441}
+.urbx-cart__quantity svg{width:4.8cqw;height:4.8cqw}
+.urbx-cart__quantity button:disabled{opacity:.75;cursor:not-allowed}
+.urbx-cart__promo{display:flex;border:2px solid #434643;border-radius:1.6cqw;height:10.4cqw;overflow:hidden;margin-top:3.8cqw}
+.urbx-cart__promo:focus-within{border-color:var(--urbx-accent)}
+.urbx-cart__promo input{flex:1;min-width:0;width:0;border:0;outline:0;padding:0 3.5cqw;color:var(--urbx-text,#fff);background:none;font:400 4.2cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-cart__promo input::placeholder{color:var(--urbx-muted,#8f918f);opacity:1}
+.urbx-cart .urbx-cart__promo button{width:23.5cqw;border-radius:1cqw;background:#363736;font:700 4.4cqw/1 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-cart__totals{margin:4.5cqw 0 0}
+.urbx-cart__totals>div{display:flex;align-items:baseline;justify-content:space-between;gap:2cqw;font-size:4cqw;line-height:1.3;margin-bottom:1.7cqw}
+.urbx-cart__totals dt{color:var(--urbx-muted,#999b99)}
+.urbx-cart__totals dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.urbx-cart__totals>.urbx-cart__total{border-top:2px solid #303330;margin:2.7cqw 0 3.5cqw;padding-top:2.6cqw;font-size:5.9cqw;line-height:1.2;font-weight:700}
+.urbx-cart__total dt{color:var(--urbx-text,#fff)}
+.urbx-cart__total dd{color:var(--urbx-accent)}
+.urbx-cart .urbx-cart__checkout{display:flex;align-items:center;justify-content:center;gap:4.4cqw;width:100%;min-height:12.6cqw;padding:2cqw;border-radius:1.65cqw;color:var(--urbx-button-text,#070707);background:var(--urbx-accent);font:700 5.8cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-cart__checkout svg{width:6.3cqw;height:6.3cqw;flex:none}
+.urbx-cart a.urbx-cart__continue{display:table;text-decoration:underline;text-underline-offset:.7cqw;margin:3.2cqw auto 0;font-size:3.65cqw;line-height:1.3}
+.urbx-cart__secure{display:flex;align-items:center;justify-content:center;gap:1.5cqw;color:var(--urbx-muted,#858785);font-size:3.5cqw;line-height:1.3;margin-top:5.4cqw!important}
+.urbx-cart__secure svg{width:4.5cqw;height:4.5cqw}
+.urbx-cart__notice,.urbx-cart__error{font-size:max(14px,3.4cqw);line-height:1.4;margin-top:2cqw;padding:2cqw 0;color:var(--urbx-muted,#ddd)}
+.urbx-cart__error{color:#ffb7a7;margin:0 0 3cqw}
+.urbx-cart__error button{text-decoration:underline;margin-left:2cqw}
+.urbx-cart__empty{padding:14cqw 0 20cqw;text-align:center;font-size:max(17px,4cqw)}
+.urbx-cart__empty>svg{width:14cqw;height:14cqw;color:var(--urbx-accent);margin-bottom:5cqw}
+.urbx-cart__empty h2{font-size:6cqw;margin-bottom:2cqw}
+.urbx-cart__empty p{color:var(--urbx-muted,#aaa);margin-bottom:6cqw}
+.urbx-cart__sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.urbx-cart[data-money=store] .urbx-cart__total{font-size:5.1cqw}
+.urbx-cart :where(.urbx-cart__variant,.urbx-cart__price,.urbx-cart__totals,.urbx-cart__quantity output,.urbx-cart__promo input){font-family:var(--urbx-body-font,Arial),sans-serif}
+.urbx-cart__price{font-size:4.4cqw;font-weight:600}
+.urbx-cart__totals>.urbx-cart__total{font-size:5.8cqw}
+.urbx-cart .urbx-cart__checkout{font:400 5.4cqw/1.2 var(--urbx-heading-font,"URBX Anton"),Impact,sans-serif}
+.urbx-cart .urbx-cart__promo button{font:400 4.1cqw/1 var(--urbx-heading-font,"URBX Anton"),Impact,sans-serif}
+.urbx-cart :where(.urbx-cart__items,.urbx-cart__photo,.urbx-cart__quantity,.urbx-cart__quantity output,.urbx-cart__promo,.urbx-cart__total){border-width:max(1px,.22cqw)}
+.urbx-cart :where(button,a,input):focus-visible{outline:2px solid var(--urbx-accent);outline-offset:3px}
+@media(prefers-reduced-motion:no-preference){.urbx-cart__item{animation:urbx-cart-enter .18s ease-out}@keyframes urbx-cart-enter{from{opacity:.7}to{opacity:1}}}

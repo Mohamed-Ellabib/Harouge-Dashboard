@@ -1,0 +1,377 @@
+.glow-beauty-order-placed {
+  min-height: 922px;
+  padding: 12px 20px 16px;
+}
+
+.glow-beauty-order-placed__header {
+  display: grid;
+  height: 44px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+}
+
+.glow-beauty-order-placed__header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.glow-beauty-order-placed__header a {
+  display: grid;
+  width: 38px;
+  height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--beauty-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(78, 51, 34, 0.055);
+}
+
+.glow-beauty-order-placed__header a svg { width: 22px; height: 22px; }
+
+.glow-beauty-order-success {
+  position: relative;
+  height: 181px;
+  overflow: hidden;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.glow-beauty-order-success > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.glow-beauty-order-success__check {
+  position: absolute;
+  z-index: 1;
+  top: 15px;
+  left: 50%;
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+  transform: translateX(-50%);
+}
+
+.glow-beauty-order-success__check svg { width: 43px; height: 43px; stroke-width: 2.3; }
+
+.glow-beauty-order-success h2,
+.glow-beauty-order-success p,
+.glow-beauty-order-success small {
+  position: absolute;
+  z-index: 1;
+  right: 14px;
+  left: 14px;
+}
+
+.glow-beauty-order-success h2 {
+  top: 94px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 820;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.glow-beauty-order-success p {
+  top: 128px;
+  margin: 0;
+  color: #5f5a56;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.glow-beauty-order-success small {
+  top: 149px;
+  color: #5f5a56;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.glow-beauty-order-number {
+  display: grid;
+  height: 61px;
+  grid-template-columns: minmax(0, 1fr) 31px auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px 8px 15px;
+  margin-top: 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 24px rgba(91, 57, 36, 0.05);
+}
+
+.glow-beauty-order-number > div { display: flex; flex-direction: column; }
+.glow-beauty-order-number > div span { color: #5f5a56; font-size: 11px; }
+.glow-beauty-order-number > div strong { margin-top: 3px; font-size: 22px; font-weight: 800; letter-spacing: 0.035em; line-height: 1; }
+.glow-beauty-order-number > button { display: grid; padding: 0; place-items: center; color: #6e7478; background: transparent; }
+.glow-beauty-order-number > button svg { width: 22px; height: 22px; }
+.glow-beauty-order-number > b { padding: 7px 9px; border-radius: 8px; color: #fff; background: var(--beauty-orange); font-size: 11px; font-weight: 700; }
+
+.glow-beauty-delivery-update {
+  height: 163px;
+  padding: 11px 15px 9px;
+  margin-top: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 24px rgba(91, 57, 36, 0.05);
+}
+
+.glow-beauty-delivery-update h2,
+.glow-beauty-order-summary h2 { margin: 0; font-size: 16px; font-weight: 790; letter-spacing: -0.035em; }
+
+.glow-beauty-delivery-update__summary {
+  display: grid;
+  height: 50px;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  margin-top: 5px;
+}
+
+.glow-beauty-delivery-update__summary > span,
+.glow-beauty-order-info article > span,
+.glow-beauty-order-support > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--beauty-orange);
+  background: #fff0e7;
+}
+
+.glow-beauty-delivery-update__summary svg { width: 28px; height: 28px; }
+.glow-beauty-delivery-update__summary strong { display: block; font-size: 14px; font-weight: 750; }
+.glow-beauty-delivery-update__summary p { margin: 3px 0 0; color: #6a6561; font-size: 11px; }
+
+.glow-beauty-delivery-update ol {
+  position: relative;
+  display: grid;
+  height: 44px;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0;
+  margin: 1px 0 0;
+  list-style: none;
+}
+
+.glow-beauty-delivery-update ol::before,
+.glow-beauty-delivery-update ol::after {
+  position: absolute;
+  top: 10px;
+  left: 10%;
+  height: 1px;
+  content: "";
+}
+
+.glow-beauty-delivery-update ol::before { right: 10%; background: #b8b9ba; }
+.glow-beauty-delivery-update ol::after { width: 32%; background: var(--beauty-orange); }
+
+.glow-beauty-delivery-update li {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #66615d;
+  font-size: 9px;
+  line-height: 1;
+  flex-direction: column;
+}
+
+.glow-beauty-delivery-update li span {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border: 1px solid #b8b9ba;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.glow-beauty-delivery-update li span svg { width: 13px; height: 13px; stroke-width: 2.5; }
+.glow-beauty-delivery-update li.is-complete,
+.glow-beauty-delivery-update li.is-active { color: var(--beauty-orange); }
+.glow-beauty-delivery-update li.is-complete span { border-color: var(--beauty-orange); color: #fff; background: var(--beauty-orange); }
+.glow-beauty-delivery-update li.is-active span { border: 2px solid var(--beauty-orange); box-shadow: inset 0 0 0 4px #fff; background: var(--beauty-orange); }
+.glow-beauty-delivery-update li b { font-weight: 550; }
+
+.glow-beauty-delivery-update > button {
+  display: flex;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  margin: 0 auto;
+  color: var(--beauty-orange);
+  background: transparent;
+  font-size: 11px;
+}
+
+.glow-beauty-delivery-update > button svg { width: 15px; height: 15px; }
+
+.glow-beauty-order-summary { margin-top: 14px; }
+.glow-beauty-order-summary > header { display: flex; height: 25px; align-items: center; justify-content: space-between; padding: 0 5px; }
+.glow-beauty-order-summary > header button { display: flex; align-items: center; gap: 2px; padding: 0; color: var(--beauty-orange); background: transparent; font-size: 11px; }
+.glow-beauty-order-summary > header button svg { width: 15px; height: 15px; }
+
+.glow-beauty-order-summary > article {
+  display: grid;
+  height: 112px;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 24px rgba(91, 57, 36, 0.05);
+}
+
+.glow-beauty-order-summary article > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.glow-beauty-order-summary article img { display: block; width: 100%; height: 88px; object-fit: cover; border-radius: 8px; background: #fff0e6; }
+.glow-beauty-order-summary article aside { min-width: 0; }
+.glow-beauty-order-summary article aside strong { display: block; font-size: 13px; }
+.glow-beauty-order-summary article aside p { margin: 8px 0 0; color: #6b6662; font-size: 10.5px; line-height: 1.25; }
+.glow-beauty-order-summary article aside b { display: block; margin-top: 12px; font-size: 20px; font-weight: 790; letter-spacing: -0.045em; }
+
+.glow-beauty-order-info {
+  display: grid;
+  height: 83px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.glow-beauty-order-info article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 39px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 8px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 24px rgba(91, 57, 36, 0.05);
+}
+
+.glow-beauty-order-info article > span { width: 36px; height: 36px; }
+.glow-beauty-order-info article > span svg { width: 22px; height: 22px; }
+.glow-beauty-order-info article strong,
+.glow-beauty-order-info article b { display: block; font-size: 11px; line-height: 1.18; }
+.glow-beauty-order-info article div > b { margin-top: 4px; }
+.glow-beauty-order-info article p { margin: 5px 0 0; color: #5e5a56; font-size: 9px; line-height: 1.4; }
+.glow-beauty-order-info article:last-child p { font-size: 10.5px; }
+.glow-beauty-order-info article:last-child b { margin-top: 13px; color: #179729; font-weight: 600; }
+
+.glow-beauty-order-support {
+  position: relative;
+  display: grid;
+  height: 73px;
+  overflow: hidden;
+  grid-template-columns: 53px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  border: 1px solid #ffe5d6;
+  border-radius: 13px;
+  color: var(--beauty-ink);
+  background: #fff6ef;
+  text-decoration: none;
+}
+
+.glow-beauty-order-support > span { position: relative; z-index: 2; width: 48px; height: 48px; background: rgba(255,255,255,.9); }
+.glow-beauty-order-support > span svg { width: 29px; height: 29px; }
+.glow-beauty-order-support > div { position: relative; z-index: 2; }
+.glow-beauty-order-support strong { display: block; font-size: 12px; }
+.glow-beauty-order-support p { margin: 4px 0 0; color: #625d59; font-size: 10px; }
+.glow-beauty-order-support b { display: flex; align-items: center; gap: 3px; margin-top: 6px; color: var(--beauty-orange); font-size: 10.5px; font-weight: 550; }
+.glow-beauty-order-support b svg { width: 14px; height: 14px; }
+.glow-beauty-order-support > img { position: absolute; z-index: 1; right: -160px; bottom: -18px; width: 320px; height: 148px; object-fit: cover; object-position: center; transform: scaleX(-1); opacity: .92; }
+
+.glow-beauty-order-actions {
+  display: grid;
+  height: 48px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.glow-beauty-order-actions button,
+.glow-beauty-order-actions a {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--beauty-orange);
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.glow-beauty-order-actions button { color: #fff; background: var(--beauty-orange); }
+.glow-beauty-order-actions a { color: var(--beauty-orange); background: transparent; }
+.glow-beauty-order-actions svg { width: 24px; height: 24px; }
+.glow-beauty-order-actions a svg { width: 17px; height: 17px; }
+
+.glow-beauty-order-item-placeholder {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  flex: 0 0 50px;
+  place-items: center;
+  border-radius: 10px;
+  color: #9a4c40;
+  background: #f9e6df;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+@media (max-width: 390px) {
+  .glow-beauty-order-placed { padding-right: 15px; padding-left: 15px; }
+  .glow-beauty-order-summary > article { grid-template-columns: minmax(0, 1fr) 102px; }
+  .glow-beauty-order-info article { gap: 5px; padding-inline: 6px; }
+}
+
+@media (min-width: 720px) {
+  .glow-beauty-order-placed { margin-top: 24px; margin-bottom: 24px; border-radius: 34px; }
+}
+
+/* Readable shared storefront scale. */
+.glow-beauty-order-placed__header h1 { font-size: 24px; }
+.glow-beauty-order-success h2 { font-size: 30px; }
+.glow-beauty-order-success p { font-size: 14px; }
+.glow-beauty-order-success small { font-size: 13px; }
+.glow-beauty-order-number > div span { font-size: 13px; }
+.glow-beauty-order-number > div strong { font-size: 24px; }
+.glow-beauty-order-number > b { font-size: 12px; }
+.glow-beauty-delivery-update h2,
+.glow-beauty-order-summary h2 { font-size: 18px; }
+.glow-beauty-delivery-update__summary strong { font-size: 16px; }
+.glow-beauty-delivery-update__summary p { font-size: 13px; }
+.glow-beauty-delivery-update li { font-size: 11px; }
+.glow-beauty-delivery-update > button,
+.glow-beauty-order-summary > header button { font-size: 13px; }
+.glow-beauty-order-summary article aside strong { font-size: 15px; }
+.glow-beauty-order-summary article aside p { font-size: 12px; }
+.glow-beauty-order-info article strong,
+.glow-beauty-order-info article b { font-size: 13px; }
+.glow-beauty-order-info article p { font-size: 11px; }
+.glow-beauty-order-support strong { font-size: 14px; }
+.glow-beauty-order-support p,
+.glow-beauty-order-support b { font-size: 12px; }
+.glow-beauty-order-actions button,
+.glow-beauty-order-actions a { font-size: 15px; }

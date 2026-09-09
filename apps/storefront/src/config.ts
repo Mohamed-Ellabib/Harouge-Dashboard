@@ -40,9 +40,30 @@ export class StorefrontConfigurationError extends Error {
 
 export const STOREFRONT_REQUEST_TIMEOUT_MS = 8_000;
 
+export const isStorefrontEditorPreviewEnabled = (): boolean =>
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("editor-preview") === "1";
+
+/**
+ * Template preview data never resolves a tenant and never writes commerce
+ * state. The general visual fixture remains development-only; the isolated
+ * editor iframe is also available in production so an authenticated admin can
+ * render an unsaved draft without publishing or putting it in a URL.
+ */
 export const isVisualPreviewEnabled = (): boolean =>
+  isStorefrontEditorPreviewEnabled() ||
+  (import.meta.env.DEV &&
+    (import.meta.env.VITE_STOREFRONT_VISUAL_PREVIEW === "true" ||
+      (typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("preview") === "1")));
+
+/** A direct development preview still uses the canonical Standard renderer. */
+export const isStandardTemplatePreviewEnabled = (): boolean =>
   import.meta.env.DEV &&
-  import.meta.env.VITE_STOREFRONT_VISUAL_PREVIEW === "true";
+  !isStorefrontEditorPreviewEnabled() &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("preview") === "1" &&
+  new URLSearchParams(window.location.search).get("template") === "standard";
 
 export type StorefrontRequestConfig = {
   publishableKey: string;

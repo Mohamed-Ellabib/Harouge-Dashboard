@@ -3,6 +3,8 @@ import { authenticate, defineMiddlewares } from "@medusajs/framework/http";
 import { authenticateVendorSession } from "./_utils/vendor-auth";
 
 import { attachMerchantStoreContext } from "./_utils/merchant-store-context";
+import { requirePlatformSuperAdmin } from "./_utils/platform-super-admin";
+import { requireDeviceSessionOrigin, revokePlatformDevice } from "./auth/platform-session/route";
 import { protectPublicCartStore } from "./_utils/public-cart-store";
 import { enforcePublicProductResponseBoundary } from "./_utils/public-product-response";
 import { attachPublicStoreContext } from "./_utils/public-store-context";
@@ -50,6 +52,17 @@ const vendorCors = (req, res, next) => {
 
 export default defineMiddlewares({
   routes: [
+    { matcher: "/auth/platform-session", middlewares: [requireDeviceSessionOrigin] },
+    {
+      matcher: "/auth/platform-session",
+      method: ["POST"],
+      middlewares: [authenticate("user", ["bearer"])],
+    },
+    {
+      matcher: "/auth/session",
+      method: ["DELETE"],
+      middlewares: [async (req, res, next) => { await revokePlatformDevice(req as any, res); next(); }],
+    },
     {
       matcher: "/store/products*",
       middlewares: [
@@ -74,12 +87,38 @@ export default defineMiddlewares({
       middlewares: [attachPublicStoreContext, protectPublicCartStore],
     },
     {
+      method: ["POST"],
+      matcher: "/admin/saas/uploads",
+      bodyParser: { sizeLimit: "4mb" },
+    },
+    {
+      method: ["PUT", "POST"],
+      matcher: "/admin/saas/creation-drafts*",
+      bodyParser: { sizeLimit: "256kb" },
+      middlewares: [],
+    },
+    {
+      matcher: "/admin/saas/stores/*/storefront/*",
+      bodyParser: { sizeLimit: "96kb" },
+    },
+    {
       matcher: "/admin/saas*",
-      middlewares: [authenticate("user", ["session", "bearer"])],
+      middlewares: [
+        authenticate("user", ["session", "bearer"]),
+        requirePlatformSuperAdmin,
+      ],
     },
     {
       matcher: "/admin/vendors*",
-      middlewares: [authenticate("user", ["session", "bearer"])],
+      middlewares: [
+        authenticate("user", ["session", "bearer"]),
+        requirePlatformSuperAdmin,
+      ],
+    },
+    {
+      method: ["POST"],
+      matcher: "/vendor/uploads",
+      bodyParser: { sizeLimit: "36mb" },
     },
     {
       matcher: "/vendor*",

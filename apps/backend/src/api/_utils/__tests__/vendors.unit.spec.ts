@@ -37,21 +37,33 @@ describe("vendor store boundaries", () => {
 
     expect(Object.keys(profile).sort()).toEqual([
       "branding",
+      "contact",
       "domain",
       "handle",
+      "locale",
       "name",
+      "storefront",
     ])
     expect(profile).toEqual({
       name: "Store A",
       handle: "store-a",
       domain: "store-a.example.test",
+      locale: "ar-LY",
+      contact: {
+        public_email: "private@example.test",
+        public_phone: null,
+        whatsapp_number: null,
+      },
       branding: {
         logo_url: "https://example.test/logo.png",
         primary_color: "#112233",
+        secondary_color: null,
+        typography_key: "cairo",
       },
+      storefront: null,
     })
     expect(JSON.stringify(profile)).not.toMatch(
-      /password_hash|session_version|vendor_internal|private@example|future_private_field|sc_a/
+      /password_hash|session_version|vendor_internal|future_private_field|sc_a/
     )
   })
 

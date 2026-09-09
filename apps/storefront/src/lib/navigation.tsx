@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 
 export type StorefrontLocation = {
   pathname: string;
@@ -16,6 +16,19 @@ export const navigate = (to: string, options?: { replace?: boolean }) => {
   if (target.origin !== window.location.origin) {
     window.location.assign(target);
     return;
+  }
+
+  const current = new URL(window.location.href);
+  const editorPreview = current.searchParams.get("editor-preview") === "1";
+  const developmentPreview = import.meta.env.DEV && (
+    import.meta.env.VITE_STOREFRONT_VISUAL_PREVIEW === "true" ||
+    current.searchParams.get("preview") === "1"
+  );
+  if (editorPreview || developmentPreview) {
+    for (const key of ["editor-preview", "setup-preview", "design-editor", "channel", "preview", "template", "locale"]) {
+      const value = current.searchParams.get(key);
+      if (value && !target.searchParams.has(key)) target.searchParams.set(key, value);
+    }
   }
 
   const method = options?.replace ? "replaceState" : "pushState";
@@ -50,6 +63,7 @@ type StorefrontLinkProps = {
   className?: string;
   ariaLabel?: string;
   onNavigate?: () => void;
+  style?: CSSProperties;
 };
 
 export const StorefrontLink = ({
@@ -58,6 +72,7 @@ export const StorefrontLink = ({
   className,
   ariaLabel,
   onNavigate,
+  style,
 }: StorefrontLinkProps) => {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
@@ -81,6 +96,7 @@ export const StorefrontLink = ({
       href={to}
       className={className}
       aria-label={ariaLabel}
+      style={style}
       onClick={handleClick}
     >
       {children}

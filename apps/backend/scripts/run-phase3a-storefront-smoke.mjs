@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const { Client } = require("pg");
 const {
+  assertOwnedDisposableDatabaseRun,
   assertSafeTestDatabase,
   loadTestEnvironment,
 } = require("./test-environment.js");
@@ -48,6 +49,7 @@ process.env.NODE_ENV = "test";
 loadTestEnvironment(backendDirectory);
 delete process.env.TEST_DATABASE_GUARD_VALIDATED;
 assertSafeTestDatabase();
+assertOwnedDisposableDatabaseRun();
 
 const testDatabaseUrl = new URL(process.env.TEST_DATABASE_URL);
 const localDatabaseHost = ["127.0.0.1", "localhost", "::1"].includes(

@@ -1,0 +1,40 @@
+.urbx-categories{font-family:var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-categories__back{display:grid;place-items:center;width:7cqw;height:8cqw;flex:none}
+.urbx-categories__intro{position:relative;isolation:isolate;padding:.8cqw 4.3cqw 2cqw}
+.urbx-categories__intro::before{content:"";position:absolute;inset:-4cqw 0 -10cqw;background:url("/assets/urbx/type-distress-v1.png") center/cover;filter:invert(1);opacity:.055;z-index:-1;pointer-events:none}
+.urbx-categories__intro h1{font:400 9.4cqw/1.2 var(--urbx-heading-font,"URBX Marker"),cursive;text-transform:uppercase;letter-spacing:-.3cqw;transform:skewX(-10deg) scaleX(.84);transform-origin:left;overflow-wrap:anywhere;width:115%}
+.urbx-categories__intro h1>span{position:relative;display:inline-block;color:var(--urbx-accent)}
+.urbx-categories__intro h1 img{position:absolute;bottom:-2.4cqw;left:0;width:100%;height:4.6cqw;mix-blend-mode:screen;pointer-events:none}
+.urbx-categories__intro p{font:400 3.4cqw/1.15 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;color:var(--urbx-muted,#aaa);margin-top:1.6cqw}
+.urbx-categories__search{display:flex;align-items:center;gap:2.3cqw;min-height:9.1cqw;margin:0 4.3cqw 2.7cqw;padding:0 2.5cqw;border:2px solid #575957;border-radius:1.5cqw;background:#ffffff04}
+.urbx-categories__search svg{width:4.9cqw;height:4.9cqw;flex:none;color:var(--urbx-muted,#898b89)}
+.urbx-categories__search input{width:100%;min-width:0;color:var(--urbx-text,#fff);background:none;border:0;outline:0;font:400 3.6cqw/1.4 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;padding:0}
+.urbx-categories__search input::placeholder{color:var(--urbx-muted,#999);opacity:1}
+.urbx-categories__search:focus-within{border-color:var(--urbx-accent)}
+.urbx-categories__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.85cqw;padding:0 3.1cqw}
+.urbx-categories__card{position:relative;isolation:isolate;border:2px solid #4a4c4a;border-radius:1.6cqw;overflow:hidden;background:#111;min-width:0}
+.urbx-categories__card>a{display:block;width:100%;height:100%}
+.urbx-categories__card--wide{grid-column:1/-1;aspect-ratio:810/402}
+.urbx-categories__card--second{aspect-ratio:810/382}
+.urbx-categories__card--small{aspect-ratio:397/329}
+.urbx-categories__art{position:absolute;inset:0}
+.urbx-categories__art img{display:block;width:100%;height:100%;object-fit:cover}
+.urbx-categories__copy{position:absolute;left:3.4cqw;top:13.6cqw;max-width:55%;pointer-events:none}
+.urbx-categories__copy [data-glow-edit]{pointer-events:auto}
+.urbx-categories__copy h2{font:400 10.8cqw/1.12 var(--urbx-heading-font,"URBX Anton"),Impact,sans-serif;text-transform:uppercase;overflow-wrap:anywhere}
+.urbx-categories__copy p{color:var(--urbx-muted,#b3b3b3);font:500 3.3cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;margin-top:1.1cqw}
+.urbx-categories__explore{display:flex;align-items:center;gap:2.5cqw;color:var(--urbx-accent);margin-top:2.4cqw}
+.urbx-categories__explore span{font:400 4.9cqw/1.15 var(--urbx-heading-font,"URBX Marker"),cursive;transform:skewX(-9deg) scaleX(.87);transform-origin:left;margin-right:-2cqw;text-transform:uppercase}
+.urbx-categories__explore svg{width:6.1cqw;height:6.1cqw;flex:none;stroke-width:.7px}
+.urbx-categories__card--small .urbx-categories__copy{left:2.4cqw;top:12.6cqw;max-width:93%}
+.urbx-categories__card--small h2{font-size:5.25cqw}
+.urbx-categories__card--small .urbx-categories__explore{margin-top:1.4cqw}
+.urbx-categories__card--accessories .urbx-categories__copy{top:auto;bottom:1cqw}
+.urbx-categories__card--accessories h2{font-size:4.9cqw}
+.urbx-categories__view-all{margin:3cqw 3.1cqw 0;border-top:2px solid #404240}
+.urbx-categories__view-all>a{display:flex;justify-content:space-between;align-items:center;gap:2cqw;min-height:10.4cqw;padding:1cqw 1.5cqw;font:600 3.8cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-categories__view-all svg{width:6.2cqw;height:6.2cqw;flex:none;color:var(--urbx-accent);stroke-width:.7px}
+.urbx-categories .urbx-home__bottom-nav{padding:3.3cqw 1.5cqw 6cqw}
+.urbx-categories__message{grid-column:1/-1;padding:4cqw 1cqw;font-size:3.5cqw;color:var(--urbx-muted,#bbb)}
+.urbx-categories__message button{color:var(--urbx-accent);text-decoration:underline;min-height:44px}
+@media(max-width:480px){.urbx-categories__card,.urbx-categories__search,.urbx-categories__view-all,.urbx-categories .urbx-home__bottom-nav{border-width:1px}}

@@ -1,6 +1,12 @@
 # Phase 3C Concierge Commerce MVP Contract
 
-Status: owner-approved for planning and implementation on 2026-08-01.
+Status: owner-approved for planning and implementation on 2026-08-01; amended
+on 2026-08-24 for `luxe-commerce-full`, on 2026-08-29 for `standard`, and on
+2026-08-31 for `glow-beauty` as the third Templates Studio selection, and on
+2026-09-05 for `drops` as the fourth visible selection and the shared resumable
+creation flow across those four templates (see `adr-store-creation-drafts.md`).
+The registry retains three hidden historical templates for compatibility.
+This bounded amendment does not authorize production or public traffic.
 
 ## Objective
 
@@ -21,7 +27,7 @@ template, applies the merchant brand, and connects the custom domain.
 - one merchant per Cart and Order;
 - one flat-rate Libya delivery option per Store;
 - manual merchant subscription invoicing outside the platform;
-- three reusable storefront templates sharing one commerce implementation;
+- six reusable storefront templates sharing one commerce implementation;
 - custom merchant domains connected through an assisted platform operation.
 
 ## Platform owner journey
@@ -31,7 +37,7 @@ The platform owner:
 1. receives and reviews a merchant lead outside the application;
 2. creates the merchant and canonical Store through platform-only provisioning;
 3. assigns the commerce-enabled plan and runs assisted commerce setup;
-4. selects one of three shared templates;
+4. selects one of six shared templates;
 5. configures Store name, logo, colors, typography, contact details, bank-transfer
    instructions, policy content, and About content;
 6. connects and verifies the merchant custom domain;
@@ -128,10 +134,23 @@ capture, settlement, or refund behavior.
 
 ## Storefront templates and content
 
-The MVP contains exactly three templates. They share the same routing, Store
+The MVP originally contained exactly three templates. On 2026-08-24 the owner
+explicitly authorized the separately keyed `luxe-commerce-full` template, and
+on 2026-08-29 explicitly authorized the separately keyed `standard` template,
+and on 2026-08-31 explicitly authorized the separately keyed `glow-beauty`
+template as the third Templates Studio selection, while requiring the existing
+templates to remain unchanged. All six share the same routing, Store
 context, DTO mappers, Cart, checkout, inventory, accessibility, and security
 code. A template changes presentation and section composition; it cannot weaken
 Store isolation or create a separate commerce implementation.
+
+The 2026-08-31 owner correction additionally authorizes `glow-beauty` to copy
+its complete reference catalog into an empty commerce-ready Store when the
+owner explicitly installs the template. Those six Products, images, LYD
+prices, size/color variants, and stock records are persisted through the
+existing Medusa/Supabase Store authorities and are editable like other merchant
+catalog data. Template code remains presentation-only at runtime: it may not
+silently replace, merge with, or fall back over a Store's real catalog.
 
 Each template supports:
 
@@ -195,7 +214,7 @@ Before public traffic:
 3. variant inventory deduction and cancellation restoration;
 4. COD and manual bank-transfer Order methods;
 5. merchant Order operations and WhatsApp notifications;
-6. three bilingual templates and required content surfaces;
+6. six bilingual templates and required content surfaces;
 7. custom-domain production edge, backups, monitoring, and staging;
 8. two-Store staging acceptance followed by a limited merchant launch.
 
@@ -216,7 +235,7 @@ Phase 3C is complete only when:
 6. WhatsApp success, retry, duplicate-delivery, and provider-outage behavior is
    accepted, or the documented dashboard fallback is explicitly approved for
    initial launch;
-7. all three templates pass responsive, RTL/LTR, keyboard, and production-bundle
+7. all six templates pass responsive, RTL/LTR, keyboard, and production-bundle
    checks;
 8. backup restoration and backend restart persistence pass;
 9. no production credential or customer personal data appears in source,

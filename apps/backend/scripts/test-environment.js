@@ -1,9 +1,19 @@
 /* eslint-disable @medusajs/use-medusa-error-not-generic-error */
+const { createHash, timingSafeEqual } = require("crypto")
 const { existsSync, readFileSync } = require("fs")
+const { tmpdir } = require("os")
 const { resolve } = require("path")
 
 const DISPOSABLE_DATABASE_NAME = "medusa_phase05_disposable"
 const DISPOSABLE_ACKNOWLEDGEMENT = "medusa_phase05_disposable"
+const DISPOSABLE_DATABASE_GUARD = "validated-v1"
+const DISPOSABLE_DATABASE_LOCK_PATH = resolve(
+  tmpdir(),
+  "medusa-phase05",
+  "test-data",
+  "locks",
+  "disposable-postgres-run.lock"
+)
 
 const loadEnvironmentFile = (filePath) => {
   if (!existsSync(filePath)) {
@@ -93,14 +103,9 @@ const assertSafeTestDatabase = () => {
   }
 
   const isLocal = ["127.0.0.1", "localhost", "::1"].includes(url.hostname)
-  const isolatedRemoteApproved =
-    process.env.ALLOW_REMOTE_ISOLATED_TEST_DATABASE === "true" &&
-    Boolean(process.env.TEST_DATABASE_BRANCH_ID)
 
-  if (!isLocal && !isolatedRemoteApproved) {
-    throw new Error(
-      "Remote test databases require an explicit isolated branch identifier."
-    )
+  if (!isLocal) {
+    throw new Error("Backend tests require loopback disposable PostgreSQL.")
   }
 
   process.env.DB_HOST = url.hostname
@@ -116,8 +121,71 @@ const assertSafeTestDatabase = () => {
   }
 }
 
+const processIsAlive = (pid) => {
+  if (!Number.isSafeInteger(pid) || pid <= 0) {
+    return false
+  }
+
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code !== "ESRCH"
+  }
+}
+
+const assertOwnedDisposableDatabaseRun = () => {
+  const runToken = process.env.LABIBTECH_DISPOSABLE_TEST_RUN_TOKEN || ""
+  const configuredLockPath = resolve(
+    process.env.DISPOSABLE_DATABASE_LOCK_PATH || ""
+  )
+
+  if (
+    process.env.LABIBTECH_DISPOSABLE_TEST_DATABASE_GUARD !==
+      DISPOSABLE_DATABASE_GUARD ||
+    process.env.DISPOSABLE_DATABASE_RUN_LOCK_HELD !== "true" ||
+    configuredLockPath !== DISPOSABLE_DATABASE_LOCK_PATH ||
+    !runToken ||
+    !existsSync(DISPOSABLE_DATABASE_LOCK_PATH)
+  ) {
+    throw new Error(
+      "The owned disposable PostgreSQL run context is required."
+    )
+  }
+
+  let lockState
+
+  try {
+    lockState = JSON.parse(readFileSync(DISPOSABLE_DATABASE_LOCK_PATH, "utf8"))
+  } catch {
+    throw new Error("The disposable PostgreSQL ownership lock is invalid.")
+  }
+
+  const expectedTokenHash = createHash("sha256")
+    .update(runToken)
+    .digest()
+  const actualTokenHash = Buffer.from(lockState.runTokenHash || "", "hex")
+  const childPidMatches =
+    Number(lockState.childPid) === process.pid ||
+    (lockState.childPid === null && Number(lockState.pid) === process.ppid)
+
+  if (
+    !childPidMatches ||
+    !processIsAlive(Number(lockState.pid)) ||
+    actualTokenHash.length !== expectedTokenHash.length ||
+    !timingSafeEqual(actualTokenHash, expectedTokenHash)
+  ) {
+    throw new Error("The disposable PostgreSQL ownership lock is not current.")
+  }
+
+  return lockState
+}
+
 module.exports = {
+  DISPOSABLE_DATABASE_GUARD,
+  DISPOSABLE_DATABASE_LOCK_PATH,
   DISPOSABLE_DATABASE_NAME,
+  assertOwnedDisposableDatabaseRun,
   assertSafeTestDatabase,
   loadTestEnvironment,
 }

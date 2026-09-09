@@ -3,7 +3,7 @@
 Before changing code in this repository:
 
 1. Read `docs/saas-pivot/HANDOFF.md` completely.
-2. Read `docs/saas-pivot/roadmap-status.md` and the ADRs relevant to the requested phase.
+2. Use `docs/README.md` to find current guidance, then read `docs/saas-pivot/roadmap-status.md` and the ADRs relevant to the requested phase.
 3. Run `git status --short --branch` and `git log --oneline -8`.
 4. Confirm the requested work does not cross a phase boundary without explicit owner approval.
 
@@ -12,7 +12,9 @@ Before changing code in this repository:
 - Never print, commit, log, or place credentials in fixtures or documentation.
 - Never access Neon for tests, migrations, diagnostics, backfills, or acceptance work.
 - The previously exposed Neon credential rotation is unverified. Production migration remains blocked.
+- Interactive development may use only the tracked, pinned Supabase development project through the guarded Supabase runner. Never use that project for production or automated tests.
 - Use the guarded disposable PostgreSQL configuration and `TEST_DATABASE_URL` for tests.
+- Every automated backend test and acceptance command must own its loopback disposable PostgreSQL process; never attach to an already-running database port.
 - Do not silently use `DATABASE_URL` when a test database is unavailable.
 - Do not remove the legacy Vendor compatibility layer until a separately approved migration phase.
 - Do not perform a broad security scan unless the owner explicitly requests one.

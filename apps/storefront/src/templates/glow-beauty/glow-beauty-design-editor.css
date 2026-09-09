@@ -1,0 +1,30 @@
+.glow-design-editing [data-glow-edit] { cursor: pointer; }
+.glow-design-editing [data-glow-edit]:hover,
+.glow-design-editing [data-glow-edit]:focus-visible { outline: 2px dashed #006ce5; outline-offset: 3px; }
+.glow-design-editing .glow-beauty-hero > img { pointer-events: auto; }
+.glow-beauty-categories button > span.glow-beauty-category-label {
+  display: block; width: auto; height: auto; overflow: visible; border: 0;
+  border-radius: 0; background: transparent; transform: none;
+}
+.glow-beauty-bottom-nav a > span.glow-beauty-nav-label { display: block; width: auto; height: auto; }
+
+/* Shared by every original design page; no typography or geometry overrides. */
+.glow-design-personalized .glow-beauty-page {
+  --beauty-orange: var(--glow-canvas-accent);
+  --beauty-orange-deep: var(--glow-canvas-accent-deep);
+}
+.glow-design-background .glow-beauty-page {
+  background-color: color-mix(in srgb, var(--glow-canvas-background) 25%, white);
+}
+.glow-design-background .glow-beauty-hero,
+.glow-design-background .glow-beauty-offer,
+.glow-design-background .glow-beauty-categories button > span:not(.glow-beauty-category-label),
+.glow-design-background .glow-beauty-cart-delivery-banner,
+.glow-design-background .glow-beauty-review-promo {
+  background-color: color-mix(in srgb, var(--glow-canvas-background) 60%, white);
+}
+.glow-design-personalized .glow-beauty-hero__copy > span,
+.glow-design-personalized .glow-beauty-offers-icon { color: var(--beauty-orange-deep); }
+.glow-design-personalized .glow-beauty-categories button.is-active > span {
+  border-color: color-mix(in srgb, var(--beauty-orange) 30%, white);
+}

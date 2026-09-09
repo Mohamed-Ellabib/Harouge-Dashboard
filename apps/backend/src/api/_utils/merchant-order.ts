@@ -1,4 +1,5 @@
 import { getOrdersListWorkflow } from "@medusajs/core-flows"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MedusaRequest } from "@medusajs/framework/http"
 
 import { exclusivelyOwnedIds, listStoreOrderLinks } from "./checkout-ownership-links"
@@ -23,6 +24,7 @@ export type MerchantOrder = {
   updated_at: string
   vendor_total: number
   items: MerchantOrderItem[]
+  fulfillment_progress?: { status: string; revision: number }
 }
 
 const itemProductId = (item: Record<string, any>): string | null =>
@@ -119,7 +121,10 @@ export const listMerchantOrders = async (
   })
   const rows = Array.isArray(result) ? result : result.rows
 
+  const progressRows = await (req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION) as any)("store_order_progress")
+    .where({ store_id: medusaStoreId }).whereIn("order_id", ownedOrderIds).whereNull("deleted_at")
   return rows
     .map((order: Record<string, any>) => serializeMerchantOrder(order, allowedProductIds))
     .filter((order): order is MerchantOrder => Boolean(order))
+    .map(order => { const progress = progressRows.find((row: any) => row.order_id === order.id); return { ...order, fulfillment_progress: { status: progress?.status ?? "confirmed", revision: progress?.revision ?? 0 } } })
 }

@@ -1,0 +1,611 @@
+.sunglasses-page .watches-page__hero {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 6, 0.95) 0%, rgba(5, 5, 6, 0.7) 36%, rgba(5, 5, 6, 0.16) 66%, rgba(5, 5, 6, 0.2) 100%),
+    url("/product-assets/glasses-hero-dark.webp") right center / cover no-repeat,
+    #080808;
+}
+
+.sunglasses-page .watches-page__product--skeleton {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #101112;
+}
+
+.sunglasses-page .watches-page__product-image--skeleton {
+  inset: 20px 24px 128px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+@media (max-width: 520px) {
+  .sunglasses-page .watches-page__product-image--skeleton {
+    inset: 15px 12px 101px;
+    border-radius: 12px;
+  }
+}
+
+.sunglasses-page .watches-page__hero-copy > span {
+  letter-spacing: 8px;
+}
+
+.sunglasses-page .watches-page__product-image {
+  inset: 20px 24px 128px;
+  place-items: center;
+  overflow: visible;
+}
+
+.sunglasses-page .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+  transform: none;
+}
+
+.sunglasses-page .watches-page__product:nth-child(1) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.sunglasses-page .watches-page__product:nth-child(2) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.sunglasses-page .watches-page__product:nth-child(3) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.sunglasses-page .watches-page__product:nth-child(4) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.sunglasses-page .watches-page__product--skeleton .watches-page__product-image img.watches-page__skeleton-product-render {
+  width: 78%;
+  height: 78%;
+  max-width: none;
+  max-height: none;
+  transform: translateY(-8%);
+}
+
+.sunglasses-page .watches-page__product--skeleton {
+  border-color: color-mix(in srgb, var(--brand-secondary-decoration) 32%, transparent);
+  background:
+    radial-gradient(circle at 49% 30%, rgba(131, 151, 156, 0.15), transparent 34%),
+    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--brand-secondary-decoration) 8%, transparent), rgba(255, 255, 255, 0.02) 42%, transparent 66%),
+    linear-gradient(155deg, rgba(18, 19, 19, 0.98), rgba(3, 4, 4, 0.99) 74%);
+}
+
+.sunglasses-page .watches-page__product--image-skeleton {
+  aspect-ratio: 2 / 3;
+  height: auto;
+}
+
+.sunglasses-page .watches-page__skeleton--glasses {
+  inset: 76px 24px 154px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sunglasses-page .watches-page__skeleton--glasses::before {
+  display: none;
+}
+
+.sunglasses-page .watches-page__skeleton--glasses::after {
+  inset: -22% -8%;
+  z-index: 4;
+  border-radius: 32px;
+  background: linear-gradient(105deg, transparent 27%, rgba(222, 242, 246, 0.12) 47%, transparent 65%);
+  opacity: 0.78;
+}
+
+.sunglasses-page__glasses-skeleton,
+.sunglasses-page__glasses-skeleton span {
+  position: absolute;
+  display: block;
+}
+
+.sunglasses-page__glasses-skeleton {
+  inset: 13% -2% 16%;
+  z-index: 2;
+  filter: drop-shadow(0 25px 26px rgba(0, 0, 0, 0.48));
+  opacity: 0.86;
+}
+
+.sunglasses-page__glasses-lens {
+  top: 22%;
+  width: 43%;
+  height: 55%;
+  border: 2px solid color-mix(in srgb, var(--brand-secondary-decoration-soft) 22%, transparent);
+  background:
+    radial-gradient(circle at 33% 20%, rgba(255, 255, 255, 0.12), transparent 28%),
+    linear-gradient(145deg, rgba(116, 136, 137, 0.32), rgba(28, 31, 31, 0.86) 66%);
+  box-shadow:
+    inset 0 2px 10px rgba(255, 255, 255, 0.055),
+    inset 0 -18px 28px rgba(0, 0, 0, 0.26);
+}
+
+.sunglasses-page__glasses-lens--left {
+  left: 4%;
+  border-radius: 38% 28% 45% 50% / 34% 34% 58% 58%;
+  transform: rotate(5deg);
+}
+
+.sunglasses-page__glasses-lens--right {
+  right: 4%;
+  border-radius: 28% 38% 50% 45% / 34% 34% 58% 58%;
+  transform: rotate(-5deg);
+}
+
+.sunglasses-page__glasses-bridge {
+  top: 41%;
+  left: 50%;
+  width: 18%;
+  height: 12%;
+  transform: translateX(-50%);
+  border-top: 3px solid color-mix(in srgb, var(--brand-secondary-decoration-soft) 42%, transparent);
+  border-radius: 50% 50% 0 0;
+}
+
+.sunglasses-page__glasses-arm {
+  top: 30%;
+  width: 30%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(99, 85, 67, 0.9), color-mix(in srgb, var(--brand-secondary-decoration) 66%, transparent));
+  transform-origin: center;
+}
+
+.sunglasses-page__glasses-arm--left {
+  left: -11%;
+  transform: rotate(18deg);
+}
+
+.sunglasses-page__glasses-arm--right {
+  right: -11%;
+  transform: rotate(-18deg);
+}
+
+.sunglasses-page .watches-page__skeleton--badge {
+  width: 76px;
+}
+
+.sunglasses-page .watches-page__skeleton--brand {
+  width: min(78%, 242px);
+}
+
+.sunglasses-page .watches-page__skeleton--name {
+  width: min(65%, 204px);
+}
+
+@media (max-width: 640px) {
+  .sunglasses-page .watches-page__hero {
+    background:
+      linear-gradient(90deg, rgba(5, 5, 6, 0.95) 0%, rgba(5, 5, 6, 0.68) 39%, rgba(5, 5, 6, 0.2) 68%, rgba(5, 5, 6, 0.18) 100%),
+      url("/product-assets/glasses-hero-dark.webp") 67% center / cover no-repeat,
+      #080808;
+  }
+
+  .sunglasses-page .watches-page__hero-copy > span {
+    letter-spacing: 4px;
+  }
+
+  .sunglasses-page .watches-page__product-image {
+    inset: 15px 12px 100px;
+  }
+
+  .sunglasses-page .watches-page__product-image img,
+  .sunglasses-page .watches-page__product:nth-child(1) .watches-page__product-image img,
+  .sunglasses-page .watches-page__product:nth-child(2) .watches-page__product-image img,
+  .sunglasses-page .watches-page__product:nth-child(3) .watches-page__product-image img,
+  .sunglasses-page .watches-page__product:nth-child(4) .watches-page__product-image img {
+    max-width: 114%;
+    max-height: 110%;
+    transform: none;
+  }
+
+  .sunglasses-page .watches-page__product--skeleton .watches-page__product-image img.watches-page__skeleton-product-render {
+    width: 78%;
+    height: 78%;
+    max-width: none;
+    max-height: none;
+    transform: translateY(-8%);
+  }
+
+  .sunglasses-page .watches-page__skeleton--glasses {
+    inset: 52px 12px 105px;
+  }
+
+  .sunglasses-page__glasses-skeleton {
+    inset: 14% -5% 17%;
+  }
+
+  .sunglasses-page__glasses-lens {
+    border-width: 1px;
+  }
+
+  .sunglasses-page__glasses-bridge {
+    border-top-width: 2px;
+  }
+
+  .sunglasses-page__glasses-arm {
+    height: 2px;
+  }
+
+  .sunglasses-page .watches-page__skeleton--badge {
+    width: 43px;
+  }
+
+  .sunglasses-page .watches-page__skeleton--brand {
+    width: calc(100% - 38px);
+  }
+
+  .sunglasses-page .watches-page__skeleton--name {
+    width: calc(100% - 58px);
+  }
+}
+
+.sunglasses-page .watches-page__product--skeleton {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #101112;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sunglasses-page .watches-page__product-image--skeleton {
+  inset: 20px 24px 128px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .sunglasses-page .watches-page__product-image--skeleton {
+    inset: 15px 12px 101px;
+    border-radius: 12px;
+  }
+}
+
+.sunglasses-page {
+  --watch-bg: #fffaf1;
+  --watch-panel: #fffdf8;
+  --watch-panel-soft: #f6efe4;
+  --watch-border: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  --watch-text: #171412;
+  --watch-muted: rgba(24, 21, 19, 0.64);
+  --watch-gold: var(--brand-decoration, #b77f3f);
+  --watch-gold-strong: var(--brand-accent, #9d692f);
+  background:
+    radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--brand-secondary-decoration) 16%, transparent), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #f6efe4 54%, #fffaf1 100%);
+  color: var(--watch-text);
+}
+
+.sunglasses-page .watches-page__phone-shell {
+  background:
+    radial-gradient(circle at 14% 6%, rgba(255, 255, 255, 0.8), transparent 24%),
+    radial-gradient(circle at 82% 26%, color-mix(in srgb, var(--brand-secondary-decoration) 10%, transparent), transparent 28%),
+    var(--watch-bg);
+}
+
+.sunglasses-page .watches-page__top {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(255, 250, 241, 0.92) 72%, rgba(255, 250, 241, 0));
+}
+
+.sunglasses-page .watches-page__header h1,
+.sunglasses-page .watches-page__tools-header strong,
+.sunglasses-page .watches-page__filter-group strong,
+.sunglasses-page .watches-page__empty strong {
+  color: #171412;
+}
+
+.sunglasses-page .watches-page__icon-button,
+.sunglasses-page .watches-page__tools-close {
+  color: #201914;
+}
+
+.sunglasses-page .watches-page__icon-button:hover,
+.sunglasses-page .watches-page__tools-close:hover,
+.sunglasses-page .watches-page__tabs button.is-active {
+  color: var(--watch-gold);
+}
+
+.sunglasses-page .watches-page__cart-button span {
+  background: var(--watch-gold);
+  color: #fffaf1;
+}
+
+.sunglasses-page .watches-page__tabs button {
+  color: rgba(24, 21, 19, 0.62);
+}
+
+.sunglasses-page .watches-page__hero {
+  border-color: color-mix(in srgb, var(--brand-decoration) 28%, transparent);
+  background:
+    linear-gradient(90deg, rgba(255, 250, 241, 0.97) 0%, rgba(255, 250, 241, 0.76) 35%, rgba(255, 250, 241, 0.18) 68%, rgba(255, 250, 241, 0.08) 100%),
+    url("/customer-assets/home-hero-light-accessories.webp") right center / cover no-repeat,
+    #fffaf1;
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--brand-accent) 12%, transparent);
+}
+
+.sunglasses-page .watches-page__hero::after {
+  background: transparent;
+}
+
+.sunglasses-page .watches-page__hero-copy strong,
+.sunglasses-page .watches-page__hero-copy > span,
+.sunglasses-page .watches-page__hero-copy p,
+.sunglasses-page .watches-page__hero-copy h2 {
+  color: #171412;
+}
+
+.sunglasses-page .watches-page__hero-copy mark {
+  color: var(--watch-gold);
+}
+
+.sunglasses-page .watches-page__controls {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.78), transparent 52%),
+    rgba(255, 250, 241, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 14px 30px color-mix(in srgb, var(--brand-accent) 10%, transparent);
+}
+
+.sunglasses-page .watches-page__controls > button {
+  color: rgba(24, 21, 19, 0.72);
+}
+
+.sunglasses-page .watches-page__controls > button:hover,
+.sunglasses-page .watches-page__controls > button.is-active {
+  color: #fffaf1;
+  background: linear-gradient(180deg, var(--brand-secondary-decoration, #c99655), var(--brand-accent, #a96f31));
+}
+
+.sunglasses-page .watches-page__controls > i {
+  background: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+}
+
+.sunglasses-page .watches-page__tools-backdrop {
+  background: rgba(70, 50, 28, 0.22);
+}
+
+.sunglasses-page .watches-page__tools-panel {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 24% 0%, rgba(255, 255, 255, 0.84), transparent 32%),
+    linear-gradient(145deg, rgba(255, 250, 241, 0.99), rgba(246, 239, 228, 0.99));
+  box-shadow: 0 -24px 70px color-mix(in srgb, var(--brand-accent) 22%, transparent);
+}
+
+.sunglasses-page .watches-page__tools-handle {
+  background: color-mix(in srgb, var(--brand-decoration) 28%, transparent);
+}
+
+.sunglasses-page .watches-page__filter-group button,
+.sunglasses-page .watches-page__price-values span {
+  border-color: color-mix(in srgb, var(--brand-decoration) 24%, transparent);
+  background: rgba(255, 255, 255, 0.46);
+  color: rgba(24, 21, 19, 0.72);
+}
+
+.sunglasses-page .watches-page__filter-group button:hover,
+.sunglasses-page .watches-page__filter-group button.is-selected {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  background: color-mix(in srgb, var(--brand-decoration) 10%, transparent);
+  color: var(--watch-gold);
+}
+
+.sunglasses-page .watches-page__range::before {
+  background: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+}
+
+.sunglasses-page .watches-page__range::after {
+  background: linear-gradient(90deg, var(--brand-accent, #a96f31), var(--brand-secondary-decoration, #d6a96d));
+}
+
+.sunglasses-page .watches-page__range input::-webkit-slider-thumb {
+  border-color: rgba(255, 250, 241, 0.95);
+  background: var(--brand-decoration, #b77f3f);
+}
+
+.sunglasses-page .watches-page__range input::-moz-range-thumb {
+  border-color: rgba(255, 250, 241, 0.95);
+  background: var(--brand-decoration, #b77f3f);
+}
+
+.sunglasses-page .watches-page__tools-actions button:last-child {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  color: var(--watch-gold);
+}
+
+.sunglasses-page .watches-page__tools-count,
+.sunglasses-page .watches-page__empty span {
+  color: rgba(24, 21, 19, 0.56);
+}
+
+.sunglasses-page .watches-page__product,
+.sunglasses-page .watches-page__product--skeleton {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 14px 30px color-mix(in srgb, var(--brand-accent) 9%, transparent);
+}
+
+.sunglasses-page .watches-page__product-image {
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-decoration) 8%, transparent);
+}
+
+.sunglasses-page .watches-page__product-image img {
+  filter: none;
+  mix-blend-mode: multiply;
+}
+
+.sunglasses-page .product-image-carousel__dots span {
+  background: rgba(37, 32, 27, 0.22);
+  box-shadow: none;
+}
+
+.sunglasses-page .product-image-carousel__dots span.is-active {
+  background: var(--brand-secondary-decoration, #c99655);
+}
+
+.sunglasses-page .watches-page__favorite {
+  color: #2d2720;
+}
+
+.sunglasses-page .watches-page__favorite.is-active,
+.sunglasses-page .watches-page__card-cart {
+  color: var(--brand-secondary-decoration, #c99655);
+}
+
+.sunglasses-page .watches-page__card-cart,
+.sunglasses-page .watches-page__card-cart--skeleton {
+  border-color: color-mix(in srgb, var(--brand-decoration) 34%, transparent);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.78), transparent 52%),
+    rgba(255, 250, 241, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 22px color-mix(in srgb, var(--brand-accent) 12%, transparent);
+}
+
+.sunglasses-page .watches-page__card-cart:hover {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  background: rgba(255, 246, 230, 0.96);
+}
+
+.sunglasses-page .watches-page__card-cart:disabled {
+  color: rgba(45, 39, 32, 0.34);
+  border-color: rgba(45, 39, 32, 0.12);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.sunglasses-page .watches-page__product-copy strong,
+.sunglasses-page .watches-page__product-copy b {
+  color: #171412;
+}
+
+.sunglasses-page .watches-page__product-copy span,
+.sunglasses-page .watches-page__price small {
+  color: #63594d;
+}
+
+.sunglasses-page .watches-page__price--sale b {
+  color: var(--brand-accent, #9d692f);
+}
+
+.sunglasses-page .watches-page__stock-note {
+  border-color: color-mix(in srgb, var(--brand-decoration) 34%, transparent);
+  background: rgba(255, 249, 238, 0.88);
+  color: var(--brand-accent, #9a672d);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.sunglasses-page .watches-page__product-image--skeleton,
+.sunglasses-page .watches-page__copy-skeleton,
+.sunglasses-page .watches-page__favorite--skeleton,
+.sunglasses-page .watches-page__card-cart--skeleton {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--brand-decoration) 8%, transparent), color-mix(in srgb, var(--brand-decoration) 15%, transparent), color-mix(in srgb, var(--brand-decoration) 8%, transparent)),
+    color-mix(in srgb, var(--brand-decoration) 10%, transparent);
+}
+
+.sunglasses-page .watches-page__product--skeleton::before,
+.sunglasses-page .watches-page__product-image--skeleton::after,
+.sunglasses-page .watches-page__copy-skeleton::after,
+.sunglasses-page .watches-page__favorite--skeleton::after,
+.sunglasses-page .watches-page__card-cart--skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.44), transparent);
+}
+
+.sunglasses-page .watches-page__empty {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 50% 33%, color-mix(in srgb, var(--brand-secondary-decoration) 16%, transparent), transparent 52%),
+    linear-gradient(180deg, #fffdf8 0%, #f6efe4 100%);
+}
+
+@media (max-width: 640px) {
+  .sunglasses-page .watches-page__hero {
+    background:
+      linear-gradient(90deg, rgba(255, 250, 241, 0.97) 0%, rgba(255, 250, 241, 0.76) 39%, rgba(255, 250, 241, 0.2) 68%, rgba(255, 250, 241, 0.08) 100%),
+      url("/customer-assets/home-hero-light-accessories.webp") 67% center / cover no-repeat,
+      #fffaf1;
+  }
+}
+
+@media (min-width: 850px) {
+  .sunglasses-page .watches-page__phone-shell {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-decoration) 16%, transparent), 0 28px 80px color-mix(in srgb, var(--brand-accent) 14%, transparent);
+  }
+}
+
+.sunglasses-page {
+  --product-card-image-scale: 1;
+}
+
+.sunglasses-page .watches-page__product-image {
+  inset: 44px 10px 90px;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  place-items: center;
+}
+
+.sunglasses-page .watches-page__product:not(.watches-page__product--skeleton) .watches-page__product-image img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(var(--product-card-image-scale));
+  transform-origin: center;
+  filter: none;
+  mix-blend-mode: multiply;
+}
+
+@media (max-width: 640px) {
+  .sunglasses-page {
+    --product-card-image-scale: 1;
+  }
+
+  .sunglasses-page .watches-page__product-image {
+    inset: 42px 4px 64px;
+  }
+}
+
+/* Flip only the hero artwork; copy keeps its original position. */
+.sunglasses-page .watches-page__hero {
+  background: #fffaf1;
+}
+
+.sunglasses-page .watches-page__hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url("/customer-assets/home-hero-light-accessories.webp") center / cover no-repeat;
+  transform: scaleX(-1);
+}
+
+.sunglasses-page .watches-page__hero::after {
+  background: linear-gradient(90deg, rgba(255, 250, 241, .97) 0%, rgba(255, 250, 241, .76) 35%, rgba(255, 250, 241, .18) 68%, rgba(255, 250, 241, .08) 100%);
+}
+
+@media (max-width: 640px) {
+  .sunglasses-page .watches-page__hero::before {
+    background-position: 67% center;
+  }
+}

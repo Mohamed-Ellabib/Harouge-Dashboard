@@ -9,6 +9,7 @@ import { MARKETPLACE_MODULE } from "../../modules/marketplace"
 import type MarketplaceModuleService from "../../modules/marketplace/service"
 import { SAAS_MODULE } from "../../modules/saas"
 import type SaasModuleService from "../../modules/saas/service"
+import { updateMerchantStorePresentation } from "./platform-store-configuration"
 
 type Scope = {
   resolve: (key: string) => any
@@ -382,90 +383,21 @@ export const updateLegacyCompatibleStore = async (
     storeProfileId: string
     medusaStoreId: string
   },
-  update: CompatibleStoreUpdate
+  update: CompatibleStoreUpdate,
+  actorId: string,
 ): Promise<void> => {
-  const saas = getSaasService(input)
-  const marketplace = getLegacyMarketplaceService(input)
-  const storeService = scopeFor(input).resolve(Modules.STORE) as any
-  const [vendor, profile, store] = await Promise.all([
-    marketplace.retrieveVendor(binding.vendorId),
-    saas.retrieveStoreProfile(binding.storeProfileId),
-    storeService.retrieveStore(binding.medusaStoreId),
-  ])
-  const brand = await getPermanentBrand(input, binding.storeProfileId)
-  const legacyUpdate: Record<string, unknown> = { id: binding.vendorId }
-
-  if (update.name !== undefined) {
-    legacyUpdate.name = update.name
-    await storeService.updateStores(binding.medusaStoreId, {
-      name: update.name,
-    })
-  }
-
-  if (update.public_contact_email !== undefined) {
-    legacyUpdate.contact_email = update.public_contact_email
-    await saas.updateStoreProfiles({
-      id: binding.storeProfileId,
-      public_contact_email: update.public_contact_email,
-    } as any)
-  }
-
-  const brandChanged =
-    update.logo_url !== undefined || update.primary_color !== undefined
-
-  if (brandChanged) {
-    if (update.logo_url !== undefined) {
-      legacyUpdate.logo_url = update.logo_url
-    }
-    if (update.primary_color !== undefined) {
-      legacyUpdate.primary_color = update.primary_color
-    }
-
-    if (brand) {
-      await saas.updateStoreBrands({
-        id: brand.id,
-        ...(update.logo_url !== undefined ? { logo_url: update.logo_url } : {}),
-        ...(update.primary_color !== undefined
-          ? { primary_color: update.primary_color }
-          : {}),
-      } as any)
-    } else {
-      await saas.createStoreBrands({
-        store_profile_id: binding.storeProfileId,
-        logo_url: update.logo_url ?? null,
-        primary_color: update.primary_color ?? null,
-      } as any)
-    }
-  }
-
-  try {
-    await marketplace.updateVendors(legacyUpdate as any)
-  } catch (error) {
-    await Promise.allSettled([
-      storeService.updateStores(binding.medusaStoreId, { name: store.name }),
-      saas.updateStoreProfiles({
-        id: binding.storeProfileId,
-        public_contact_email: profile.public_contact_email ?? null,
-      } as any),
-      ...(brand
-        ? [
-            saas.updateStoreBrands({
-              id: brand.id,
-              logo_url: brand.logo_url ?? null,
-              primary_color: brand.primary_color ?? null,
-            } as any),
-          ]
-        : []),
-    ])
-    throw error
-  }
-
-  void vendor
+  await updateMerchantStorePresentation(
+    input.scope,
+    binding,
+    update,
+    actorId,
+  )
 }
 export const serializePermanentPublicStoreProfile = (
   binding: PermanentStoreBinding,
   domains: Record<string, any>[],
-  brand: Record<string, any> | null
+  brand: Record<string, any> | null,
+  storefront: import("./vendors").PublicStoreProfile["storefront"],
 ) => {
   const primary =
     domains.find((domain) => domain.is_primary) ?? domains[0] ?? null
@@ -474,9 +406,20 @@ export const serializePermanentPublicStoreProfile = (
     name: binding.medusaStore.name,
     handle: binding.storeProfile.handle,
     domain: primary?.normalized_hostname ?? null,
+    locale: (binding.storeProfile.locale === "en-LY"
+      ? "en-LY"
+      : "ar-LY") as "ar-LY" | "en-LY",
+    contact: {
+      public_email: binding.storeProfile.public_contact_email ?? null,
+      public_phone: binding.storeProfile.public_phone ?? null,
+      whatsapp_number: binding.storeProfile.whatsapp_number ?? null,
+    },
     branding: {
       logo_url: brand?.logo_url ?? null,
       primary_color: brand?.primary_color ?? null,
+      secondary_color: brand?.secondary_color ?? null,
+      typography_key: "cairo" as const,
     },
+    storefront,
   }
 }

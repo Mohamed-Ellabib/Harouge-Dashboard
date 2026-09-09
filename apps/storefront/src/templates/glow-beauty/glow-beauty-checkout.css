@@ -1,0 +1,451 @@
+.glow-beauty-checkout-page {
+  min-height: 922px;
+  padding: 12px 21px 66px;
+}
+
+.glow-beauty-checkout-header {
+  display: grid;
+  height: 44px;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 8px;
+}
+
+.glow-beauty-checkout-header > a,
+.glow-beauty-checkout-header > button {
+  display: grid;
+  width: 37px;
+  height: 34px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--beauty-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(78, 51, 34, 0.055);
+}
+
+.glow-beauty-checkout-header > a svg,
+.glow-beauty-checkout-header > button svg { width: 22px; height: 22px; stroke-width: 1.7; }
+
+.glow-beauty-checkout-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.glow-beauty-checkout-progress {
+  position: relative;
+  display: grid;
+  height: 47px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0 35px;
+  margin: 0;
+  list-style: none;
+}
+
+.glow-beauty-checkout-progress::before {
+  position: absolute;
+  top: 11px;
+  right: 91px;
+  left: 91px;
+  height: 1px;
+  background: #c8c4c0;
+  content: "";
+}
+
+.glow-beauty-checkout-progress li {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #68635f;
+  font-size: 10px;
+  line-height: 1;
+  flex-direction: column;
+}
+
+.glow-beauty-checkout-progress li span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid #c9cdcf;
+  border-radius: 50%;
+  background: #fffaf5;
+}
+
+.glow-beauty-checkout-progress li span svg { width: 12px; height: 12px; stroke-width: 2.5; }
+.glow-beauty-checkout-progress li b { font-weight: 560; }
+.glow-beauty-checkout-progress li.is-active { color: var(--beauty-orange); }
+.glow-beauty-checkout-progress li.is-active span,
+.glow-beauty-checkout-progress li.is-complete span { border-color: var(--beauty-orange); color: #fff; background: var(--beauty-orange); }
+.glow-beauty-checkout-progress li.is-complete b { color: var(--beauty-ink); }
+
+.glow-beauty-checkout-section > header {
+  display: flex;
+  height: 30px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glow-beauty-checkout-section h2,
+.glow-beauty-checkout-summary h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 780;
+  letter-spacing: -0.03em;
+}
+
+.glow-beauty-checkout-section > header button {
+  padding: 0;
+  color: var(--beauty-orange);
+  background: transparent;
+  font-size: 11px;
+}
+
+.glow-beauty-checkout-section article {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 7px 24px rgba(91, 57, 36, 0.05);
+}
+
+.glow-beauty-shipping article {
+  display: grid;
+  height: 80px;
+  grid-template-columns: 48px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 13px;
+}
+
+.glow-beauty-shipping article.is-runtime {
+  height: auto;
+  min-height: 80px;
+  align-items: start;
+  padding-block: 14px;
+}
+
+.glow-beauty-shipping article.is-runtime > span,
+.glow-beauty-shipping article.is-runtime > i {
+  margin-top: 16px;
+}
+
+.glow-beauty-shipping article > span,
+.glow-beauty-delivery article > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--beauty-orange);
+  background: #fff0e7;
+}
+
+.glow-beauty-shipping article > span svg { width: 26px; height: 26px; }
+.glow-beauty-shipping article > div,
+.glow-beauty-delivery article > div,
+.glow-beauty-payment article > div { min-width: 0; }
+.glow-beauty-shipping article strong,
+.glow-beauty-delivery article strong,
+.glow-beauty-payment article strong { display: block; font-size: 13px; font-weight: 760; line-height: 1.2; }
+.glow-beauty-shipping article p { margin: 2px 0 0; color: #6f6a66; font-size: 10.5px; line-height: 1.12; }
+
+.glow-beauty-checkout-section article > i {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-checkout-section article > i svg { width: 13px; height: 13px; stroke-width: 2.5; }
+
+.glow-beauty-delivery,
+.glow-beauty-payment { margin-top: 12px; }
+
+.glow-beauty-delivery article {
+  display: grid;
+  height: 56px;
+  grid-template-columns: 48px minmax(0, 1fr) auto 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 13px;
+}
+
+.glow-beauty-delivery article > span { width: 42px; height: 42px; }
+.glow-beauty-delivery article > span svg { width: 28px; height: 28px; stroke-width: 1.5; }
+.glow-beauty-delivery article p,
+.glow-beauty-payment article p { margin: 4px 0 0; color: #6f6a66; font-size: 11px; line-height: 1; }
+.glow-beauty-delivery article > b { font-size: 13px; }
+
+.glow-beauty-payment article {
+  display: grid;
+  height: 62px;
+  grid-template-columns: 67px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 13px;
+}
+
+.glow-beauty-payment article > span {
+  display: flex;
+  height: 41px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0 5px 5px;
+  border-radius: 6px;
+  color: #fff;
+  background: #f7c4aa;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 800;
+}
+
+.glow-beauty-payment > label,
+.glow-beauty-terms {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #68635f;
+  cursor: pointer;
+  font-size: 10.5px;
+}
+
+.glow-beauty-payment > label { height: 28px; }
+.glow-beauty-payment label input,
+.glow-beauty-terms input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.glow-beauty-payment label > span,
+.glow-beauty-terms > span {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 1px solid #d3cdc8;
+  border-radius: 3px;
+  color: #fff;
+  background: transparent;
+}
+
+.glow-beauty-payment label input:checked + span,
+.glow-beauty-terms input:checked + span { border-color: var(--beauty-orange); background: var(--beauty-orange); }
+.glow-beauty-payment label span svg,
+.glow-beauty-terms span svg { width: 11px; height: 11px; stroke-width: 2.6; }
+
+.glow-beauty-review-order { margin-top: 10px; }
+
+.glow-beauty-review-order article {
+  display: grid;
+  height: 143px;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  grid-template-rows: 100px 34px;
+  gap: 0 8px;
+  padding: 8px 9px;
+  border-radius: 13px;
+}
+
+.glow-beauty-review-products {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.glow-beauty-review-products img {
+  display: block;
+  width: 100%;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #ffede2;
+}
+
+.glow-beauty-review-meta {
+  display: flex;
+  justify-content: center;
+  padding-left: 1px;
+  flex-direction: column;
+}
+
+.glow-beauty-review-meta strong { font-size: 12px; }
+.glow-beauty-review-meta p { margin: 8px 0 0; color: #6f6a66; font-size: 10.5px; line-height: 1.35; }
+
+.glow-beauty-review-promo {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 27px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: #fff4ec;
+}
+
+.glow-beauty-review-promo svg { width: 23px; height: 23px; color: var(--beauty-orange); }
+.glow-beauty-review-promo strong { font-size: 11px; }
+.glow-beauty-review-promo span { color: var(--beauty-orange); font-size: 10px; }
+
+.glow-beauty-checkout-summary { margin-top: 10px; }
+.glow-beauty-checkout-summary h2 { height: 30px; line-height: 30px; }
+.glow-beauty-checkout-summary dl { padding: 7px 10px 6px; margin: 0; border-radius: 11px; background: rgba(255,255,255,.95); box-shadow: 0 7px 24px rgba(91,57,36,.05); }
+.glow-beauty-checkout-summary dd { margin: 0; font-weight: 650; }
+.glow-beauty-checkout-summary dl > div { display: flex; min-height: 16px; align-items: center; justify-content: space-between; font-size: 10.5px; }
+.glow-beauty-checkout-summary dd.is-discount { color: var(--beauty-orange); }
+.glow-beauty-checkout-summary dl > div.is-total { min-height: 32px; padding-top: 5px; margin-top: 3px; border-top: 1px solid #e8ded7; font-size: 12px; font-weight: 760; }
+.glow-beauty-checkout-summary .is-total dd { font-size: 23px; letter-spacing: -.045em; }
+
+.glow-beauty-terms { height: 30px; }
+.glow-beauty-terms a { color: var(--beauty-orange); text-decoration: none; }
+.glow-beauty-payment-secure { display: flex; height: 20px; align-items: center; justify-content: center; gap: 7px; margin: 0; color: #77716d; font-size: 9.5px; }
+.glow-beauty-payment-secure svg { width: 15px; height: 15px; }
+
+.glow-beauty-checkout-purchase {
+  position: fixed;
+  z-index: 45;
+  right: max(10px, calc((100vw - 430px) / 2 + 10px));
+  bottom: 0;
+  left: max(10px, calc((100vw - 430px) / 2 + 10px));
+  display: grid;
+  height: 68px;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 24px 24px 0 0;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 -12px 32px rgba(76,49,30,.075);
+  backdrop-filter: blur(16px);
+}
+
+.glow-beauty-checkout-purchase > div { display: flex; flex-direction: column; }
+.glow-beauty-checkout-purchase > div span { color: #6d6864; font-size: 11px; }
+.glow-beauty-checkout-purchase > div output { margin-top: 2px; font-size: 23px; font-weight: 780; letter-spacing: -.045em; line-height: 1; }
+.glow-beauty-checkout-purchase > button { display: flex; height: 47px; align-items: center; justify-content: center; gap: 15px; border-radius: 13px; color: #fff; background: var(--beauty-orange); box-shadow: 0 10px 24px rgba(243,91,5,.18); font-size: 14px; font-weight: 650; }
+.glow-beauty-checkout-purchase > button svg { width: 24px; height: 24px; }
+.glow-beauty-checkout-purchase > button:disabled { cursor: default; opacity: .42; }
+
+.glow-beauty-checkout-fields {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.glow-beauty-checkout-fields label {
+  display: grid;
+  gap: 4px;
+  color: #5f5752;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.glow-beauty-checkout-fields label:nth-last-child(-n + 2) {
+  grid-column: 1 / -1;
+}
+
+.glow-beauty-checkout-fields input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid #eaded7;
+  border-radius: 9px;
+  color: var(--beauty-ink);
+  background: #fff;
+  font: inherit;
+}
+
+.glow-beauty-checkout-fields input:focus {
+  border-color: var(--beauty-orange);
+  outline: 2px solid color-mix(in srgb, var(--beauty-orange) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.glow-beauty-delivery-options,
+.glow-beauty-payment-options {
+  display: grid;
+  gap: 8px;
+}
+
+.glow-beauty-delivery-options button,
+.glow-beauty-payment-options button {
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid #eaded7;
+  border-radius: 11px;
+  color: var(--beauty-ink);
+  background: #fff;
+  text-align: start;
+}
+
+.glow-beauty-delivery-options button.is-selected,
+.glow-beauty-payment-options button.is-selected {
+  border-color: var(--beauty-orange);
+  background: #fff7f2;
+}
+
+.glow-beauty-delivery-options svg,
+.glow-beauty-payment-options svg {
+  width: 24px;
+  height: 24px;
+  color: var(--beauty-orange);
+}
+
+.glow-beauty-delivery-options span,
+.glow-beauty-payment-options span {
+  display: grid;
+  gap: 3px;
+}
+
+.glow-beauty-delivery-options small {
+  color: #756d68;
+  font-size: 10px;
+}
+
+@media (max-width: 390px) {
+  .glow-beauty-checkout-page { padding-right: 15px; padding-left: 15px; }
+  .glow-beauty-checkout-purchase { grid-template-columns: 118px minmax(0, 1fr); }
+  .glow-beauty-checkout-fields { grid-template-columns: 1fr; }
+  .glow-beauty-checkout-fields label { grid-column: 1; }
+}
+
+@media (min-width: 720px) {
+  .glow-beauty-checkout-page { margin-top: 24px; margin-bottom: 24px; border-radius: 34px; }
+  .glow-beauty-checkout-purchase { bottom: 24px; border-radius: 24px; }
+}
+
+/* Readable shared storefront scale. */
+.glow-beauty-checkout-header h1 { font-size: 25px; }
+.glow-beauty-checkout-progress li { font-size: 12px; }
+.glow-beauty-checkout-section h2,
+.glow-beauty-checkout-summary h2 { font-size: 18px; }
+.glow-beauty-checkout-section > header button { font-size: 13px; }
+.glow-beauty-shipping article strong,
+.glow-beauty-delivery article strong,
+.glow-beauty-payment article strong { font-size: 15px; }
+.glow-beauty-shipping article p,
+.glow-beauty-delivery article p,
+.glow-beauty-payment article p { font-size: 12px; }
+.glow-beauty-payment > label,
+.glow-beauty-terms { font-size: 12px; }
+.glow-beauty-review-meta strong { font-size: 14px; }
+.glow-beauty-review-meta p { font-size: 12px; }
+.glow-beauty-review-promo strong,
+.glow-beauty-review-promo span { font-size: 12px; }
+.glow-beauty-checkout-summary dl > div { font-size: 13px; }
+.glow-beauty-payment-secure { font-size: 11px; }
+.glow-beauty-checkout-purchase > div span { font-size: 12px; }
+.glow-beauty-checkout-purchase > div output { font-size: 25px; }
+.glow-beauty-checkout-purchase > button { font-size: 16px; }
+.glow-beauty-checkout-fields label,
+.glow-beauty-checkout-fields input,
+.glow-beauty-delivery-options button,
+.glow-beauty-payment-options button { font-size: 13px; }

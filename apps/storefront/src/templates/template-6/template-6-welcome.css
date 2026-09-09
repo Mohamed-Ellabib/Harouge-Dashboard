@@ -1,0 +1,20 @@
+@font-face{font-family:"Template Six Display";src:url("/assets/template-6/fonts/BarlowCondensed-ExtraBold.ttf") format("truetype");font-style:normal;font-weight:800;font-display:swap}
+html:has(.template-six-welcome){scrollbar-width:none}
+html:has(.template-six-welcome)::-webkit-scrollbar{display:none}
+.storefront-template--template-6:has(.template-six-welcome){background:#2c9db6;color:white}
+.template-six-welcome{container-type:inline-size;width:100%;max-width:864px;margin-inline:auto;background:var(--template-six-canvas);color:#fff;font-family:Arial,sans-serif;isolation:isolate}
+.template-six-welcome__scene{position:relative;isolation:isolate;display:flex;flex-direction:column;min-height:max(211.24cqw,100svh);padding:13.5cqw 5.55cqw 9.15cqw;gap:10cqw}
+.template-six-welcome__art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-1}
+.template-six-welcome__copy{margin-inline:1.45cqw 0;position:relative}
+.template-six-welcome h1{margin:0 0 2.4cqw;font:800 13.4cqw/.985 "Template Six Display",Impact,sans-serif;letter-spacing:.28cqw;overflow-wrap:anywhere;transform:scaleX(1.035);transform-origin:left center}
+.template-six-welcome h1 span{display:block;white-space:nowrap}
+.template-six-welcome__copy p{margin:0;font:400 4.4cqw/1.36 Arial,sans-serif;letter-spacing:-.06cqw;overflow-wrap:anywhere}
+.template-six-welcome__pagination{display:flex;gap:1.2cqw;margin-top:5.1cqw;align-items:center}
+.template-six-welcome__pagination i{width:3.45cqw;height:1.75cqw;border-radius:99px;background:#ffffff59}
+.template-six-welcome__pagination i:first-child{width:5.7cqw;background:#fff}
+.template-six-welcome__start{position:relative;display:block;flex:none;margin-top:auto;width:100%;min-height:max(44px,14.1cqw);border:0;border-radius:99px;padding:2cqw 4cqw;background:var(--template-six-accent);box-shadow:inset 0 0 6cqw #ffffff30;color:#080808;font:800 5.7cqw/1.1 "Template Six Display",Impact,sans-serif;overflow-wrap:anywhere;transition:filter .15s ease,transform .15s ease}
+.template-six-welcome__start:hover{filter:brightness(1.04)}
+.template-six-welcome__start:active{transform:translateY(1px)}
+.template-six-welcome__start:focus-visible{outline:3px solid #fff;outline-offset:4px}
+@media(min-width:900px){.template-six-welcome{max-width:480px}}
+@media(prefers-reduced-motion:reduce){.template-six-welcome__start{transition:none}}

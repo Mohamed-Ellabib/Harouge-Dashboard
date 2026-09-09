@@ -1,11 +1,16 @@
 import { BrokenLinkIcon, PackageIcon, RetryIcon } from "./Icons";
+import { storefrontUiText } from "../lib/localization";
+import type { StorefrontLocale } from "../types";
 
 type StatePanelProps = {
   kind: "empty" | "not-found" | "unavailable";
   title: string;
   message: string;
   onRetry?: () => void;
+  retryLabel?: string;
+  retryDisabled?: boolean;
   headingLevel?: 1 | 2;
+  locale?: StorefrontLocale;
 };
 
 export const StatePanel = ({
@@ -13,7 +18,10 @@ export const StatePanel = ({
   title,
   message,
   onRetry,
+  retryLabel,
+  retryDisabled = false,
   headingLevel = 1,
+  locale = "ar-LY",
 }: StatePanelProps) => (
   <section className={`state-panel state-panel--${kind}`} aria-live="polite">
     <span className="state-panel__icon" aria-hidden="true">
@@ -24,11 +32,17 @@ export const StatePanel = ({
     {onRetry ? (
       <button
         className="button button--primary"
+        aria-busy={retryDisabled}
+        disabled={retryDisabled}
         type="button"
         onClick={onRetry}
       >
         <RetryIcon />
-        حاول مرة أخرى
+        {retryLabel ??
+          storefrontUiText(locale, {
+            ar: "حاول مرة أخرى",
+            en: "Try again",
+          })}
       </button>
     ) : null}
   </section>

@@ -1,0 +1,779 @@
+.glow-beauty-preview-document {
+  min-height: 100%;
+  background: #eee9e4;
+}
+
+body.glow-beauty-preview-document {
+  overflow-x: hidden;
+}
+
+.glow-beauty-preview-document #root {
+  min-height: 100dvh;
+}
+
+.glow-beauty-page,
+.glow-beauty-page * {
+  box-sizing: border-box;
+}
+
+.glow-beauty-page {
+  --beauty-orange: #f35b05;
+  --beauty-orange-deep: #d94800;
+  --beauty-ink: #11100f;
+  --beauty-muted: #66615d;
+  position: relative;
+  width: min(100%, 430px);
+  min-height: 100dvh;
+  padding: 16px 16px 116px;
+  margin: 0 auto;
+  color: var(--beauty-ink);
+  background: #fffaf5;
+  box-shadow: 0 20px 70px rgba(72, 48, 31, 0.12);
+  font-family: Manrope, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glow-beauty-page button,
+.glow-beauty-page input {
+  color: inherit;
+  font: inherit;
+}
+
+.glow-beauty-page button {
+  border: 0;
+  cursor: pointer;
+}
+
+.glow-beauty-greeting {
+  position: relative;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) 48px 48px;
+  align-items: center;
+  gap: 8px;
+  min-height: 96px;
+}
+
+.glow-beauty-greeting > div p {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+  color: #69635e;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.glow-beauty-greeting > div p svg {
+  width: 12px;
+  height: 12px;
+  color: #ffc043;
+}
+
+.glow-beauty-greeting h1 {
+  margin: 2px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.glow-beauty-greeting > div > span {
+  display: block;
+  margin-top: 6px;
+  color: #68635f;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.glow-beauty-icon-button {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 50px;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 8px 24px rgba(78, 51, 34, 0.055);
+  color: inherit;
+  text-decoration: none;
+}
+
+.glow-beauty-icon-button svg {
+  width: 27px;
+  height: 27px;
+  stroke-width: 1.7;
+}
+
+.glow-beauty-menu-button svg {
+  width: 28px;
+  height: 28px;
+}
+
+.glow-beauty-notification-button b {
+  position: absolute;
+  top: 8px;
+  right: 7px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.glow-beauty-quick-menu {
+  position: absolute;
+  z-index: 20;
+  top: 68px;
+  left: 0;
+  display: grid;
+  width: 164px;
+  padding: 8px;
+  border: 1px solid rgba(238, 209, 190, 0.82);
+  border-radius: 18px;
+  background: rgba(255, 254, 252, 0.98);
+  box-shadow: 0 18px 40px rgba(69, 42, 24, 0.16);
+}
+
+.glow-beauty-quick-menu button,
+.glow-beauty-quick-menu a {
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+}
+
+.glow-beauty-quick-menu button:hover,
+.glow-beauty-quick-menu button:focus-visible,
+.glow-beauty-quick-menu a:hover,
+.glow-beauty-quick-menu a:focus-visible {
+  color: var(--beauty-orange-deep);
+  background: #fff2e9;
+}
+
+.glow-beauty-hero {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  border-radius: 27px;
+  background: #fee2d4;
+}
+
+.glow-beauty-hero > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.glow-beauty-hero__copy {
+  position: absolute;
+  z-index: 2;
+  top: 42px;
+  left: 22px;
+  width: 55%;
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero > img {
+  transform: scaleX(-1);
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero__copy {
+  left: auto;
+  right: 22px;
+  text-align: right;
+  font-family: "Cairo Variable", Cairo, Arial, sans-serif;
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero__copy h2 {
+  font-family: inherit;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero__copy button {
+  padding: 5px 17px 5px 7px;
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero__copy button svg {
+  transform: scaleX(-1);
+}
+
+.glow-beauty-page[dir="rtl"] .glow-beauty-hero__sparkle {
+  left: auto;
+  right: 157px;
+}
+
+.glow-beauty-hero__copy > span {
+  display: inline-flex;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: #cb4200;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.glow-beauty-hero__copy h2 {
+  margin: 14px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(28px, 7.5vw, 34px);
+  font-weight: 400;
+  letter-spacing: -0.034em;
+  line-height: 1.1;
+}
+
+.glow-beauty-hero__copy p {
+  margin: 12px 0 0;
+  color: #625d58;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.glow-beauty-hero__copy button,
+.glow-beauty-offer div button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 7px 5px 17px;
+  margin-top: 18px;
+  border-radius: 999px;
+  color: var(--beauty-orange-deep);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 750;
+  box-shadow: 0 8px 22px rgba(111, 56, 20, 0.07);
+}
+
+.glow-beauty-hero__copy button svg,
+.glow-beauty-offer div button svg {
+  width: 30px;
+  height: 30px;
+  padding: 6px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-hero__sparkle {
+  position: absolute;
+  z-index: 2;
+  top: 70px;
+  left: 157px;
+  width: 25px;
+  height: 25px;
+  color: #ffd4a9;
+}
+
+.glow-beauty-slider-dots {
+  display: flex;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.glow-beauty-slider-dots button {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border-radius: 999px;
+  background: #eedfd5;
+}
+
+.glow-beauty-slider-dots button.is-active {
+  width: 12px;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  gap: 10px;
+}
+
+.glow-beauty-search label {
+  display: grid;
+  height: 52px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  padding: 0 15px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(84, 52, 32, 0.045);
+}
+
+.glow-beauty-search label svg {
+  width: 22px;
+  height: 22px;
+  color: #3f3b38;
+  stroke-width: 1.7;
+}
+
+.glow-beauty-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+}
+
+.glow-beauty-search input::placeholder {
+  color: #77716d;
+  opacity: 1;
+}
+
+.glow-beauty-search > button {
+  position: relative;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(84, 52, 32, 0.045);
+}
+
+.glow-beauty-search > button::before {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff7f1;
+  content: "";
+}
+
+.glow-beauty-search > button svg {
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
+}
+
+.glow-beauty-search > button.is-active {
+  color: var(--beauty-orange);
+}
+
+.glow-beauty-search-message {
+  min-height: 10px;
+  margin: 2px 2px 0;
+  color: var(--beauty-orange-deep);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.glow-beauty-categories {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.glow-beauty-categories button {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  flex-direction: column;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.glow-beauty-categories button > span {
+  display: grid;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  place-items: center;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: #fff0e6;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.glow-beauty-categories button.is-active > span {
+  border-color: #ffd2b7;
+  transform: translateY(-2px);
+}
+
+.glow-beauty-categories img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.glow-beauty-categories .glow-beauty-offers-icon {
+  color: #ea5d31;
+  background: #ffe8dc;
+}
+
+.glow-beauty-offers-icon svg {
+  width: 31px;
+  height: 31px;
+  stroke-width: 1.35;
+}
+
+.glow-beauty-products {
+  scroll-margin-top: 12px;
+  margin-top: 24px;
+}
+
+.glow-beauty-products > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.glow-beauty-products > header h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.glow-beauty-products > header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 1px 4px 7px;
+  background: transparent;
+  font-size: 13px;
+}
+
+.glow-beauty-products > header svg {
+  width: 17px;
+  height: 17px;
+}
+
+.glow-beauty-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.glow-beauty-product-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(83, 53, 32, 0.07);
+}
+
+.glow-beauty-product-card__image {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1.08 / 1;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff1e8;
+}
+
+.glow-beauty-product-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.glow-beauty-product-card__image > a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.glow-beauty-product-card__image > span {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  z-index: 1;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--beauty-orange-deep);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.glow-beauty-product-card__image > span.is-sale {
+  color: #fff;
+  background: #df302d;
+}
+
+.glow-beauty-product-card__image > button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  color: #6c6a67;
+  background: rgba(255, 252, 248, 0.86);
+}
+
+.glow-beauty-product-card__image > button[aria-pressed="true"] {
+  color: var(--beauty-orange);
+}
+
+.glow-beauty-product-card__image svg {
+  width: 20px;
+  height: 20px;
+}
+
+.glow-beauty-product-card h3 {
+  overflow: hidden;
+  margin: 10px 10px 0;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glow-beauty-product-card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.glow-beauty-product-card > p {
+  overflow: hidden;
+  margin: 5px 10px 0;
+  color: #77716e;
+  font-size: 10.5px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glow-beauty-product-card__rating {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 10px 0;
+}
+
+.glow-beauty-product-card__rating > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  color: #ff9b00;
+  font-size: 11px;
+}
+
+.glow-beauty-product-card__rating svg {
+  width: 11px;
+  height: 11px;
+}
+
+.glow-beauty-product-card__rating small {
+  color: #77716e;
+  font-size: 9.5px;
+}
+
+.glow-beauty-product-card footer {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px 10px;
+}
+
+.glow-beauty-product-card footer strong {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.glow-beauty-product-card footer button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-product-card footer svg {
+  width: 20px;
+  height: 20px;
+}
+
+.glow-beauty-offer {
+  position: relative;
+  height: 119px;
+  overflow: hidden;
+  margin-top: 17px;
+  border-radius: 18px;
+  background: #ffe2d1;
+}
+
+.glow-beauty-offer > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.glow-beauty-offer > div {
+  position: absolute;
+  z-index: 2;
+  top: 17px;
+  left: 17px;
+}
+
+.glow-beauty-offer div > span {
+  color: var(--beauty-orange-deep);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.glow-beauty-offer h2 {
+  margin: 7px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.glow-beauty-offer p {
+  margin: 7px 0 0;
+  color: #625d58;
+  font-size: 9.5px;
+}
+
+.glow-beauty-offer div button {
+  min-height: 28px;
+  gap: 9px;
+  padding: 3px 4px 3px 13px;
+  margin-top: 10px;
+  font-size: 9px;
+}
+
+.glow-beauty-offer div button svg {
+  width: 22px;
+  height: 22px;
+  padding: 5px;
+}
+
+.glow-beauty-offer > strong {
+  position: absolute;
+  z-index: 2;
+  right: 15px;
+  bottom: 12px;
+  display: flex;
+  width: 61px;
+  height: 61px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--beauty-orange-deep);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 9px;
+  line-height: 1;
+  text-align: center;
+  flex-direction: column;
+}
+
+.glow-beauty-offer > strong b {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.glow-beauty-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.glow-beauty-image-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 72px;
+  place-items: center;
+  background: linear-gradient(145deg, #fff7f1, #f5d9cd);
+  color: #8b5147;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 8vw, 3.25rem);
+  font-style: normal;
+  font-weight: 700;
+}
+
+@media (max-width: 374px) {
+  .glow-beauty-page {
+    padding-inline: 10px;
+  }
+
+  .glow-beauty-greeting {
+    grid-template-columns: 46px minmax(0, 1fr) 44px 44px;
+    gap: 5px;
+  }
+
+  .glow-beauty-icon-button {
+    width: 44px;
+  }
+
+  .glow-beauty-hero__copy h2 {
+    font-size: 27px;
+  }
+
+  .glow-beauty-categories {
+    gap: 4px;
+  }
+
+  .glow-beauty-categories button > span {
+    width: 56px;
+    height: 56px;
+  }
+
+  .glow-beauty-product-grid {
+    gap: 8px;
+  }
+
+  .glow-beauty-product-card__image {
+    height: auto;
+  }
+}
+
+@media (min-width: 720px) {
+  .glow-beauty-page {
+    margin-block: 24px;
+    border-radius: 32px;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-beauty-page *,
+  .glow-beauty-page *::before,
+  .glow-beauty-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

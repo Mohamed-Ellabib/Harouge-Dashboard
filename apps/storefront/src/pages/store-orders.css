@@ -1,0 +1,13 @@
+.store-orders-page { max-width: 850px; margin: auto; padding: 24px 20px 120px; }
+.store-orders-page header, .store-orders-page footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.store-orders-page h1 { font-size: 28px; }
+.store-orders-page h2 { font-size: 20px; }
+.store-orders-page h3 { font-size: 17px; margin: 0; }
+.store-orders-page article { padding: 20px; border: 1px solid #e8e4df; border-radius: 24px; margin-bottom: 18px; }
+.store-orders-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; }
+.store-orders-item img { width: 90px; height: 90px; object-fit: contain; border-radius: 18px; background: #f4f3f1; }
+.store-orders-item div { flex: 1; }
+.store-orders-page ol { padding: 12px 0; display: flex; list-style: none; gap: 8px; text-transform: capitalize; font-size: 13px; }
+.store-orders-page li { flex: 1; padding-top: 10px; border-top: 2px solid #ddd; }
+.store-orders-page li.is-complete { border-color: var(--color-primary, #009b4d); }
+.store-orders-page footer { border-top: 1px solid #eee; padding-top: 18px; }

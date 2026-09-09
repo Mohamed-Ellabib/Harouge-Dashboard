@@ -11,6 +11,7 @@ const allowedProxyRoutes: Array<{
   { methods: ["GET"], path: /^\/store\/vendors\/resolve$/ },
   { methods: ["GET"], path: /^\/store\/products(?:\/[^/]+)?$/ },
   { methods: ["GET"], path: /^\/store\/saas\/commerce-capabilities$/ },
+  { methods: ["POST"], path: /^\/store\/saas\/order-status$/ },
   {
     methods: ["GET"],
     path: /^\/store\/saas\/products\/[^/]+\/purchase-options$/,
@@ -26,7 +27,10 @@ const allowedProxyRoutes: Array<{
     methods: ["POST"],
     path: /^\/store\/carts\/[^/]+\/shipping-methods$/,
   },
-  { methods: ["POST"], path: /^\/store\/carts\/[^/]+\/complete$/ },
+  {
+    methods: ["POST"],
+    path: /^\/store\/saas\/carts\/[^/]+\/complete$/,
+  },
   { methods: ["GET"], path: /^\/store\/shipping-options$/ },
   { methods: ["POST"], path: /^\/store\/payment-collections$/ },
   {
@@ -89,7 +93,7 @@ export default defineConfig(({ mode }) => {
     plugins: [storefrontProxyGuard(), react()],
     server: {
       host: "127.0.0.1",
-      port: 5175,
+      port: 5176,
       strictPort: true,
       allowedHosts: ["terminal.local"],
       proxy: {

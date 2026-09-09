@@ -1,0 +1,628 @@
+.pens-page .watches-page__hero {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 6, 0.95) 0%, rgba(5, 5, 6, 0.72) 37%, rgba(5, 5, 6, 0.18) 68%, rgba(5, 5, 6, 0.16) 100%),
+    url("/product-assets/pens-hero-dark.webp") right center / cover no-repeat,
+    #080808;
+}
+
+.pens-page .watches-page__hero-copy strong {
+  font-size: clamp(40px, 6.2vw, 58px);
+}
+
+.pens-page .watches-page__hero-copy > span {
+  letter-spacing: 7px;
+}
+
+.pens-page .watches-page__hero-copy h2 {
+  gap: 12px;
+}
+
+.pens-page .watches-page__product-image {
+  inset: 20px 24px 128px;
+  place-items: center;
+  overflow: visible;
+}
+
+.pens-page .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+  transform: none;
+}
+
+.pens-page .watches-page__product:nth-child(1) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.pens-page .watches-page__product:nth-child(2) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.pens-page .watches-page__product:nth-child(3) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.pens-page .watches-page__product:nth-child(4) .watches-page__product-image img {
+  max-width: 108%;
+  max-height: 106%;
+}
+
+.pens-page .watches-page__product--skeleton .watches-page__product-image img.watches-page__skeleton-product-render {
+  width: 78%;
+  height: 78%;
+  max-width: none;
+  max-height: none;
+  transform: translateY(-8%);
+}
+
+.pens-page .watches-page__product--skeleton {
+  border-color: color-mix(in srgb, var(--brand-secondary-decoration) 34%, transparent);
+  background:
+    radial-gradient(circle at 54% 31%, rgba(164, 92, 66, 0.16), transparent 34%),
+    radial-gradient(circle at 46% 45%, color-mix(in srgb, var(--brand-secondary-decoration) 10%, transparent), rgba(255, 255, 255, 0.02) 42%, transparent 66%),
+    linear-gradient(155deg, rgba(18, 17, 16, 0.98), rgba(4, 4, 4, 0.99) 74%);
+}
+
+.pens-page .watches-page__product--image-skeleton {
+  aspect-ratio: 2 / 3;
+  height: auto;
+}
+
+.pens-page .watches-page__skeleton--pen {
+  inset: 58px 34px 142px;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pens-page .watches-page__skeleton--pen::before {
+  display: none;
+}
+
+.pens-page .watches-page__skeleton--pen::after {
+  inset: -22% -10%;
+  z-index: 4;
+  border-radius: 28px;
+  background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--brand-secondary-decoration-soft) 14%, transparent) 48%, transparent 66%);
+  opacity: 0.76;
+}
+
+.pens-page__pen-skeleton,
+.pens-page__pen-skeleton span {
+  position: absolute;
+  display: block;
+}
+
+.pens-page__pen-skeleton {
+  inset: -6% 33% -9%;
+  z-index: 2;
+  transform: rotate(-18deg);
+  filter: drop-shadow(0 25px 26px rgba(0, 0, 0, 0.48));
+  opacity: 0.84;
+}
+
+.pens-page__pen-cap,
+.pens-page__pen-barrel {
+  left: 50%;
+  width: 42%;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, var(--brand-secondary-decoration-soft) 12%, transparent);
+  background:
+    linear-gradient(90deg, rgba(255, 244, 219, 0.16), transparent 22%, rgba(255, 255, 255, 0.04) 62%, rgba(0, 0, 0, 0.2)),
+    linear-gradient(180deg, rgba(78, 76, 64, 0.94), rgba(24, 24, 22, 0.98));
+  box-shadow:
+    inset 8px 0 16px rgba(255, 244, 218, 0.045),
+    inset -8px 0 18px rgba(0, 0, 0, 0.32);
+}
+
+.pens-page__pen-cap {
+  top: 0;
+  height: 34%;
+  border-radius: 18px 18px 8px 8px;
+}
+
+.pens-page__pen-barrel {
+  top: 31%;
+  height: 54%;
+  border-radius: 8px 8px 16px 16px;
+}
+
+.pens-page__pen-clip {
+  top: 7%;
+  right: 23%;
+  width: 7%;
+  height: 30%;
+  border: 1px solid color-mix(in srgb, var(--brand-secondary-decoration) 42%, transparent);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand-secondary-decoration) 64%, transparent), color-mix(in srgb, var(--brand-accent) 54%, transparent));
+}
+
+.pens-page__pen-band {
+  left: 50%;
+  width: 49%;
+  height: 5%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brand-accent) 90%, transparent), color-mix(in srgb, var(--brand-secondary-decoration) 78%, transparent), color-mix(in srgb, var(--brand-accent) 92%, transparent));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand-secondary-decoration) 12%, transparent);
+}
+
+.pens-page__pen-band--top {
+  top: 31%;
+}
+
+.pens-page__pen-band--bottom {
+  top: 82%;
+}
+
+.pens-page__pen-nib {
+  left: 50%;
+  bottom: 0;
+  width: 38%;
+  height: 17%;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 100%, 0 0, 100% 0);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--brand-accent) 86%, transparent), color-mix(in srgb, var(--brand-secondary-decoration) 84%, transparent), color-mix(in srgb, var(--brand-accent) 86%, transparent));
+}
+
+.pens-page__pen-nib::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  width: 2px;
+  height: 62%;
+  transform: translateX(-50%);
+  background: rgba(28, 25, 20, 0.42);
+}
+
+.pens-page .watches-page__skeleton--brand {
+  width: min(72%, 224px);
+}
+
+.pens-page .watches-page__skeleton--name {
+  width: min(58%, 188px);
+}
+
+@media (max-width: 640px) {
+  .pens-page .watches-page__hero {
+    background:
+      linear-gradient(90deg, rgba(5, 5, 6, 0.95) 0%, rgba(5, 5, 6, 0.68) 40%, rgba(5, 5, 6, 0.2) 68%, rgba(5, 5, 6, 0.16) 100%),
+      url("/product-assets/pens-hero-dark.webp") 68% center / cover no-repeat,
+      #080808;
+  }
+
+  .pens-page .watches-page__hero-copy strong {
+    font-size: 31px;
+  }
+
+  .pens-page .watches-page__hero-copy > span {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+
+  .pens-page .watches-page__hero-copy h2 {
+    gap: 7px;
+    font-size: 18px;
+  }
+
+  .pens-page .watches-page__product-image {
+    inset: 15px 12px 100px;
+  }
+
+  .pens-page .watches-page__product-image img,
+  .pens-page .watches-page__product:nth-child(1) .watches-page__product-image img,
+  .pens-page .watches-page__product:nth-child(2) .watches-page__product-image img,
+  .pens-page .watches-page__product:nth-child(3) .watches-page__product-image img,
+  .pens-page .watches-page__product:nth-child(4) .watches-page__product-image img {
+    max-width: 114%;
+    max-height: 110%;
+    transform: none;
+  }
+
+  .pens-page .watches-page__product--skeleton .watches-page__product-image img.watches-page__skeleton-product-render {
+    width: 78%;
+    height: 78%;
+    max-width: none;
+    max-height: none;
+    transform: translateY(-8%);
+  }
+
+  .pens-page .watches-page__skeleton--pen {
+    inset: 43px 16px 101px;
+  }
+
+  .pens-page__pen-skeleton {
+    inset: -9% 29% -12%;
+  }
+
+  .pens-page__pen-cap,
+  .pens-page__pen-barrel {
+    width: 46%;
+  }
+
+  .pens-page__pen-band {
+    width: 54%;
+  }
+
+  .pens-page__pen-clip {
+    right: 20%;
+    width: 8%;
+  }
+
+  .pens-page .watches-page__skeleton--brand {
+    width: calc(100% - 48px);
+  }
+
+  .pens-page .watches-page__skeleton--name {
+    width: calc(100% - 64px);
+  }
+}
+
+.pens-page .watches-page__product--skeleton {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #101112;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.pens-page .watches-page__product-image--skeleton {
+  inset: 20px 24px 128px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .pens-page .watches-page__product-image--skeleton {
+    inset: 15px 12px 101px;
+    border-radius: 12px;
+  }
+}
+
+.pens-page {
+  --watch-bg: #fffaf1;
+  --watch-panel: #fffdf8;
+  --watch-panel-soft: #f6efe4;
+  --watch-border: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  --watch-text: #171412;
+  --watch-muted: rgba(24, 21, 19, 0.64);
+  --watch-gold: var(--brand-decoration, #b77f3f);
+  --watch-gold-strong: var(--brand-accent, #9d692f);
+  background:
+    radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--brand-secondary-decoration) 16%, transparent), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #f6efe4 54%, #fffaf1 100%);
+  color: var(--watch-text);
+}
+
+.pens-page .watches-page__phone-shell {
+  background:
+    radial-gradient(circle at 14% 6%, rgba(255, 255, 255, 0.8), transparent 24%),
+    radial-gradient(circle at 82% 26%, color-mix(in srgb, var(--brand-secondary-decoration) 10%, transparent), transparent 28%),
+    var(--watch-bg);
+}
+
+.pens-page .watches-page__top {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(255, 250, 241, 0.92) 72%, rgba(255, 250, 241, 0));
+}
+
+.pens-page .watches-page__header h1,
+.pens-page .watches-page__tools-header strong,
+.pens-page .watches-page__filter-group strong,
+.pens-page .watches-page__empty strong {
+  color: #171412;
+}
+
+.pens-page .watches-page__icon-button,
+.pens-page .watches-page__tools-close {
+  color: #201914;
+}
+
+.pens-page .watches-page__icon-button:hover,
+.pens-page .watches-page__tools-close:hover,
+.pens-page .watches-page__tabs button.is-active {
+  color: var(--watch-gold);
+}
+
+.pens-page .watches-page__cart-button span {
+  background: var(--watch-gold);
+  color: #fffaf1;
+}
+
+.pens-page .watches-page__tabs button {
+  color: rgba(24, 21, 19, 0.62);
+}
+
+.pens-page .watches-page__hero {
+  border-color: color-mix(in srgb, var(--brand-decoration) 28%, transparent);
+  background:
+    linear-gradient(90deg, rgba(255, 250, 241, 0.97) 0%, rgba(255, 250, 241, 0.76) 36%, rgba(255, 250, 241, 0.18) 68%, rgba(255, 250, 241, 0.08) 100%),
+    url("/customer-assets/home-hero-light-accessories.webp") right center / cover no-repeat,
+    #fffaf1;
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--brand-accent) 12%, transparent);
+}
+
+.pens-page .watches-page__hero::after {
+  background: transparent;
+}
+
+.pens-page .watches-page__hero-copy strong,
+.pens-page .watches-page__hero-copy > span,
+.pens-page .watches-page__hero-copy p,
+.pens-page .watches-page__hero-copy h2 {
+  color: #171412;
+}
+
+.pens-page .watches-page__hero-copy mark {
+  color: var(--watch-gold);
+}
+
+.pens-page .watches-page__controls {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.78), transparent 52%),
+    rgba(255, 250, 241, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 14px 30px color-mix(in srgb, var(--brand-accent) 10%, transparent);
+}
+
+.pens-page .watches-page__controls > button {
+  color: rgba(24, 21, 19, 0.72);
+}
+
+.pens-page .watches-page__controls > button:hover,
+.pens-page .watches-page__controls > button.is-active {
+  color: #fffaf1;
+  background: linear-gradient(180deg, var(--brand-secondary-decoration, #c99655), var(--brand-accent, #a96f31));
+}
+
+.pens-page .watches-page__controls > i {
+  background: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+}
+
+.pens-page .watches-page__tools-backdrop {
+  background: rgba(70, 50, 28, 0.22);
+}
+
+.pens-page .watches-page__tools-panel {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 24% 0%, rgba(255, 255, 255, 0.84), transparent 32%),
+    linear-gradient(145deg, rgba(255, 250, 241, 0.99), rgba(246, 239, 228, 0.99));
+  box-shadow: 0 -24px 70px color-mix(in srgb, var(--brand-accent) 22%, transparent);
+}
+
+.pens-page .watches-page__tools-handle {
+  background: color-mix(in srgb, var(--brand-decoration) 28%, transparent);
+}
+
+.pens-page .watches-page__filter-group button,
+.pens-page .watches-page__price-values span {
+  border-color: color-mix(in srgb, var(--brand-decoration) 24%, transparent);
+  background: rgba(255, 255, 255, 0.46);
+  color: rgba(24, 21, 19, 0.72);
+}
+
+.pens-page .watches-page__filter-group button:hover,
+.pens-page .watches-page__filter-group button.is-selected {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  background: color-mix(in srgb, var(--brand-decoration) 10%, transparent);
+  color: var(--watch-gold);
+}
+
+.pens-page .watches-page__range::before {
+  background: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+}
+
+.pens-page .watches-page__range::after {
+  background: linear-gradient(90deg, var(--brand-accent, #a96f31), var(--brand-secondary-decoration, #d6a96d));
+}
+
+.pens-page .watches-page__range input::-webkit-slider-thumb {
+  border-color: rgba(255, 250, 241, 0.95);
+  background: var(--brand-decoration, #b77f3f);
+}
+
+.pens-page .watches-page__range input::-moz-range-thumb {
+  border-color: rgba(255, 250, 241, 0.95);
+  background: var(--brand-decoration, #b77f3f);
+}
+
+.pens-page .watches-page__tools-actions button:last-child {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  color: var(--watch-gold);
+}
+
+.pens-page .watches-page__tools-count,
+.pens-page .watches-page__empty span {
+  color: rgba(24, 21, 19, 0.56);
+}
+
+.pens-page .watches-page__product,
+.pens-page .watches-page__product--skeleton {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 14px 30px color-mix(in srgb, var(--brand-accent) 9%, transparent);
+}
+
+.pens-page .watches-page__product-image {
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-decoration) 8%, transparent);
+}
+
+.pens-page .watches-page__product-image img {
+  filter: none;
+  mix-blend-mode: multiply;
+}
+
+.pens-page .product-image-carousel__dots span {
+  background: rgba(37, 32, 27, 0.22);
+  box-shadow: none;
+}
+
+.pens-page .product-image-carousel__dots span.is-active {
+  background: var(--brand-secondary-decoration, #c99655);
+}
+
+.pens-page .watches-page__favorite {
+  color: #2d2720;
+}
+
+.pens-page .watches-page__favorite.is-active,
+.pens-page .watches-page__card-cart {
+  color: var(--brand-secondary-decoration, #c99655);
+}
+
+.pens-page .watches-page__card-cart,
+.pens-page .watches-page__card-cart--skeleton {
+  border-color: color-mix(in srgb, var(--brand-decoration) 34%, transparent);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.78), transparent 52%),
+    rgba(255, 250, 241, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 22px color-mix(in srgb, var(--brand-accent) 12%, transparent);
+}
+
+.pens-page .watches-page__card-cart:hover {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  background: rgba(255, 246, 230, 0.96);
+}
+
+.pens-page .watches-page__card-cart:disabled {
+  color: rgba(45, 39, 32, 0.34);
+  border-color: rgba(45, 39, 32, 0.12);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.pens-page .watches-page__product-copy strong,
+.pens-page .watches-page__product-copy b {
+  color: #171412;
+}
+
+.pens-page .watches-page__product-copy span,
+.pens-page .watches-page__price small {
+  color: #63594d;
+}
+
+.pens-page .watches-page__price--sale b {
+  color: var(--brand-accent, #9d692f);
+}
+
+.pens-page .watches-page__stock-note {
+  border-color: color-mix(in srgb, var(--brand-decoration) 34%, transparent);
+  background: rgba(255, 249, 238, 0.88);
+  color: var(--brand-accent, #9a672d);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.pens-page .watches-page__product-image--skeleton,
+.pens-page .watches-page__copy-skeleton,
+.pens-page .watches-page__favorite--skeleton,
+.pens-page .watches-page__card-cart--skeleton {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--brand-decoration) 8%, transparent), color-mix(in srgb, var(--brand-decoration) 15%, transparent), color-mix(in srgb, var(--brand-decoration) 8%, transparent)),
+    color-mix(in srgb, var(--brand-decoration) 10%, transparent);
+}
+
+.pens-page .watches-page__product--skeleton::before,
+.pens-page .watches-page__product-image--skeleton::after,
+.pens-page .watches-page__copy-skeleton::after,
+.pens-page .watches-page__favorite--skeleton::after,
+.pens-page .watches-page__card-cart--skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.44), transparent);
+}
+
+.pens-page .watches-page__empty {
+  border-color: color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  background:
+    radial-gradient(circle at 50% 33%, color-mix(in srgb, var(--brand-secondary-decoration) 16%, transparent), transparent 52%),
+    linear-gradient(180deg, #fffdf8 0%, #f6efe4 100%);
+}
+
+@media (max-width: 640px) {
+  .pens-page .watches-page__hero {
+    background:
+      linear-gradient(90deg, rgba(255, 250, 241, 0.97) 0%, rgba(255, 250, 241, 0.76) 40%, rgba(255, 250, 241, 0.2) 68%, rgba(255, 250, 241, 0.08) 100%),
+      url("/customer-assets/home-hero-light-accessories.webp") 68% center / cover no-repeat,
+      #fffaf1;
+  }
+}
+
+@media (min-width: 850px) {
+  .pens-page .watches-page__phone-shell {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-decoration) 16%, transparent), 0 28px 80px color-mix(in srgb, var(--brand-accent) 14%, transparent);
+  }
+}
+
+.pens-page {
+  --product-card-image-scale: 1;
+}
+
+.pens-page .watches-page__product-image {
+  inset: 44px 10px 90px;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  place-items: center;
+}
+
+.pens-page .watches-page__product:not(.watches-page__product--skeleton) .watches-page__product-image img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(var(--product-card-image-scale));
+  transform-origin: center;
+  filter: none;
+  mix-blend-mode: multiply;
+}
+
+@media (max-width: 640px) {
+  .pens-page {
+    --product-card-image-scale: 1;
+  }
+
+  .pens-page .watches-page__product-image {
+    inset: 42px 4px 64px;
+  }
+}
+
+/* Flip only the hero artwork; copy keeps its original position. */
+.pens-page .watches-page__hero {
+  background: #fffaf1;
+}
+
+.pens-page .watches-page__hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url("/customer-assets/home-hero-light-accessories.webp") center / cover no-repeat;
+  transform: scaleX(-1);
+}
+
+.pens-page .watches-page__hero::after {
+  background: linear-gradient(90deg, rgba(255, 250, 241, .97) 0%, rgba(255, 250, 241, .76) 37%, rgba(255, 250, 241, .18) 68%, rgba(255, 250, 241, .08) 100%);
+}
+
+@media (max-width: 640px) {
+  .pens-page .watches-page__hero::before {
+    background-position: 68% center;
+  }
+}

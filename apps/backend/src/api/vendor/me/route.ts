@@ -144,6 +144,7 @@ export async function PATCH(
         ? { primary_color: update.primary_color as string | null }
         : {}),
     },
+    `merchant:${context.member.id}`,
   );
   return res.json(await responseBody(req));
 }

@@ -471,35 +471,43 @@ const provisioningFingerprintKeys = (): ProvisioningFingerprintKey[] => {
   ];
 };
 
-const hashProvisioningRequest = (
-  input: ProvisionStoreInput,
+const hashProvisioningValue = (
+  input: unknown,
   key: ProvisioningFingerprintKey,
 ): string =>
   createHmac("sha256", key.secret)
     .update(JSON.stringify(input))
     .digest("hex");
 
-const storedProvisioningRequestHash = (
-  input: ProvisionStoreInput,
+const storedProvisioningValueHash = (
+  input: unknown,
   key: ProvisioningFingerprintKey,
 ): string => {
-  const hash = hashProvisioningRequest(input, key);
+  const hash = hashProvisioningValue(input, key);
 
   return key.versioned ? `${key.id}:${hash}` : hash;
 };
 
+export const provisioningValueFingerprint = (input: unknown): string =>
+  storedProvisioningValueHash(input, provisioningFingerprintKeys()[0]);
+
+export const provisioningValueFingerprintMatches = (
+  input: unknown,
+  storedHash: string,
+): boolean =>
+  provisioningFingerprintKeys().some((key) => {
+    const hash = hashProvisioningValue(input, key);
+
+    return storedHash === hash || storedHash === `${key.id}:${hash}`;
+  });
+
 export const provisioningRequestHash = (input: ProvisionStoreInput): string =>
-  storedProvisioningRequestHash(input, provisioningFingerprintKeys()[0]);
+  provisioningValueFingerprint(input);
 
 export const provisioningRequestHashMatches = (
   input: ProvisionStoreInput,
   storedHash: string,
-): boolean =>
-  provisioningFingerprintKeys().some((key) => {
-    const hash = hashProvisioningRequest(input, key);
-
-    return storedHash === hash || storedHash === `${key.id}:${hash}`;
-  });
+): boolean => provisioningValueFingerprintMatches(input, storedHash);
 
 export const safeProvisioningError = (
   error: unknown,

@@ -1,0 +1,361 @@
+.drops-categories-page {
+  min-height: 912px;
+  padding: 13px 16px 112px;
+}
+
+.drops-categories-header {
+  display: grid;
+  height: 57px;
+  grid-template-columns: 45px minmax(0, 1fr) 45px;
+  align-items: center;
+}
+
+.drops-categories-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.drops-categories-header .drops-round-button {
+  width: 39px;
+  height: 39px;
+}
+
+.drops-categories-header .drops-round-button svg {
+  width: 23px;
+  height: 23px;
+}
+
+.drops-categories-header .drops-bag-button {
+  justify-self: end;
+}
+
+.drops-categories-header .drops-bag-button b {
+  top: -3px;
+  right: -4px;
+  width: 21px;
+  height: 21px;
+  font-size: 11px;
+}
+
+.drops-categories-main {
+  display: block;
+}
+
+.drops-categories-search {
+  display: grid;
+  height: 49px;
+  grid-template-columns: 29px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+  margin-top: 15px;
+  border-radius: 20px;
+  background: #f4f4f4;
+}
+
+.drops-categories-search svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.8;
+}
+
+.drops-categories-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.drops-categories-search input::placeholder {
+  color: #85858a;
+  opacity: 1;
+}
+
+.drops-categories-live {
+  min-height: 12px;
+  margin: 3px 3px 0;
+  color: var(--drops-green);
+  font-size: 9px;
+  line-height: 12px;
+}
+
+.drops-categories-hero {
+  position: relative;
+  height: 114px;
+  overflow: hidden;
+  margin-top: 12px;
+  border-radius: 15px;
+  background: #010402;
+}
+
+.drops-categories-hero > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drops-categories-hero > div {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  height: 100%;
+  width: 50%;
+  align-items: flex-start;
+  padding: 30px 0 0 21px;
+  flex-direction: column;
+}
+
+.drops-categories-hero h2 {
+  margin: 0;
+  color: white;
+  font-size: clamp(17px, 4.5vw, 20px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.drops-categories-hero button {
+  min-width: 83px;
+  min-height: 30px;
+  padding: 6px 14px;
+  margin-top: 17px;
+  border-radius: 999px;
+  color: white;
+  background: linear-gradient(105deg, var(--template-accent, #04b85b), var(--template-accent, #08c979));
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.drops-style-section {
+  scroll-margin-top: 12px;
+  margin-top: 18px;
+}
+
+.drops-style-section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 3px 12px;
+}
+
+.drops-style-section h2,
+.drops-audience-section h2,
+.drops-popular-brands h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.drops-style-section > header button {
+  padding: 3px 0 3px 12px;
+  color: var(--template-accent, #00aa54);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.drops-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.drops-style-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  aspect-ratio: 1.23;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 15px;
+  background: #f4f4f4;
+  text-align: left;
+}
+
+.drops-style-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drops-style-card > span {
+  position: absolute;
+  z-index: 2;
+  bottom: 12px;
+  left: 12px;
+  font-size: 14px;
+  font-weight: 520;
+  letter-spacing: -0.035em;
+}
+
+.drops-style-card > b {
+  position: absolute;
+  right: 8px;
+  bottom: 7px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 11px rgba(0, 0, 0, 0.09);
+}
+
+.drops-style-card > b svg {
+  width: 17px;
+  height: 17px;
+}
+
+.drops-categories-empty {
+  display: grid;
+  min-height: 146px;
+  place-items: center;
+  padding: 20px;
+  border-radius: 15px;
+  background: #f4f4f4;
+  text-align: center;
+}
+
+.drops-categories-empty svg {
+  width: 38px;
+  height: 38px;
+  color: var(--drops-green);
+}
+
+.drops-categories-empty p {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.drops-categories-empty button {
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: white;
+  background: var(--drops-green);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.drops-audience-section {
+  margin: 22px 2px 0;
+}
+
+.drops-audience-section > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.drops-audience-section button {
+  display: flex;
+  min-width: 0;
+  height: 39px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #bebebe;
+  border-radius: 999px;
+  color: #151515;
+  background: white;
+  font-size: 11px;
+  font-weight: 550;
+}
+
+.drops-audience-section button.is-selected {
+  border-color: var(--template-accent, #06b75c);
+  color: var(--template-accent, #06a952);
+}
+
+.drops-audience-section svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.6;
+}
+
+.drops-popular-brands {
+  margin: 24px 4px 0;
+}
+
+.drops-popular-brands > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 13px;
+}
+
+.drops-popular-brands button {
+  display: grid;
+  aspect-ratio: 1;
+  min-width: 0;
+  place-items: center;
+  padding: 11px;
+  border: 1.5px solid transparent;
+  border-radius: 50%;
+  background: #f1f1f1;
+}
+
+.drops-popular-brands button.is-selected {
+  border-color: var(--drops-green);
+  background: #edfff6;
+}
+
+.drops-popular-brands svg {
+  width: 100%;
+  height: 100%;
+  max-width: 36px;
+  max-height: 27px;
+}
+
+.drops-popular-brands span {
+  font-size: clamp(9px, 3vw, 15px);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+}
+
+.drops-categories-page .drops-bottom-nav {
+  right: max(57px, calc((100vw - 430px) / 2 + 57px));
+  bottom: 15px;
+  left: max(57px, calc((100vw - 430px) / 2 + 57px));
+  height: 62px;
+}
+
+.drops-categories-page .drops-bottom-nav button::after {
+  bottom: 10px;
+}
+
+.drops-categories-page .drops-bottom-nav svg {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 374px) {
+  .drops-categories-page {
+    padding-inline: 12px;
+  }
+
+  .drops-categories-hero > div {
+    padding-left: 16px;
+  }
+
+  .drops-popular-brands > div {
+    gap: 10px;
+  }
+
+  .drops-categories-page .drops-bottom-nav {
+    right: 44px;
+    left: 44px;
+  }
+}

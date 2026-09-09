@@ -3,6 +3,7 @@ const { existsSync } = require("fs")
 const { resolve } = require("path")
 
 const {
+  assertOwnedDisposableDatabaseRun,
   assertSafeTestDatabase,
   loadTestEnvironment,
 } = require("./test-environment")
@@ -19,7 +20,8 @@ if (requestedType !== "all" && !supportedTypes.includes(requestedType)) {
 loadTestEnvironment(resolve(__dirname, ".."))
 delete process.env.TEST_DATABASE_GUARD_VALIDATED
 assertSafeTestDatabase()
-// Keep Medusa's config loader on the already-validated local/isolated target.
+assertOwnedDisposableDatabaseRun()
+// Keep Medusa's config loader on the already-validated local target.
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
 process.env.TEST_DATABASE_GUARD_VALIDATED = "true"
 

@@ -1,0 +1,66 @@
+:root {
+  --storefront-surface: #f8f6f2;
+}
+
+.app-route-stage--storefront,
+.watches-page,
+.watches-page__phone-shell,
+.watches-page__grid,
+.cart-page,
+.cart-page__shell,
+.cart-page__items,
+.customer-orders-page__body,
+.order-detail-page__content,
+.product-details-page,
+.product-details-page__shell,
+.product-details-page__summary,
+.product-details-page__tabs,
+.product-details-page__rating-strip,
+.product-details-page__specs,
+.product-details-page__related {
+  background-color: var(--storefront-surface) !important;
+}
+
+.watches-page,
+.watches-page__phone-shell,
+.watches-page__grid,
+.cart-page,
+.cart-page__shell,
+.cart-page__items,
+.customer-orders-page__body,
+.order-detail-page__content,
+.product-details-page,
+.product-details-page__shell,
+.product-details-page__summary,
+.product-details-page__tabs,
+.product-details-page__rating-strip,
+.product-details-page__specs,
+.product-details-page__related {
+  background-image: none !important;
+}
+
+.watches-page {
+  --watch-bg: var(--storefront-surface);
+}
+
+.cart-page,
+.cart-page--has-items {
+  --cart-bg: var(--storefront-surface);
+}
+
+.product-details-page {
+  --pdp-cream: var(--storefront-surface);
+  --pdp-paper: var(--storefront-surface);
+}
+
+/* Keep cards and media frames crisp against the shared page surface. */
+.watches-page__product,
+.cart-page__item,
+.customer-orders-page__card,
+.order-detail-page__info-panel,
+.order-detail-page__products-panel,
+.order-detail-page__address-card,
+.order-detail-page__payment-card,
+.product-details-page__related-card {
+  background-color: #fff !important;
+}

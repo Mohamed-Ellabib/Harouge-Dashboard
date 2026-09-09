@@ -1,73 +1,77 @@
-# Medusa Multi-Store Commerce SaaS
+# LabibTech Commerce SaaS
 
-Medusa 2.17 backend with owner and merchant administration, permanent Tenant/Store ownership, isolated Products/Carts/Orders, idempotent Store provisioning, and an Arabic-first customer storefront with a bounded guarded-local commerce pilot.
+Multi-store ecommerce SaaS for independently branded Libyan merchants. The
+platform provides owner onboarding, isolated merchant operations, bilingual
+storefronts, product variants and inventory, and guest checkout in LYD.
 
-Before working in this repository, read [the project handoff](docs/saas-pivot/HANDOFF.md). Codex sessions must also follow [AGENTS.md](AGENTS.md).
+## Start here
+
+1. Read [`AGENTS.md`](AGENTS.md) for repository safety rules.
+2. Read the current [`project handoff`](docs/saas-pivot/HANDOFF.md).
+3. Read the approved [`Phase 3C MVP contract`](docs/saas-pivot/phase-3c-mvp-contract.md).
+4. Use the [`documentation index`](docs/README.md) instead of searching through historical files.
 
 ## Applications
 
-- Backend and platform Admin: `apps/backend`
-- Merchant dashboard: `apps/vendor-dashboard`
-- Owner platform dashboard: `apps/platform-dashboard`
-- Phase 3A/3B customer storefront: `apps/storefront`
-- Architecture and phase records: `docs/saas-pivot`
+| Application | Location | Local URL |
+| --- | --- | --- |
+| Commerce backend and framework Admin | `apps/backend` | `http://localhost:9000/app` |
+| Merchant dashboard | `apps/vendor-dashboard` | `http://127.0.0.1:5175/` |
+| Platform-owner dashboard | `apps/platform-dashboard` | `http://127.0.0.1:5174/` |
+| Customer storefront | `apps/storefront` | `http://127.0.0.1:5176/` |
 
-Phase 3A implements `/`, `/products`, and `/products/:handle` with an exact public DTO boundary and Store-scoped reads; its guarded-local gate is closed. The bounded Phase 3B pilot adds guest Cart, checkout, one Store shipping option, local system payment, reduced confirmation, and owning-merchant Order visibility. Its automated/browser/restart/regression/cleanup evidence passed on 2026-07-22, but its distinct owner-performed physical-keyboard journey remains pending, so the Phase 3B gate is open. No public pilot or production readiness is claimed.
+## Current product boundary
 
-## Requirements
+Phase 3C is the active, owner-approved concierge MVP: Libya/LYD, assisted
+merchant onboarding, Store-owned size/color variants and stock, COD or manual
+bank transfer, merchant Order operations, three shared Arabic/English
+storefront templates, custom domains, and merchant WhatsApp alerts.
 
-- Node.js 20 through 23
-- npm
-- PostgreSQL 15 or newer
+Production deployment, public traffic, customer accounts, automated billing,
+online payments, courier integration, returns automation, and removal of the
+legacy Vendor compatibility layer are not authorized.
 
-## Setup
+## Development
+
+Requirements: Node.js 20 through 23 and npm; `.nvmrc` pins the recommended
+Node.js 22 runtime. Interactive development uses the
+owner-approved, pinned Supabase development project; automated tests continue
+to use owned disposable PostgreSQL on loopback.
+
+Complete the one-time guarded setup in the
+[`Supabase development runbook`](docs/saas-pivot/supabase-development-runbook.md),
+then run:
 
 ```powershell
 npm.cmd ci
-```
-
-Environment files are intentionally ignored. Recreate `apps/backend/.env` and the guarded `apps/backend/.env.test.local` without putting credentials in Git, documentation, or prompts.
-
-Run the applications:
-
-```powershell
 npm.cmd run backend:dev
 npm.cmd run vendor:dev
 npm.cmd run platform:dev
 npm.cmd run storefront:dev
 ```
 
-- Platform Admin: `http://localhost:9000/app`
-- Merchant dashboard: `http://127.0.0.1:5173/`
-- Owner platform dashboard: `http://127.0.0.1:5174/`
-- Customer storefront development server: `http://127.0.0.1:5175/`
-
-## Validation
+Or start all four applications together:
 
 ```powershell
-npm.cmd test
-npm.cmd run lint
-npm.cmd run build
-npm.cmd run typecheck --workspace @dtc/backend
+npm.cmd run dev
+```
+
+The Supabase database connection is entered through a hidden prompt and stored
+with Windows DPAPI outside the repository. Never paste it into chat, an
+environment template, a command, or Git. Never use the historical Neon
+configuration. Production and public traffic remain blocked.
+
+## Focused checks
+
+Use the smallest check that covers the change. Common commands are:
+
+```powershell
 npm.cmd run typecheck --workspace @dtc/vendor-dashboard
 npm.cmd run typecheck --workspace @dtc/platform-dashboard
 npm.cmd run typecheck --workspace @dtc/storefront
-npm.cmd run test --workspace @dtc/storefront
+npm.cmd run typecheck --workspace @dtc/backend
+npm.cmd run build
 ```
 
-The interactive guarded real-backend smokes are:
-
-```powershell
-npm.cmd run storefront:accept
-npm.cmd run commerce:accept
-```
-
-They require Node 20 through 23 and free loopback ports 9000, 5175, and 5176. The wrapper exclusively locks and resets only the exact local disposable `medusa_phase05_disposable` database, so do not run another disposable-database command concurrently. Normal shutdown stops the owned processes and embedded local PostgreSQL, scrubs the synthetic schema, and removes the temporary encrypted handoff.
-
-Use the guarded runner for disposable local migrations:
-
-```powershell
-node apps/backend/scripts/run-disposable-medusa.js db:migrate
-```
-
-Never run tests, backfills, diagnostics, or acceptance flows against Neon. Production migration remains blocked as documented in the handoff and migration runbook.
+The guarded storefront and commerce acceptance runners are destructive only to
+their exact disposable local database. Read the handoff before running them.

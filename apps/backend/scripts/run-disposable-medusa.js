@@ -2,6 +2,7 @@ const { spawnSync } = require("child_process");
 const { dirname, resolve } = require("path");
 
 const {
+  assertOwnedDisposableDatabaseRun,
   assertSafeTestDatabase,
   loadTestEnvironment,
 } = require("./test-environment");
@@ -10,6 +11,7 @@ process.env.NODE_ENV = "test";
 loadTestEnvironment(resolve(__dirname, ".."));
 delete process.env.TEST_DATABASE_GUARD_VALIDATED;
 const target = assertSafeTestDatabase();
+assertOwnedDisposableDatabaseRun();
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 process.env.TEST_DATABASE_GUARD_VALIDATED = "true";
 

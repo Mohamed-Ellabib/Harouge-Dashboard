@@ -12,6 +12,7 @@ import {
   serializePermanentPublicStoreProfile
 } from "./legacy-vendor-compatibility"
 import { normalizeDomain, normalizeHandle, type PublicStoreProfile } from "./vendors"
+import { readPublishedStorefront } from "../../modules/saas/platform-storefront-document"
 
 export type PublicStoreContext = {
   tenantId: string
@@ -132,6 +133,7 @@ export const resolvePublicStoreContext = async (
 
   const domains = await listPermanentDomains(req, binding.storeProfile.id)
   const brand = await getPermanentBrand(req, binding.storeProfile.id)
+  const storefront = await readPublishedStorefront(req.scope, binding.storeProfile.id)
   const legacyVendorId = binding.storeProfile.legacy_vendor_id
 
   if (typeof legacyVendorId !== "string" || !legacyVendorId) {
@@ -152,7 +154,7 @@ export const resolvePublicStoreContext = async (
           domains[0]?.normalized_hostname
       ),
     requestId: randomUUID(),
-    profile: serializePermanentPublicStoreProfile(binding, domains, brand)
+    profile: serializePermanentPublicStoreProfile(binding, domains, brand, storefront)
   }
 
   ;(req as any)[CONTEXT_KEY] = context

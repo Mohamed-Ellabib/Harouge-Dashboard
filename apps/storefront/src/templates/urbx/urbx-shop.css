@@ -1,0 +1,50 @@
+.urbx-shop{font-family:var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif}
+.urbx-shop__intro{padding:1cqw 4.5cqw 2cqw;position:relative;isolation:isolate}
+.urbx-shop__intro::before{content:"";position:absolute;inset:-4cqw 20cqw -2cqw -25cqw;background:url("/assets/urbx/type-distress-v1.png") center/cover;filter:invert(1);opacity:.06;z-index:-1;pointer-events:none}
+.urbx-shop__intro h1{font:400 10.2cqw/1.17 var(--urbx-heading-font,"URBX Marker"),cursive;letter-spacing:-.3cqw;transform:skewX(-12deg) scaleX(.81);transform-origin:left;overflow-wrap:anywhere}
+.urbx-shop__statement{position:relative;display:inline-block;color:var(--urbx-accent)}
+.urbx-shop__statement img{position:absolute;left:0;bottom:-2.9cqw;width:100%;height:5.5cqw;mix-blend-mode:screen;pointer-events:none}
+.urbx-shop__controls{padding:1cqw 4.3cqw 0}
+.urbx-shop__search{display:flex;align-items:center;gap:2.3cqw;height:9.2cqw;padding:0 2.5cqw;border:2px solid #434643;border-radius:1.5cqw;background:#ffffff04}
+.urbx-shop__search svg{width:4.9cqw;height:4.9cqw;flex:none;color:var(--urbx-muted,#898b89)}
+.urbx-shop__search input{width:100%;min-width:0;color:var(--urbx-text,#fff);background:none;border:0;outline:0;font:400 3.6cqw/1.4 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;padding:0}
+.urbx-shop__search:focus-within{border-color:var(--urbx-accent)}
+.urbx-shop__search input::placeholder{color:var(--urbx-muted,#929492);opacity:1}
+.urbx-shop__tabs{display:flex;margin-top:1.8cqw;border-bottom:2px solid #393b39;gap:3cqw}
+.urbx-shop .urbx-shop__tabs button{flex:1;min-width:0;position:relative;min-height:7.2cqw;padding:.4cqw .3cqw 1.2cqw;color:var(--urbx-muted,#aaa);font:600 3.2cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;text-transform:uppercase;overflow-wrap:anywhere}
+.urbx-shop .urbx-shop__tabs button:first-child{flex:.71}
+.urbx-shop .urbx-shop__tabs button[aria-pressed=true]{color:var(--urbx-accent)}
+.urbx-shop__tabs button[aria-pressed=true]::after{content:"";position:absolute;bottom:-2px;left:0;right:0;height:.7cqw;background:var(--urbx-accent)}
+.urbx-shop__toolbar{display:flex;align-items:center;gap:1.8cqw;padding:2.4cqw 0 2.5cqw}
+.urbx-shop__toolbar p{color:var(--urbx-muted,#909290);flex:1;font-size:3cqw;white-space:nowrap}
+.urbx-shop__sort{position:relative;display:flex;width:23cqw;height:6.6cqw;min-height:28px;border:2px solid #676b67;border-radius:1.1cqw}
+.urbx-shop__sort select{appearance:none;display:block;width:100%;font:400 3cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;color:var(--urbx-text,#fff);background:transparent;border:0;padding:.4cqw 5.5cqw .4cqw 3cqw;cursor:pointer}
+.urbx-shop select option{background:#141514;color:var(--urbx-text,#fff)}
+.urbx-shop__sort svg{position:absolute;right:2.5cqw;top:50%;transform:translateY(-50%);width:2.7cqw;height:2.7cqw;pointer-events:none}
+.urbx-shop .urbx-shop__filter{display:flex;justify-content:center;align-items:center;gap:2.2cqw;width:18.2cqw;height:6.6cqw;min-height:28px;border:2px solid #676b67;border-radius:1.1cqw;font-size:3cqw}
+.urbx-shop__filter svg{width:3.5cqw;height:3.5cqw}
+.urbx-shop__filter i{width:.8cqw;height:.8cqw;border-radius:50%;background:var(--urbx-accent)}
+.urbx-shop__catalog{padding:0 3.4cqw 5.2cqw;min-height:40cqw}
+.urbx-shop__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:2cqw;row-gap:2.4cqw}
+.urbx-shop__product{min-width:0}
+.urbx-shop__photo{position:relative;aspect-ratio:394/429;border:2px solid #666966;border-radius:1.5cqw;overflow:hidden;background:#171917}
+.urbx-shop__image-target,.urbx-shop__image-target>a{display:block;width:100%;height:100%}
+.urbx-shop__photo img{display:block;width:100%;height:100%;object-fit:cover;transform:scale(1.06)}
+.urbx-shop__no-image{display:grid;place-items:center;height:100%;padding:20px;font-size:3cqw;color:var(--urbx-muted,#bbb)}
+.urbx-shop .urbx-shop__heart{position:absolute;top:1.4cqw;right:1.4cqw;width:6.6cqw;height:6.6cqw;min-width:28px;min-height:28px;display:grid;place-items:center;border:2px solid #323632;border-radius:50%;background:#070907d9}
+.urbx-shop__heart svg{width:4.1cqw;height:4.1cqw;min-width:18px;min-height:18px}
+.urbx-shop__heart[aria-pressed=true]{color:var(--urbx-accent)}
+.urbx-shop__product h2{font:600 3.8cqw/1.24 var(--urbx-heading-font,"URBX Roboto"),Arial,sans-serif;margin:1.25cqw .8cqw .35cqw;overflow-wrap:anywhere}
+.urbx-shop__price{display:flex;justify-content:space-between;align-items:center;gap:1cqw;margin:0 .8cqw;min-height:6.6cqw}
+.urbx-shop__price strong{font:500 4.8cqw/1.2 var(--urbx-body-font,"URBX Roboto"),Arial,sans-serif;overflow-wrap:anywhere}
+.urbx-shop[data-money=store] .urbx-shop__price strong{font-size:4cqw}
+.urbx-shop .urbx-shop__price button{display:grid;place-items:center;width:6.7cqw;height:6.7cqw;min-width:28px;min-height:28px;border:2px solid #7b7e7b;border-radius:1cqw;flex:none}
+.urbx-shop__price svg{width:4.5cqw;height:4.5cqw;min-width:20px;min-height:20px}
+.urbx-shop .urbx-home__bottom-nav{padding:3.3cqw 1.5cqw 5.5cqw}
+.urbx-shop .urbx-home__bottom-nav a{font-size:2.9cqw;gap:1.1cqw;text-transform:uppercase;overflow-wrap:anywhere;text-align:center}
+.urbx-shop .urbx-home__bottom-nav svg{width:5.8cqw;height:5.8cqw}
+.urbx-shop__filter-form{display:grid;gap:20px}
+.urbx-shop__filter-form label{display:grid;gap:8px}
+.urbx-shop__filter-form :where(select,input){width:100%;min-height:46px;padding:10px;border:1px solid #666;border-radius:6px;background:var(--urbx-surface,#101110);color:var(--urbx-text,#fff);font:inherit;color-scheme:dark}
+.urbx-shop .urbx-shop__reset{min-height:40px;text-decoration:underline;color:var(--urbx-muted,#bbb)}
+@media(max-width:480px){.urbx-shop :where(.urbx-shop__photo,.urbx-shop__heart,.urbx-shop__search,.urbx-shop__sort,.urbx-shop__filter,.urbx-shop__tabs,.urbx-shop__price button,.urbx-home__bottom-nav){border-width:1px}}

@@ -28,6 +28,12 @@ describe("storefront proxy allowlist", () => {
         "/store/shipping-options?cart_id=cart_123",
       ),
     ).toBe(true);
+    expect(
+      isAllowedStorefrontProxyRequest(
+        "POST",
+        "/store/saas/carts/cart_123/complete",
+      ),
+    ).toBe(true);
   });
 
   it("rejects Admin, vendor, customer-auth, and unlisted Store routes", () => {
@@ -40,6 +46,12 @@ describe("storefront proxy allowlist", () => {
     );
     expect(
       isAllowedStorefrontProxyRequest("DELETE", "/store/carts/cart_123"),
+    ).toBe(false);
+    expect(
+      isAllowedStorefrontProxyRequest(
+        "POST",
+        "/store/carts/cart_123/complete",
+      ),
     ).toBe(false);
     expect(
       isAllowedStorefrontProxyRequest(

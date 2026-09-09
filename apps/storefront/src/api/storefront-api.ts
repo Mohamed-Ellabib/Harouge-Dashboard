@@ -1,8 +1,13 @@
 import {
   getStorefrontRequestConfig,
+  isStorefrontEditorPreviewEnabled,
   isVisualPreviewEnabled,
   StorefrontConfigurationError,
 } from "../config";
+import { defaultStorefrontNavigationItems } from "../lib/storefront-navigation";
+import { creationTrialRequest, isCreationTrial } from "../creation-trial";
+import { rememberOrderGrant } from "../commerce/order-history";
+import type { TrackedOrder } from "../commerce/tracked-orders";
 import { normalizeHexColor } from "../lib/theme";
 import {
   STOREFRONT_CATALOG_ORDERS,
@@ -16,6 +21,7 @@ import {
   type StorefrontCheckoutAddress,
   type StorefrontCommerceCapabilitiesDto,
   type StorefrontOrderConfirmationDto,
+  type StorefrontNavigationKey,
   type StorefrontProductCardDto,
   type StorefrontProductDetailDto,
   type StorefrontProfileDto,
@@ -24,11 +30,26 @@ import {
   type StorefrontShippingOptionDto,
 } from "../types";
 
-const CATALOG_PRODUCT_PRESENTATION_FIELDS = "handle,title,subtitle,thumbnail";
+const CATALOG_PRODUCT_PRESENTATION_FIELDS =
+  "handle,title,subtitle,thumbnail,+metadata,+variants.calculated_price";
 const DETAIL_PRODUCT_PRESENTATION_FIELDS =
-  "handle,title,subtitle,description,thumbnail,images.url";
+  "handle,title,subtitle,description,thumbnail,images.url,+metadata";
 const MAX_HANDLE_LENGTH = 200;
 const MAX_NAME_LENGTH = 180;
+const MAX_PUBLIC_EMAIL_LENGTH = 254;
+const MAX_PUBLIC_PHONE_LENGTH = 40;
+const MAX_STOREFRONT_HERO_EYEBROW_LENGTH = 80;
+const MAX_STOREFRONT_HERO_HEADING_LENGTH = 160;
+const MAX_STOREFRONT_HERO_SUBHEADING_LENGTH = 600;
+const MAX_STOREFRONT_HERO_CTA_LENGTH = 60;
+const MAX_STOREFRONT_HERO_SLIDES = 12;
+const MAX_STOREFRONT_HERO_BUTTONS = 5;
+const MAX_STOREFRONT_HERO_BENEFITS = 8;
+const MAX_STOREFRONT_BRANDS = 16;
+const MAX_STOREFRONT_NAVIGATION_LABEL_LENGTH = 60;
+const MAX_STOREFRONT_CONTENT_TITLE_LENGTH = 160;
+const MAX_STOREFRONT_CONTACT_BODY_LENGTH = 3_000;
+const MAX_STOREFRONT_CONTENT_BODY_LENGTH = 6_000;
 const MAX_TITLE_LENGTH = 240;
 const MAX_SUBTITLE_LENGTH = 320;
 const MAX_DESCRIPTION_LENGTH = 6_000;
@@ -41,12 +62,51 @@ export const STOREFRONT_SYSTEM_PAYMENT_PROVIDER = "pp_system_default";
 
 type UnknownRecord = Record<string, unknown>;
 
+const STOREFRONT_NAVIGATION_KEYS: readonly StorefrontNavigationKey[] = [
+  "home",
+  "categories",
+  "favorites",
+  "cart",
+  "account",
+  "orders",
+  "settings",
+];
+
+const defaultStorefrontNavigation = () => ({
+  items: defaultStorefrontNavigationItems(),
+});
+
+const storefrontNavigation = (value: unknown) => {
+  if (value === undefined) return defaultStorefrontNavigation();
+  if (!isRecord(value) || !Array.isArray(value.items) || value.items.length !== STOREFRONT_NAVIGATION_KEYS.length) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  const seen = new Set<StorefrontNavigationKey>();
+  const items = value.items.map((item) => {
+    if (!isRecord(item) || typeof item.key !== "string" || !STOREFRONT_NAVIGATION_KEYS.includes(item.key as StorefrontNavigationKey) || typeof item.enabled !== "boolean") {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const key = item.key as StorefrontNavigationKey;
+    if (seen.has(key)) throw new StorefrontApiError("invalid_response");
+    seen.add(key);
+    return {
+      key,
+      label: localizedStorefrontText(item.label, MAX_STOREFRONT_NAVIGATION_LABEL_LENGTH),
+      enabled: item.enabled,
+    };
+  });
+  if (seen.size !== STOREFRONT_NAVIGATION_KEYS.length) throw new StorefrontApiError("invalid_response");
+  return { items };
+};
+
 export type StorefrontApiErrorCode =
   | "aborted"
   | "configuration"
   | "invalid_request"
   | "invalid_response"
   | "not_found"
+  | "storefront_setup"
   | "unavailable";
 
 const safeMessageForCode = (code: StorefrontApiErrorCode): string => {
@@ -60,6 +120,10 @@ const safeMessageForCode = (code: StorefrontApiErrorCode): string => {
 
   if (code === "invalid_request") {
     return "تعذّر فتح المحتوى المطلوب.";
+  }
+
+  if (code === "storefront_setup") {
+    return "إعداد واجهة المتجر غير مكتمل.";
   }
 
   return "تعذّر تحميل المحتوى الآن.";
@@ -83,6 +147,9 @@ export const isStorefrontApiError = (
 
 const isRecord = (value: unknown): value is UnknownRecord =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const hasOwn = (value: UnknownRecord, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
 
 const containsUnsafeControlCharacter = (value: string): boolean =>
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(value);
@@ -233,8 +300,192 @@ const publicAssetUrl = (value: unknown): string | null => {
   return parsed.toString();
 };
 
+const storefrontLink = (value: unknown): string => {
+  const normalized = inlineText(value, 2_048, true) as string;
+  if (/[\\<>]/u.test(normalized)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  if (/^#[A-Za-z0-9_-]{1,128}$/u.test(normalized)) return normalized;
+  if (normalized.startsWith("/") && !normalized.startsWith("//") && !normalized.includes("..")) {
+    return normalized;
+  }
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol === "https:" && !parsed.username && !parsed.password) {
+      return parsed.toString();
+    }
+  } catch {
+    // Invalid links are rejected below.
+  }
+  throw new StorefrontApiError("invalid_response");
+};
+
+const heroItemId = (value: unknown): string => {
+  const id = inlineText(value, 80, true) as string;
+  if (!/^[A-Za-z0-9_-]{1,80}$/u.test(id)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  return id;
+};
+
+const storefrontHeroSlides = (value: unknown) => {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_STOREFRONT_HERO_SLIDES) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const ids = new Set<string>();
+  return value.map((slide) => {
+    if (!isRecord(slide) || typeof slide.enabled !== "boolean") {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const id = heroItemId(slide.id);
+    const imageUrl = publicAssetUrl(slide.image_url);
+    if (ids.has(id) || !imageUrl) throw new StorefrontApiError("invalid_response");
+    ids.add(id);
+    return {
+      id,
+      image_url: imageUrl,
+      alt: localizedStorefrontText(slide.alt, MAX_STOREFRONT_HERO_HEADING_LENGTH),
+      enabled: slide.enabled,
+    };
+  });
+};
+
+const storefrontHeroButtons = (value: unknown) => {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > MAX_STOREFRONT_HERO_BUTTONS) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const ids = new Set<string>();
+  return value.map((button) => {
+    if (!isRecord(button) || typeof button.enabled !== "boolean") {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const id = heroItemId(button.id);
+    const backgroundColor = normalizeHexColor(button.background_color);
+    const textColor = normalizeHexColor(button.text_color);
+    if (
+      ids.has(id) || !backgroundColor || !textColor ||
+      (button.style !== "solid" && button.style !== "outline")
+    ) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    ids.add(id);
+    return {
+      id,
+      label: localizedStorefrontText(button.label, MAX_STOREFRONT_HERO_CTA_LENGTH),
+      href: storefrontLink(button.href),
+      background_color: backgroundColor,
+      text_color: textColor,
+      style: button.style === "outline" ? "outline" as const : "solid" as const,
+      enabled: button.enabled,
+    };
+  });
+};
+
+const STOREFRONT_BENEFIT_ICONS = new Set([
+  "award",
+  "shield",
+  "truck",
+  "package",
+  "check",
+  "heart",
+  "globe",
+  "clock",
+  "headset",
+  "sparkle",
+]);
+
+const defaultStorefrontHeroBenefits = () => [
+  { id: "hero-benefit-authentic", icon: "award" as const, title: { ar: "أصلية 100%", en: "100% authentic" }, subtitle: { ar: "منتجات موثوقة", en: "AUTHENTIC" } },
+  { id: "hero-benefit-distributor", icon: "award" as const, title: { ar: "موزع رسمي", en: "Official distributor" }, subtitle: { ar: "وكيل معتمد", en: "OFFICIAL DISTRIBUTOR" } },
+  { id: "hero-benefit-warranty", icon: "shield" as const, title: { ar: "ضمان دولي", en: "International warranty" }, subtitle: { ar: "تغطية موثوقة", en: "INTERNATIONAL WARRANTY" } },
+  { id: "hero-benefit-delivery", icon: "truck" as const, title: { ar: "توصيل سريع", en: "Fast delivery" }, subtitle: { ar: "داخل ليبيا", en: "FAST DELIVERY" } },
+];
+
+const storefrontHeroBenefits = (value: unknown) => {
+  if (value === undefined) return defaultStorefrontHeroBenefits();
+  if (!Array.isArray(value) || value.length > MAX_STOREFRONT_HERO_BENEFITS) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const ids = new Set<string>();
+  return value.map((benefit) => {
+    if (!isRecord(benefit) || !STOREFRONT_BENEFIT_ICONS.has(String(benefit.icon))) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    const id = heroItemId(benefit.id);
+    if (ids.has(id)) throw new StorefrontApiError("invalid_response");
+    ids.add(id);
+    return {
+      id,
+      icon: benefit.icon as "award" | "shield" | "truck" | "package" | "check" | "heart" | "globe" | "clock" | "headset" | "sparkle",
+      title: localizedStorefrontText(benefit.title, MAX_STOREFRONT_HERO_CTA_LENGTH),
+      subtitle: localizedStorefrontText(benefit.subtitle, MAX_STOREFRONT_HERO_EYEBROW_LENGTH),
+    };
+  });
+};
+
+const defaultStorefrontBrands = () => ({
+  heading: { ar: "علاماتنا التجارية", en: "Our brands" },
+  subheading: {
+    ar: "نقدم لكم نخبة من أشهر الماركات العالمية",
+    en: "A curated selection of world-renowned brands",
+  },
+  items: [
+    { id: "brand-hugo", name: { ar: "HUGO", en: "HUGO" }, slug: "hugo", image_url: null },
+    { id: "brand-michael-kors", name: { ar: "MICHAEL KORS", en: "MICHAEL KORS" }, slug: "michael-kors", image_url: null },
+    { id: "brand-just-cavalli", name: { ar: "Just Cavalli", en: "Just Cavalli" }, slug: "just-cavalli", image_url: null },
+    { id: "brand-cavalli", name: { ar: "cavalli TIME", en: "cavalli TIME" }, slug: "cavalli", image_url: null },
+    { id: "brand-fossil", name: { ar: "FOSSIL", en: "FOSSIL" }, slug: "fossil", image_url: null },
+    { id: "brand-armani", name: { ar: "EMPORIO ARMANI", en: "EMPORIO ARMANI" }, slug: "emporio-armani", image_url: null },
+    { id: "brand-timberland", name: { ar: "Timberland", en: "Timberland" }, slug: "timberland", image_url: null },
+    { id: "brand-lacoste", name: { ar: "LACOSTE", en: "LACOSTE" }, slug: "lacoste", image_url: null },
+  ],
+});
+
+const storefrontBrands = (value: unknown) => {
+  if (value === undefined) return defaultStorefrontBrands();
+  if (!isRecord(value) || !Array.isArray(value.items) || value.items.length > MAX_STOREFRONT_BRANDS) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const ids = new Set<string>();
+  const slugs = new Set<string>();
+  const items = value.items.map((brand) => {
+    if (!isRecord(brand)) throw new StorefrontApiError("invalid_response");
+    const id = heroItemId(brand.id);
+    const slug = inlineText(brand.slug, 80, true) as string;
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(slug) || ids.has(id) || slugs.has(slug)) {
+      throw new StorefrontApiError("invalid_response");
+    }
+    ids.add(id);
+    slugs.add(slug);
+    return {
+      id,
+      name: localizedStorefrontText(brand.name, 80),
+      slug,
+      image_url: publicAssetUrl(brand.image_url),
+      ...(brand.banner_image_url !== undefined ? { banner_image_url: publicAssetUrl(brand.banner_image_url) } : {}),
+    };
+  });
+  return {
+    heading: localizedStorefrontText(value.heading, MAX_STOREFRONT_CONTENT_TITLE_LENGTH),
+    subheading: localizedStorefrontText(value.subheading, 300, true),
+    ...(value.search_placeholder !== undefined ? { search_placeholder: localizedStorefrontText(value.search_placeholder, 80) } : {}),
+    ...(value.explore_label !== undefined ? { explore_label: localizedStorefrontText(value.explore_label, 60) } : {}),
+    ...(value.view_all_label !== undefined ? { view_all_label: localizedStorefrontText(value.view_all_label, 60) } : {}),
+    ...(value.promotion_heading !== undefined ? { promotion_heading: localizedStorefrontText(value.promotion_heading, 100) } : {}),
+    ...(value.promotion_subheading !== undefined ? { promotion_subheading: localizedStorefrontText(value.promotion_subheading, 160, true) } : {}),
+    ...(value.promotion_image_url !== undefined ? { promotion_image_url: publicAssetUrl(value.promotion_image_url) } : {}),
+    items,
+  };
+};
+
 const branding = (value: unknown): StorefrontProfileDto["branding"] => {
-  if (!isRecord(value)) {
+  if (
+    !isRecord(value) ||
+    !hasOwn(value, "secondary_color") ||
+    !hasOwn(value, "typography_key")
+  ) {
     throw new StorefrontApiError("invalid_response");
   }
 
@@ -243,11 +494,19 @@ const branding = (value: unknown): StorefrontProfileDto["branding"] => {
     value.primary_color === null || value.primary_color === undefined
       ? null
       : normalizeHexColor(value.primary_color);
+  const secondaryColor =
+    value.secondary_color === null || value.secondary_color === undefined
+      ? null
+      : normalizeHexColor(value.secondary_color);
 
   if (
-    value.primary_color !== null &&
-    value.primary_color !== undefined &&
-    !primaryColor
+    (value.primary_color !== null &&
+      value.primary_color !== undefined &&
+      !primaryColor) ||
+    (value.secondary_color !== null &&
+      value.secondary_color !== undefined &&
+      !secondaryColor) ||
+    value.typography_key !== "cairo"
   ) {
     throw new StorefrontApiError("invalid_response");
   }
@@ -255,7 +514,265 @@ const branding = (value: unknown): StorefrontProfileDto["branding"] => {
   return {
     logo_url: logoUrl,
     primary_color: primaryColor,
+    secondary_color: secondaryColor,
+    typography_key: "cairo",
   };
+};
+
+const locale = (value: unknown): StorefrontProfileDto["locale"] => {
+  if (value !== "ar-LY" && value !== "en-LY") {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return value;
+};
+
+const publicEmail = (value: unknown): string | null => {
+  const email = inlineText(value, MAX_PUBLIC_EMAIL_LENGTH, false);
+
+  if (
+    email &&
+    (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email) ||
+      /[<>'"\\]/u.test(email))
+  ) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return email;
+};
+
+const publicPhone = (value: unknown): string | null => {
+  const phone = inlineText(value, MAX_PUBLIC_PHONE_LENGTH, false);
+
+  if (phone && !/^\+?[0-9](?:[0-9 ()-]{3,38}[0-9])?$/u.test(phone)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return phone;
+};
+
+const contact = (value: unknown): StorefrontProfileDto["contact"] => {
+  if (
+    !isRecord(value) ||
+    !hasOwn(value, "public_email") ||
+    !hasOwn(value, "public_phone") ||
+    !hasOwn(value, "whatsapp_number")
+  ) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return {
+    public_email: publicEmail(value.public_email),
+    public_phone: publicPhone(value.public_phone),
+    whatsapp_number: publicPhone(value.whatsapp_number),
+  };
+};
+
+const storefrontInlineText = (
+  value: unknown,
+  maximumLength: number,
+): string => {
+  if (typeof value !== "string" || /[\t\r\n]/u.test(value)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  const text = inlineText(value, maximumLength, true) as string;
+  if (/[<>]/u.test(text)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  return text;
+};
+
+const storefrontBodyText = (
+  value: unknown,
+  maximumLength: number,
+): string => {
+  if (
+    typeof value !== "string" ||
+    containsUnsafeControlCharacter(value) ||
+    /[<>]/u.test(value)
+  ) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  const normalized = value.normalize("NFC").replace(/\r\n?/gu, "\n").trim();
+  if (!normalized || normalized.length > maximumLength) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  return normalized;
+};
+
+const localizedStorefrontText = (
+  value: unknown,
+  maximumLength: number,
+  multiline = false,
+  allowEmpty = false,
+) => {
+  if (!isRecord(value) || !hasOwn(value, "ar") || !hasOwn(value, "en")) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  const parse = multiline ? storefrontBodyText : storefrontInlineText;
+  return {
+    ar: allowEmpty && value.ar === "" ? "" : parse(value.ar, maximumLength),
+    en: allowEmpty && value.en === "" ? "" : parse(value.en, maximumLength),
+  };
+};
+
+const storefrontAppearance = (value: unknown): import("../types").StorefrontAppearance => {
+  if (!isRecord(value)) throw new StorefrontApiError("invalid_response");
+  const result: Record<string, string> = {};
+  const colors = ["text_color","heading_color","muted_text_color","button_text_color","surface_color","navbar_background","navbar_text_color","navbar_active_color"];
+  const fonts = ["original","cairo","manrope","condensed","anton","marker","system","serif"];
+  for (const [key, entry] of Object.entries(value)) {
+    if (colors.includes(key) && typeof entry === "string" && /^#[0-9a-f]{6}$/i.test(entry)) result[key] = entry;
+    else if (["body_font", "heading_font"].includes(key) && typeof entry === "string" && fonts.includes(entry)) result[key] = entry;
+    else throw new StorefrontApiError("invalid_response");
+  }
+  return result as import("../types").StorefrontAppearance;
+};
+
+const storefrontHomeContent = (value: unknown): import("../types").StorefrontHomeContentDto => {
+  if (!isRecord(value)) throw new StorefrontApiError("invalid_response");
+  const image = publicAssetUrl(value.image_url);
+  const promotionImage = publicAssetUrl(value.promotion_image_url);
+  if (!image || !promotionImage) throw new StorefrontApiError("invalid_response");
+  return {
+    eyebrow: localizedStorefrontText(value.eyebrow, 60), heading: localizedStorefrontText(value.heading, 100),
+    statement: localizedStorefrontText(value.statement, 60), cta_label: localizedStorefrontText(value.cta_label, 60),
+    categories_heading: localizedStorefrontText(value.categories_heading, 60), products_heading: localizedStorefrontText(value.products_heading, 60),
+    view_all_label: localizedStorefrontText(value.view_all_label, 60),
+    // Template 6 has no promotional copy; preserve the saved empty bilingual fields.
+    promotion_eyebrow: localizedStorefrontText(value.promotion_eyebrow, 60, false, true),
+    promotion_heading: localizedStorefrontText(value.promotion_heading, 100, false, true),
+    promotion_detail: localizedStorefrontText(value.promotion_detail, 100, false, true),
+    image_url: image, promotion_image_url: promotionImage,
+  };
+};
+
+const storefrontShopContent = (value: unknown): import("../types").StorefrontShopContentDto => {
+  if (!isRecord(value)) throw new StorefrontApiError("invalid_response");
+  return {
+    heading: localizedStorefrontText(value.heading, 60),
+    statement: localizedStorefrontText(value.statement, 60),
+    search_placeholder: localizedStorefrontText(value.search_placeholder, 80),
+  };
+};
+
+const storefrontContentSection = (
+  value: unknown,
+  bodyMaximumLength = MAX_STOREFRONT_CONTENT_BODY_LENGTH,
+) => {
+  if (!isRecord(value)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return {
+    title: localizedStorefrontText(
+      value.title,
+      MAX_STOREFRONT_CONTENT_TITLE_LENGTH,
+    ),
+    body: localizedStorefrontText(value.body, bodyMaximumLength, true),
+  };
+};
+
+const storefrontContactSection = (value: unknown) => {
+  if (!isRecord(value)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
+  return {
+    heading: localizedStorefrontText(
+      value.heading,
+      MAX_STOREFRONT_CONTENT_TITLE_LENGTH,
+    ),
+    body: localizedStorefrontText(
+      value.body,
+      MAX_STOREFRONT_CONTACT_BODY_LENGTH,
+      true,
+    ),
+  };
+};
+
+const storefrontConfiguration = (
+  value: unknown,
+): StorefrontProfileDto["storefront"] => {
+  if (value === null) return null;
+
+  try {
+    if (
+      !isRecord(value) ||
+      value.schema_version !== 1 ||
+      (value.template_key !== "luxe-commerce" &&
+        value.template_key !== "luxe-commerce-full" &&
+        value.template_key !== "modern-market" &&
+        value.template_key !== "home-living" &&
+        value.template_key !== "standard" &&
+        value.template_key !== "glow-beauty" && value.template_key !== "drops" && value.template_key !== "urbx" && value.template_key !== "template-6") ||
+      !isRecord(value.content) ||
+      !isRecord(value.content.hero) ||
+      !isRecord(value.content.about) ||
+      !isRecord(value.content.contact) ||
+      !isRecord(value.content.policies)
+    ) {
+      throw new StorefrontApiError("invalid_response");
+    }
+
+    const hero = value.content.hero;
+    const ctaTarget = hero.cta_target;
+    if (ctaTarget !== "catalog" && ctaTarget !== "contact") {
+      throw new StorefrontApiError("invalid_response");
+    }
+
+    return {
+      schema_version: 1,
+      template_key: value.template_key,
+      content: {
+        ...(value.content.home !== undefined ? { home: storefrontHomeContent(value.content.home) } : {}),
+        ...(value.content.appearance !== undefined ? { appearance: storefrontAppearance(value.content.appearance) } : {}),
+        ...(value.content.shop !== undefined ? { shop: storefrontShopContent(value.content.shop) } : {}),
+        navigation: storefrontNavigation(value.content.navigation),
+        hero: {
+          eyebrow: localizedStorefrontText(
+            hero.eyebrow,
+            MAX_STOREFRONT_HERO_EYEBROW_LENGTH,
+          ),
+          heading: localizedStorefrontText(
+            hero.heading,
+            MAX_STOREFRONT_HERO_HEADING_LENGTH,
+          ),
+          subheading: localizedStorefrontText(
+            hero.subheading,
+            MAX_STOREFRONT_HERO_SUBHEADING_LENGTH,
+            true,
+          ),
+          cta_label: localizedStorefrontText(
+            hero.cta_label,
+            MAX_STOREFRONT_HERO_CTA_LENGTH,
+          ),
+          cta_target: ctaTarget,
+          image_url: publicAssetUrl(hero.image_url),
+          slides: storefrontHeroSlides(hero.slides),
+          buttons: storefrontHeroButtons(hero.buttons),
+          benefits: storefrontHeroBenefits(hero.benefits),
+        },
+        brands: storefrontBrands(value.content.brands),
+        about: storefrontContentSection(value.content.about),
+        contact: storefrontContactSection(value.content.contact),
+        policies: {
+          delivery: storefrontContentSection(value.content.policies.delivery),
+          returns: storefrontContentSection(value.content.policies.returns),
+          privacy: storefrontContentSection(value.content.policies.privacy),
+          terms: storefrontContentSection(value.content.policies.terms),
+        },
+      },
+    };
+  } catch (error: unknown) {
+    if (isStorefrontApiError(error)) {
+      throw new StorefrontApiError("storefront_setup");
+    }
+    throw error;
+  }
 };
 
 export const mapStorefrontProfileResponse = (
@@ -269,7 +786,10 @@ export const mapStorefrontProfileResponse = (
     name: inlineText(payload.vendor.name, MAX_NAME_LENGTH, true) as string,
     handle: requiredHandle(payload.vendor.handle),
     domain: normalizedDomain(payload.vendor.domain),
+    locale: locale(payload.vendor.locale),
+    contact: contact(payload.vendor.contact),
     branding: branding(payload.vendor.branding),
+    storefront: storefrontConfiguration(payload.vendor.storefront),
   };
 };
 
@@ -278,11 +798,36 @@ const mapProductCard = (value: unknown): StorefrontProductCardDto => {
     throw new StorefrontApiError("invalid_response");
   }
 
+  const variants = value.variants;
+  if (variants !== undefined && (!Array.isArray(variants) || variants.length > 50)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const prices = (Array.isArray(variants) ? variants : []).flatMap((variant) => {
+    if (!isRecord(variant) || !isRecord(variant.calculated_price)) return [];
+    const price = variant.calculated_price;
+    return price.currency_code === "lyd" &&
+      typeof price.calculated_amount === "number" &&
+      Number.isFinite(price.calculated_amount) &&
+      price.calculated_amount >= 0
+      ? [price.calculated_amount]
+      : [];
+  });
+  const priceLyd = prices.length ? Math.min(...prices) : null;
+  const compareAt = typeof value.storefront_compare_at_price_lyd === "number" &&
+    Number.isFinite(value.storefront_compare_at_price_lyd) &&
+    value.storefront_compare_at_price_lyd > (priceLyd ?? Number.MAX_SAFE_INTEGER)
+    ? value.storefront_compare_at_price_lyd
+    : null;
+
   return {
     handle: requiredHandle(value.handle),
     title: inlineText(value.title, MAX_TITLE_LENGTH, true) as string,
     subtitle: inlineText(value.subtitle, MAX_SUBTITLE_LENGTH, false),
     thumbnail_url: publicAssetUrl(value.thumbnail),
+    price_lyd: priceLyd,
+    compare_at_price_lyd: compareAt,
+    badge: inlineText(value.storefront_badge, 40, false),
+    category: inlineText(value.storefront_category, 80, false),
   };
 };
 
@@ -335,6 +880,14 @@ const mapProductDetail = (value: unknown): StorefrontProductDetailDto => {
     description: plainTextDescription(value.description),
     thumbnail_url: thumbnailUrl,
     image_urls: images.slice(0, MAX_IMAGE_COUNT),
+    badge: inlineText(value.storefront_badge, 40, false),
+    category: inlineText(value.storefront_category, 80, false),
+    compare_at_price_lyd:
+      typeof value.storefront_compare_at_price_lyd === "number" &&
+      Number.isFinite(value.storefront_compare_at_price_lyd) &&
+      value.storefront_compare_at_price_lyd >= 0
+        ? value.storefront_compare_at_price_lyd
+        : null,
   };
 };
 
@@ -423,7 +976,9 @@ export const mapStorefrontCommerceCapabilitiesResponse = (
     if (
       payload.online_checkout.currency_code !== null ||
       !Array.isArray(payload.online_checkout.country_codes) ||
-      payload.online_checkout.country_codes.length !== 0
+      payload.online_checkout.country_codes.length !== 0 ||
+      !Array.isArray(payload.online_checkout.payment_methods) ||
+      payload.online_checkout.payment_methods.length !== 0
     ) {
       throw new StorefrontApiError("invalid_response");
     }
@@ -432,6 +987,7 @@ export const mapStorefrontCommerceCapabilitiesResponse = (
         status: "unavailable",
         currency_code: null,
         country_codes: [],
+        payment_methods: [],
       },
     };
   }
@@ -439,6 +995,7 @@ export const mapStorefrontCommerceCapabilitiesResponse = (
   if (
     status !== "available" ||
     !Array.isArray(payload.online_checkout.country_codes) ||
+    !Array.isArray(payload.online_checkout.payment_methods) ||
     payload.online_checkout.country_codes.length === 0 ||
     payload.online_checkout.country_codes.length > 20
   ) {
@@ -456,11 +1013,25 @@ export const mapStorefrontCommerceCapabilitiesResponse = (
     throw new StorefrontApiError("invalid_response");
   }
 
+  const paymentMethods = payload.online_checkout.payment_methods;
+  if (
+    paymentMethods.length < 1 ||
+    paymentMethods.length > 2 ||
+    paymentMethods[0] !== "cod" ||
+    paymentMethods.some(
+      (value) => value !== "cod" && value !== "bank_transfer",
+    ) ||
+    new Set(paymentMethods).size !== paymentMethods.length
+  ) {
+    throw new StorefrontApiError("invalid_response");
+  }
+
   return {
     online_checkout: {
       status: "available",
       currency_code: currencyCode(payload.online_checkout.currency_code),
       country_codes: countries,
+      payment_methods: paymentMethods as Array<"cod" | "bank_transfer">,
     },
   };
 };
@@ -492,7 +1063,10 @@ export const mapStorefrontPurchaseOptionsResponse = (
   }
 
   const variants = rawVariants.map((rawVariant) => {
-    if (!isRecord(rawVariant) || rawVariant.available_for_sale !== true) {
+    if (
+      !isRecord(rawVariant) ||
+      typeof rawVariant.available_for_sale !== "boolean"
+    ) {
       throw new StorefrontApiError("invalid_response");
     }
     const rawOptions = isRecord(rawVariant.options) ? rawVariant.options : {};
@@ -510,7 +1084,7 @@ export const mapStorefrontPurchaseOptionsResponse = (
       title: inlineText(rawVariant.title, MAX_TITLE_LENGTH, true) as string,
       options: { size, color },
       unit_price: safeAmount(rawVariant.unit_price),
-      available_for_sale: true as const,
+      available_for_sale: rawVariant.available_for_sale,
     };
   });
   const rawOptions = Array.isArray(payload.options) ? payload.options : [];
@@ -571,6 +1145,8 @@ const mapCart = (
     return {
       id: opaqueId(item.id),
       variant_id: opaqueId(item.variant_id),
+      variant_title: inlineText(item.variant_title, MAX_TITLE_LENGTH, false),
+      product_handle: normalizePublicHandle(item.product_handle) || null,
       title: inlineText(
         item.product_title ?? item.title,
         MAX_TITLE_LENGTH,
@@ -664,9 +1240,51 @@ export const mapStorefrontOrderConfirmationResponse = (
   )) {
     throw new StorefrontApiError("invalid_response");
   }
+  if (!isRecord(order.payment)) {
+    throw new StorefrontApiError("invalid_response");
+  }
+  const payment =
+    order.payment.method === "cod" &&
+    order.payment.status === "pending_fulfillment" &&
+    !hasOwn(order.payment, "bank_transfer")
+      ? ({
+          method: "cod",
+          status: "pending_fulfillment",
+        } as const)
+      : order.payment.method === "bank_transfer" &&
+          order.payment.status === "pending_verification" &&
+          isRecord(order.payment.bank_transfer)
+        ? ({
+            method: "bank_transfer",
+            status: "pending_verification",
+            bank_transfer: {
+              bank_name: storefrontInlineText(
+                order.payment.bank_transfer.bank_name,
+                160,
+              ),
+              account_holder_name: storefrontInlineText(
+                order.payment.bank_transfer.account_holder_name,
+                160,
+              ),
+              account_reference: storefrontInlineText(
+                order.payment.bank_transfer.account_reference,
+                160,
+              ),
+              instructions: storefrontBodyText(
+                order.payment.bank_transfer.instructions,
+                3_000,
+              ),
+            },
+          } as const)
+        : null;
+  if (!payment) {
+    throw new StorefrontApiError("invalid_response");
+  }
 
   return {
     display_id: displayId,
+    ...(isRecord(order.tracking) && typeof order.tracking.token === "string" && /^[a-f0-9]{64}$/.test(order.tracking.token) && typeof order.tracking.expires_at === "string"
+      ? { tracking: { token: order.tracking.token, expires_at: order.tracking.expires_at } } : {}),
     currency_code: currency,
     items: orderItems.map((item) => {
       if (!isRecord(item)) {
@@ -687,6 +1305,8 @@ export const mapStorefrontOrderConfirmationResponse = (
           MAX_TITLE_LENGTH,
           true,
         ) as string,
+        ...(typeof item.thumbnail_url === "string" ? { thumbnail_url: publicAssetUrl(item.thumbnail_url) } : {}),
+        ...(typeof item.variant_title === "string" && item.variant_title.trim() ? { variant_title: inlineText(item.variant_title, MAX_TITLE_LENGTH, true) as string } : {}),
         quantity,
         unit_price: unitPrice,
         total: safeAmount(lineTotal),
@@ -695,6 +1315,7 @@ export const mapStorefrontOrderConfirmationResponse = (
     item_subtotal: safeAmount(order.item_subtotal ?? 0),
     shipping_total: safeAmount(order.shipping_total ?? 0),
     total: safeAmount(order.total ?? 0),
+    payment,
   };
 };
 
@@ -852,7 +1473,7 @@ export const resolveStorefrontProfile = async (
 ): Promise<StorefrontProfileDto> => {
   ensureNotAborted(options.signal);
 
-  if (import.meta.env.DEV && isVisualPreviewEnabled()) {
+  if (isVisualPreviewEnabled()) {
     const { getVisualPreviewProfile } = await import("../dev/visual-preview");
     ensureNotAborted(options.signal);
     return getVisualPreviewProfile();
@@ -868,7 +1489,12 @@ export const fetchStorefrontCatalog = async (
   const input = normalizedCatalogInput(query);
   ensureNotAborted(query.signal);
 
-  if (import.meta.env.DEV && isVisualPreviewEnabled()) {
+  if (isVisualPreviewEnabled()) {
+    if (isStorefrontEditorPreviewEnabled()) {
+      const { getStorefrontEditorPreviewCatalog } = await import("../editor-preview-state");
+      const catalog = getStorefrontEditorPreviewCatalog(input);
+      if (catalog) return catalog;
+    }
     const { getVisualPreviewCatalog } = await import("../dev/visual-preview");
     ensureNotAborted(query.signal);
     return getVisualPreviewCatalog(input);
@@ -905,7 +1531,13 @@ export const fetchStorefrontProductDetail = async (
 
   ensureNotAborted(options.signal);
 
-  if (import.meta.env.DEV && isVisualPreviewEnabled()) {
+  if (isVisualPreviewEnabled()) {
+    if (isStorefrontEditorPreviewEnabled()) {
+      const { getStorefrontEditorPreviewProduct } = await import("../editor-preview-state");
+      const product = getStorefrontEditorPreviewProduct(handle);
+      if (product === null) throw new StorefrontApiError("not_found");
+      if (product) return product;
+    }
     const { getVisualPreviewProduct } = await import("../dev/visual-preview");
     ensureNotAborted(options.signal);
     const product = getVisualPreviewProduct(handle);
@@ -971,14 +1603,14 @@ export const fetchStorefrontCommerceCapabilities = async (
   options: StorefrontRequestOptions = {},
 ): Promise<StorefrontCommerceCapabilitiesDto> => {
   ensureNotAborted(options.signal);
-  if (import.meta.env.DEV && isVisualPreviewEnabled()) {
-    return {
-      online_checkout: {
-        status: "unavailable",
-        currency_code: null,
-        country_codes: [],
-      },
-    };
+  if (isVisualPreviewEnabled()) {
+    if (isStorefrontEditorPreviewEnabled()) {
+      const { getStorefrontEditorPreviewCommerceCapabilities } = await import("../editor-preview-state");
+      const capability = getStorefrontEditorPreviewCommerceCapabilities();
+      if (capability) return capability;
+    }
+    const { getVisualPreviewCommerceCapabilities } = await import("../dev/visual-preview");
+    return getVisualPreviewCommerceCapabilities();
   }
   const payload = await fetchUnknown(
     "/store/saas/commerce-capabilities",
@@ -996,6 +1628,18 @@ export const fetchStorefrontPurchaseOptions = async (
   if (!handle || currencyCode(expectedCurrency) !== expectedCurrency) {
     throw new StorefrontApiError("invalid_request");
   }
+  if (isVisualPreviewEnabled()) {
+    if (isStorefrontEditorPreviewEnabled()) {
+      const { getStorefrontEditorPreviewPurchaseOptions } = await import("../editor-preview-state");
+      const purchase = getStorefrontEditorPreviewPurchaseOptions(handle);
+      if (purchase === null) throw new StorefrontApiError("not_found");
+      if (purchase) return purchase;
+    }
+    const { getVisualPreviewPurchaseOptions } = await import("../dev/visual-preview");
+    const purchase = getVisualPreviewPurchaseOptions(handle);
+    if (!purchase) throw new StorefrontApiError("not_found");
+    return purchase;
+  }
   const payload = await fetchUnknown(
     `/store/saas/products/${encodeURIComponent(handle)}/purchase-options`,
     options.signal,
@@ -1007,10 +1651,26 @@ export const fetchStorefrontPurchaseOptions = async (
   );
 };
 
+const trialCartRequest = async (command: Record<string, unknown>, expectedCurrency: string, signal?: AbortSignal): Promise<StorefrontCartDto> => {
+  const value = await creationTrialRequest(command, signal);
+  if (!isRecord(value) || !Array.isArray(value.items) || typeof value.shipping_method_selected !== "boolean" || typeof value.payment_session_ready !== "boolean" || typeof value.completed !== "boolean") throw new StorefrontApiError("invalid_response");
+  return mapCart({ ...value,
+    items: value.items.map(item => isRecord(item) ? { ...item, thumbnail: item.thumbnail_url } : item),
+    shipping_methods: value.shipping_method_selected ? [{}] : [],
+    payment_collection: { payment_sessions: value.payment_session_ready ? [{}] : [] },
+    completed_at: value.completed ? "completed" : null,
+  }, expectedCurrency);
+};
+
 export const createStorefrontCart = async (
   expectedCurrency: string,
   options: StorefrontRequestOptions = {},
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "create" }, expectedCurrency, options.signal);
+  if (isVisualPreviewEnabled()) {
+    const { createVisualPreviewCart } = await import("../dev/visual-preview");
+    return createVisualPreviewCart();
+  }
   const payload = await fetchUnknown("/store/carts", options.signal, {
     method: "POST",
     body: {},
@@ -1023,6 +1683,13 @@ export const fetchStorefrontCart = async (
   expectedCurrency: string,
   options: StorefrontRequestOptions = {},
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "get", cart_id: cartId }, expectedCurrency, options.signal);
+  if (isVisualPreviewEnabled()) {
+    const { getVisualPreviewCart } = await import("../dev/visual-preview");
+    const cart = getVisualPreviewCart();
+    if (!cart) throw new StorefrontApiError("not_found");
+    return cart;
+  }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}`,
     options.signal,
@@ -1036,12 +1703,17 @@ export const addStorefrontCartItem = async (
   quantity: number,
   expectedCurrency: string,
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "add", cart_id: cartId, variant_id: variantId, quantity }, expectedCurrency);
   if (
     !Number.isSafeInteger(quantity) ||
     quantity < 1 ||
     quantity > STOREFRONT_MAX_CART_QUANTITY
   ) {
     throw new StorefrontApiError("invalid_request");
+  }
+  if (isVisualPreviewEnabled()) {
+    const { addVisualPreviewCartItem } = await import("../dev/visual-preview");
+    return addVisualPreviewCartItem(variantId, quantity);
   }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}/line-items`,
@@ -1060,12 +1732,17 @@ export const updateStorefrontCartItem = async (
   quantity: number,
   expectedCurrency: string,
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "quantity", cart_id: cartId, line_id: lineId, quantity }, expectedCurrency);
   if (
     !Number.isSafeInteger(quantity) ||
     quantity < 1 ||
     quantity > STOREFRONT_MAX_CART_QUANTITY
   ) {
     throw new StorefrontApiError("invalid_request");
+  }
+  if (isVisualPreviewEnabled()) {
+    const { updateVisualPreviewCartItem } = await import("../dev/visual-preview");
+    return updateVisualPreviewCartItem(lineId, quantity);
   }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}/line-items/${encodeURIComponent(requestId(lineId))}`,
@@ -1080,6 +1757,11 @@ export const removeStorefrontCartItem = async (
   lineId: string,
   expectedCurrency: string,
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "remove", cart_id: cartId, line_id: lineId }, expectedCurrency);
+  if (isVisualPreviewEnabled()) {
+    const { removeVisualPreviewCartItem } = await import("../dev/visual-preview");
+    return removeVisualPreviewCartItem(lineId);
+  }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}/line-items/${encodeURIComponent(requestId(lineId))}`,
     undefined,
@@ -1105,6 +1787,7 @@ export const updateStorefrontCheckoutAddress = async (
   address: StorefrontCheckoutAddress,
   expectedCurrency: string,
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "address", cart_id: cartId, address }, expectedCurrency);
   const email = checkoutText(address.email, 320, true) as string;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) {
     throw new StorefrontApiError("invalid_request");
@@ -1112,6 +1795,10 @@ export const updateStorefrontCheckoutAddress = async (
   const countryCode = address.country_code.trim().toLowerCase();
   if (!/^[a-z]{2}$/.test(countryCode)) {
     throw new StorefrontApiError("invalid_request");
+  }
+  if (isVisualPreviewEnabled()) {
+    const { updateVisualPreviewAddress } = await import("../dev/visual-preview");
+    return updateVisualPreviewAddress(address);
   }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}`,
@@ -1139,6 +1826,11 @@ export const updateStorefrontCheckoutAddress = async (
 export const fetchStorefrontShippingOptions = async (
   cartId: string,
 ): Promise<StorefrontShippingOptionDto[]> => {
+  if (isCreationTrial()) return mapStorefrontShippingOptionsResponse({ shipping_options: await creationTrialRequest({ action: "shipping-options", cart_id: cartId }) });
+  if (isVisualPreviewEnabled()) {
+    const { getVisualPreviewShippingOptions } = await import("../dev/visual-preview");
+    return getVisualPreviewShippingOptions();
+  }
   const search = new URLSearchParams({ cart_id: requestId(cartId) });
   const payload = await fetchUnknown(
     `/store/shipping-options?${search.toString()}`,
@@ -1151,6 +1843,11 @@ export const selectStorefrontShippingOption = async (
   optionId: string,
   expectedCurrency: string,
 ): Promise<StorefrontCartDto> => {
+  if (isCreationTrial()) return trialCartRequest({ action: "shipping", cart_id: cartId, option_id: optionId }, expectedCurrency);
+  if (isVisualPreviewEnabled()) {
+    const { selectVisualPreviewShipping } = await import("../dev/visual-preview");
+    return selectVisualPreviewShipping(optionId);
+  }
   const payload = await fetchUnknown(
     `/store/carts/${encodeURIComponent(requestId(cartId))}/shipping-methods`,
     undefined,
@@ -1162,6 +1859,12 @@ export const selectStorefrontShippingOption = async (
 export const prepareStorefrontSystemPayment = async (
   cartId: string,
 ): Promise<void> => {
+  if (isCreationTrial()) { await creationTrialRequest({ action: "payment", cart_id: cartId }); return; }
+  if (isVisualPreviewEnabled()) {
+    const { prepareVisualPreviewPayment } = await import("../dev/visual-preview");
+    prepareVisualPreviewPayment();
+    return;
+  }
   const collectionPayload = await fetchUnknown(
     "/store/payment-collections",
     undefined,
@@ -1187,13 +1890,31 @@ export const prepareStorefrontSystemPayment = async (
 export const completeStorefrontCart = async (
   cartId: string,
   expectedCurrency: string,
+  paymentMethod: "cod" | "bank_transfer",
+  options: StorefrontRequestOptions = {},
 ): Promise<StorefrontOrderConfirmationDto> => {
+  if (isCreationTrial()) return mapStorefrontOrderConfirmationResponse({ type: "order", order: await creationTrialRequest({ action: "complete", cart_id: cartId, payment_method: paymentMethod }, options.signal) }, expectedCurrency);
+  if (isVisualPreviewEnabled()) {
+    const { completeVisualPreviewOrder } = await import("../dev/visual-preview");
+    return completeVisualPreviewOrder(paymentMethod);
+  }
   const payload = await fetchUnknown(
-    `/store/carts/${encodeURIComponent(requestId(cartId))}/complete`,
-    undefined,
-    { method: "POST", body: {} },
+    `/store/saas/carts/${encodeURIComponent(requestId(cartId))}/complete`,
+    options.signal,
+    { method: "POST", body: { payment_method: paymentMethod } },
   );
-  return mapStorefrontOrderConfirmationResponse(payload, expectedCurrency);
+  const confirmation = mapStorefrontOrderConfirmationResponse(payload, expectedCurrency);
+  if (confirmation.tracking) rememberOrderGrant(confirmation.tracking.token);
+  return confirmation;
+};
+
+export const fetchStorefrontTrackedOrder = async (token: string): Promise<TrackedOrder> => {
+  if (!/^[a-f0-9]{64}$/.test(token)) throw new StorefrontApiError("invalid_request");
+  const payload = await fetchUnknown("/store/saas/order-status", undefined, { method: "POST", body: { token } });
+  if (!isRecord(payload) || !isRecord(payload.order) || !["confirmed", "processing", "shipped", "delivered"].includes(String(payload.order.progress)) ||
+    typeof payload.order.created_at !== "string" || typeof payload.order.updated_at !== "string") throw new StorefrontApiError("invalid_response");
+  return { ...mapStorefrontOrderConfirmationResponse({ type: "order", order: payload.order }, "lyd"),
+    progress: payload.order.progress as TrackedOrder["progress"], created_at: payload.order.created_at, updated_at: payload.order.updated_at };
 };
 
 export {

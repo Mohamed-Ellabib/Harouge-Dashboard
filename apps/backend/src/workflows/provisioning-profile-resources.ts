@@ -1,10 +1,11 @@
 import type { MedusaContainer } from "@medusajs/framework/types";
 
 import {
-  getVendorPasswordHash,
   hashVendorPassword,
 } from "../api/_utils/vendor-auth";
+import { hasActiveMerchantAccountCredential } from "../api/_utils/merchant-account-credentials";
 import { normalizeDomain, normalizeEmail } from "../api/_utils/vendors";
+import { ensureDefaultStorefrontDocument } from "../modules/saas/platform-storefront-document";
 import {
   entitlementsForPlan,
   temporaryDomainForHandle,
@@ -28,6 +29,13 @@ export const ensureProvisioningBrand = async (
   request: ProvisionStoreInput,
 ): Promise<ProvisioningRecord> => {
   const { saas } = provisioningServices(container);
+  const profileId = requiredProvisioningId(record, "store_profile_id");
+
+  await ensureDefaultStorefrontDocument(
+    container,
+    profileId,
+    typeof record.actor_id === "string" ? record.actor_id : null,
+  );
 
   if (record.store_brand_id) {
     await saas.retrieveStoreBrand(record.store_brand_id);
@@ -35,7 +43,7 @@ export const ensureProvisioningBrand = async (
   }
 
   const brand = await saas.createStoreBrands({
-    store_profile_id: requiredProvisioningId(record, "store_profile_id"),
+    store_profile_id: profileId,
     logo_url: request.brand.logo_url ?? null,
     favicon_url: request.brand.favicon_url ?? null,
     primary_color: request.brand.primary_color ?? null,
@@ -225,28 +233,44 @@ export const ensureProvisioningMerchantAccount = async (
   const { marketplace } = provisioningServices(container);
   const legacy = await ensureLegacyStore(container, record, request);
   let current = legacy.record;
+  const members: Record<string, any>[] = [];
+  let skip = 0;
 
-  if (current.merchant_account_reference) {
-    await marketplace.retrieveVendorMember(current.merchant_account_reference);
-    return current;
+  while (true) {
+    const page = await marketplace.listVendorMembers({}, { skip, take: 250 });
+    members.push(...page);
+
+    if (page.length < 250) {
+      break;
+    }
+
+    skip += page.length;
   }
-
-  const members = await marketplace.listVendorMembers({
-    email: request.owner.email,
-  });
   const exactMembers = members.filter(
     (member: any) => normalizeEmail(member.email) === request.owner.email,
   );
 
-  if (request.owner.reuse_existing_account) {
-    if (exactMembers.length !== 1 || exactMembers[0].status !== "active") {
+  if (current.merchant_account_reference) {
+    if (
+      exactMembers.length !== 1 ||
+      exactMembers[0].id !== current.merchant_account_reference ||
+      !hasActiveMerchantAccountCredential(exactMembers[0])
+    ) {
       throw provisioningConflict(
-        "The reusable merchant account is unavailable or ambiguous.",
+        "The retained merchant account is unavailable or ambiguous.",
       );
     }
-    if (!getVendorPasswordHash(exactMembers[0].metadata)) {
+
+    return current;
+  }
+
+  if (request.owner.reuse_existing_account) {
+    if (
+      exactMembers.length !== 1 ||
+      !hasActiveMerchantAccountCredential(exactMembers[0])
+    ) {
       throw provisioningConflict(
-        "The reusable merchant account has no valid credential.",
+        "The reusable merchant account is unavailable or ambiguous.",
       );
     }
 

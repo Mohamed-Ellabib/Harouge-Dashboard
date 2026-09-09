@@ -13,7 +13,7 @@ const testEnv = {
   VENDOR_SESSION_SECRET: "test-only-vendor-secret-not-for-production",
   STORE_CORS: "http://127.0.0.1:8000",
   ADMIN_CORS: "http://127.0.0.1:9000",
-  AUTH_CORS: "http://127.0.0.1:5173",
+  AUTH_CORS: "http://127.0.0.1:5175",
 };
 
 const cookieFrom = (response: any): string => {
@@ -118,8 +118,6 @@ const expectSafePublicPayload = (
     ...collectKeyPaths(payload, isForbiddenKey),
   ].sort();
   const hasForbiddenValue = containsAnyValue(payload, [
-    fixtures.vendorA.contact_email,
-    fixtures.vendorB.contact_email,
     fixtures.memberA.email,
     fixtures.memberB.email,
     fixtures.memberA.metadata?.password_hash,
@@ -222,19 +220,37 @@ medusaIntegrationTestRunner({
           name: fixtures.vendorA.name,
           handle: fixtures.vendorA.handle,
           domain: "store-a.example.test",
+          locale: "ar-LY",
+          contact: {
+            public_email: fixtures.storeProfileA.public_contact_email ?? null,
+            public_phone: null,
+            whatsapp_number: null,
+          },
           branding: {
             logo_url: fixtures.vendorA.logo_url,
             primary_color: fixtures.vendorA.primary_color,
+            secondary_color: null,
+            typography_key: "cairo",
           },
+          storefront: null,
         });
         expect(profileB.data.vendor).toEqual({
           name: fixtures.vendorB.name,
           handle: fixtures.vendorB.handle,
           domain: "store-b.example.test",
+          locale: "ar-LY",
+          contact: {
+            public_email: fixtures.storeProfileB.public_contact_email ?? null,
+            public_phone: null,
+            whatsapp_number: null,
+          },
           branding: {
             logo_url: null,
             primary_color: null,
+            secondary_color: null,
+            typography_key: "cairo",
           },
+          storefront: null,
         });
         expectSafePublicPayload(profileA.data, fixtures);
         expectSafePublicPayload(profileB.data, fixtures);

@@ -1,4 +1,5 @@
-import type { DashboardRoute } from "./types"
+import type { DashboardRoute, PlatformStorefrontTemplateKey } from "./types"
+import { visualPreviewQuery } from "./visual-preview"
 
 const routePaths: Record<DashboardRoute, string> = {
   overview: "/dashboard",
@@ -10,9 +11,16 @@ const routePaths: Record<DashboardRoute, string> = {
   "vendor-accounts": "/dashboard/vendor-accounts",
   billing: "/dashboard/billing",
   operations: "/dashboard/operations",
+  analytics: "/dashboard/analytics",
   security: "/dashboard/security",
   settings: "/dashboard/settings",
   commerce: "/dashboard/commerce",
+}
+
+export const DASHBOARD_BEFORE_NAVIGATION_EVENT = "labibtech:before-dashboard-navigation"
+
+function dashboardNavigationAllowed(): boolean {
+  return window.dispatchEvent(new CustomEvent(DASHBOARD_BEFORE_NAVIGATION_EVENT, { cancelable: true }))
 }
 
 export function pathForDashboardRoute(route: DashboardRoute): string {
@@ -28,13 +36,36 @@ export function dashboardRouteFromPath(pathname: string): DashboardRoute {
 }
 
 export function navigateDashboard(route: DashboardRoute): void {
-  const preserveVisualPreview =
-    import.meta.env.DEV && new URLSearchParams(window.location.search).get("demo") === "1"
-  const target = `${pathForDashboardRoute(route)}${preserveVisualPreview ? "?demo=1" : ""}`
+  const target = `${pathForDashboardRoute(route)}${visualPreviewQuery()}`
   if (`${window.location.pathname}${window.location.search}` === target) {
     return
   }
+  if (!dashboardNavigationAllowed()) return
 
+  window.history.pushState({}, "", target)
+  window.dispatchEvent(new PopStateEvent("popstate"))
+}
+
+export function navigateDashboardDetail(
+  route: "clients" | "vendor-accounts" | "storefronts",
+  id: string,
+): void {
+  const target = `${pathForDashboardRoute(route)}/${encodeURIComponent(id)}${visualPreviewQuery()}`
+  if (`${window.location.pathname}${window.location.search}` === target) return
+  if (!dashboardNavigationAllowed()) return
+  window.history.pushState({}, "", target)
+  window.dispatchEvent(new PopStateEvent("popstate"))
+}
+
+export function navigateStorefrontTemplatePreview(
+  templateKey: PlatformStorefrontTemplateKey,
+  locale: "en-LY" | "ar-LY" = "en-LY",
+): void {
+  const query = new URLSearchParams(visualPreviewQuery())
+  query.set("locale", locale)
+  const target = `/dashboard/template-preview/${encodeURIComponent(templateKey)}?${query}`
+  if (`${window.location.pathname}${window.location.search}` === target) return
+  if (!dashboardNavigationAllowed()) return
   window.history.pushState({}, "", target)
   window.dispatchEvent(new PopStateEvent("popstate"))
 }

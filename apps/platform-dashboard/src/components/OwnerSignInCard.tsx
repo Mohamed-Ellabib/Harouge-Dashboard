@@ -10,7 +10,7 @@ import {
   LockClosedSolid,
   ShieldCheck,
 } from "@medusajs/icons"
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
 import { PiHeadsetLight, PiShieldCheckLight } from "react-icons/pi"
 
 import {
@@ -19,6 +19,7 @@ import {
   platformSupportEmail,
   requestPlatformPasswordReset,
   signInPlatformAdmin,
+  getCurrentPlatformAdmin,
 } from "../auth/platform-auth"
 
 const rememberedEmailKey = "labibtech.platform.remembered-email"
@@ -54,13 +55,21 @@ export function OwnerSignInCard() {
   const rememberedEmail = initialRememberedEmail()
   const [email, setEmail] = useState(rememberedEmail)
   const [password, setPassword] = useState("")
-  const [remember, setRemember] = useState(Boolean(rememberedEmail))
+  const [remember, setRemember] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [emailInvalid, setEmailInvalid] = useState(false)
   const [passwordInvalid, setPasswordInvalid] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void getCurrentPlatformAdmin().then(() => {
+      if (active) window.location.replace(platformAdminAfterLoginUrl)
+    }).catch(() => { /* A signed-out visitor can use the form normally. */ })
+    return () => { active = false }
+  }, [])
 
   const validateEmail = (): boolean => {
     const valid = emailPattern.test(email.trim())
@@ -89,7 +98,7 @@ export function OwnerSignInCard() {
     setSubmitting(true)
 
     try {
-      await signInPlatformAdmin(normalizedEmail, password)
+      await signInPlatformAdmin(normalizedEmail, password, remember)
       rememberEmail(normalizedEmail, remember)
       setNotice({
         kind: "success",
@@ -217,7 +226,7 @@ export function OwnerSignInCard() {
             <span className="remember-control__box" aria-hidden="true">
               <CheckMini />
             </span>
-            <span>تذكّرني</span>
+            <span>ابقني مسجلاً على هذا الجهاز (30 يوماً)</span>
           </label>
 
           <button

@@ -5,6 +5,8 @@ import {
   isStorefrontApiError,
 } from "../api/storefront-api";
 import { Hero } from "../components/Hero";
+import { HomeAboutSection, HomeContactSection } from "../components/HomeContentSections";
+import { LuxeCommerceSections } from "../components/LuxeCommerceSections";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -12,12 +14,17 @@ import {
 } from "../components/Icons";
 import { ProductCard } from "../components/ProductCard";
 import { CatalogSkeleton, StatePanel } from "../components/StatePanel";
+import { StorefrontHomeComposition } from "../components/StorefrontTemplateRenderer";
+import { storefrontUiText } from "../lib/localization";
 import {
   navigate,
   StorefrontLink,
   type StorefrontLocation,
 } from "../lib/navigation";
-import type { StorefrontCatalogPageDto, StorefrontProfileDto } from "../types";
+import type {
+  ConfiguredStorefrontProfileDto,
+  StorefrontCatalogPageDto,
+} from "../types";
 
 const PAGE_SIZE = 12;
 const HOME_PAGE_SIZE = 8;
@@ -73,7 +80,7 @@ const paginationPages = (current: number, total: number): number[] => {
 };
 
 type CatalogPageProps = {
-  profile: StorefrontProfileDto;
+  profile: ConfiguredStorefrontProfileDto;
   location: StorefrontLocation;
   home?: boolean;
 };
@@ -83,6 +90,9 @@ export const CatalogPage = ({
   location,
   home = false,
 }: CatalogPageProps) => {
+  const text = (ar: string, en: string) =>
+    storefrontUiText(profile.locale, { ar, en });
+  const fullSource = profile.storefront.template_key === "luxe-commerce-full";
   const parsed = useMemo(
     () =>
       home
@@ -101,8 +111,8 @@ export const CatalogPage = ({
 
   useEffect(() => {
     document.title = home
-      ? `${profile.name} | الرئيسية`
-      : `المنتجات | ${profile.name}`;
+      ? `${profile.name} | ${text("الرئيسية", "Home")}`
+      : `${text("المنتجات", "Products")} | ${profile.name}`;
 
     if (!parsed.valid) {
       setCatalog(null);
@@ -140,6 +150,7 @@ export const CatalogPage = ({
 
     return () => controller.abort();
   }, [
+    fullSource,
     home,
     parsed.order,
     parsed.page,
@@ -163,7 +174,7 @@ export const CatalogPage = ({
   const catalogContent = (() => {
     if (status === "loading") {
       return (
-        <div aria-live="polite" aria-label="جارٍ تحميل المنتجات">
+        <div aria-live="polite" aria-label={text("جارٍ تحميل المنتجات", "Loading products")}>
           <CatalogSkeleton count={home ? 4 : 8} />
         </div>
       );
@@ -173,9 +184,13 @@ export const CatalogPage = ({
       return (
         <StatePanel
           kind="not-found"
-          title="لم نجد هذه الصفحة"
-          message="تحقق من الرابط أو عد إلى قائمة المنتجات."
+          title={text("لم نجد هذه الصفحة", "We could not find this page")}
+          message={text(
+            "تحقق من الرابط أو عد إلى قائمة المنتجات.",
+            "Check the link or return to the product catalog.",
+          )}
           headingLevel={2}
+          locale={profile.locale}
         />
       );
     }
@@ -184,10 +199,14 @@ export const CatalogPage = ({
       return (
         <StatePanel
           kind="unavailable"
-          title="تعذّر تحميل المنتجات الآن"
-          message="يمكنك المحاولة مرة أخرى بعد قليل."
+          title={text("تعذّر تحميل المنتجات الآن", "Products are unavailable right now")}
+          message={text(
+            "يمكنك المحاولة مرة أخرى بعد قليل.",
+            "Please try again in a moment.",
+          )}
           onRetry={() => setRetryToken((value) => value + 1)}
           headingLevel={2}
+          locale={profile.locale}
         />
       );
     }
@@ -197,14 +216,23 @@ export const CatalogPage = ({
         <StatePanel
           kind="empty"
           title={
-            parsed.query ? "لا توجد نتائج مطابقة" : "لا توجد منتجات حالياً"
+            parsed.query
+              ? text("لا توجد نتائج مطابقة", "No matching results")
+              : text("لا توجد منتجات حالياً", "No products yet")
           }
           message={
             parsed.query
-              ? "جرّب عبارة بحث أقصر أو تصفح جميع المنتجات."
-              : "ستظهر المنتجات هنا فور إضافتها إلى المتجر."
+              ? text(
+                  "جرّب عبارة بحث أقصر أو تصفح جميع المنتجات.",
+                  "Try a shorter search or browse all products.",
+                )
+              : text(
+                  "ستظهر المنتجات هنا فور إضافتها إلى المتجر.",
+                  "Products will appear here as soon as they are published.",
+                )
           }
           headingLevel={2}
+          locale={profile.locale}
         />
       );
     }
@@ -217,12 +245,13 @@ export const CatalogPage = ({
               key={product.handle}
               product={product}
               headingLevel={home ? 3 : 2}
+              locale={profile.locale}
             />
           ))}
         </div>
 
         {!home && totalPages > 1 ? (
-          <nav className="pagination" aria-label="صفحات المنتجات">
+          <nav className="pagination" aria-label={text("صفحات المنتجات", "Product pages")}>
             {parsed.page === 1 ? (
               <span
                 className="pagination__arrow is-disabled"
@@ -238,7 +267,7 @@ export const CatalogPage = ({
                   order: parsed.order,
                 })}
                 className="pagination__arrow"
-                ariaLabel="الصفحة السابقة"
+                ariaLabel={text("الصفحة السابقة", "Previous page")}
               >
                 <ChevronRightIcon />
               </StorefrontLink>
@@ -253,7 +282,7 @@ export const CatalogPage = ({
                     order: parsed.order,
                   })}
                   className={page === parsed.page ? "is-current" : undefined}
-                  ariaLabel={`الصفحة ${page}`}
+                  ariaLabel={text(`الصفحة ${page}`, `Page ${page}`)}
                 >
                   {page}
                 </StorefrontLink>
@@ -274,7 +303,7 @@ export const CatalogPage = ({
                   order: parsed.order,
                 })}
                 className="pagination__arrow"
-                ariaLabel="الصفحة التالية"
+                ariaLabel={text("الصفحة التالية", "Next page")}
               >
                 <ChevronLeftIcon />
               </StorefrontLink>
@@ -286,21 +315,40 @@ export const CatalogPage = ({
   })();
 
   if (home) {
-    return (
+    const catalogSection = (
       <>
-        <Hero profile={profile} />
+        <LuxeCommerceSections
+          profile={profile}
+        />
         <section
           className="catalog-section shell"
           aria-labelledby="featured-products-title"
         >
+          {fullSource ? (
+            <nav
+              className="luxe-full-product-tabs"
+              aria-label={text("تصنيفات المنتجات", "Product categories")}
+            >
+              <StorefrontLink to="/best-sellers">{text("عرض الكل", "View all")}</StorefrontLink>
+              <StorefrontLink to="/sunglasses">{text("نظارات", "Sunglasses")}</StorefrontLink>
+              <StorefrontLink to="/watches">{text("ساعات", "Watches")}</StorefrontLink>
+              <StorefrontLink to="/pens">{text("أقلام", "Pens")}</StorefrontLink>
+            </nav>
+          ) : null}
           <div className="section-heading">
             <div>
-              <span className="eyebrow">مختاراتنا</span>
-              <h2 id="featured-products-title">منتجات مميزة</h2>
-              <p>تفاصيل صُممت لتناسب يومك ومساحتك.</p>
+              <h2 id="featured-products-title">
+                {fullSource
+                  ? text("الأكثر طلباً", "Best sellers")
+                  : text("منتجات مميزة", "Featured products")}
+              </h2>
+              <p>{text(
+                "اختيارات حديثة من متجرنا.",
+                "Explore a recent selection from our store.",
+              )}</p>
             </div>
             <StorefrontLink to="/products" className="text-link">
-              عرض كل المنتجات
+              {text("عرض كل المنتجات", "View all products")}
               <ChevronLeftIcon />
             </StorefrontLink>
           </div>
@@ -308,26 +356,45 @@ export const CatalogPage = ({
         </section>
       </>
     );
+
+    return (
+      <StorefrontHomeComposition
+        templateKey={profile.storefront.template_key}
+        hero={<Hero profile={profile} />}
+        catalog={catalogSection}
+        about={<HomeAboutSection profile={profile} />}
+        contact={<HomeContactSection profile={profile} />}
+      />
+    );
   }
 
   return (
     <section className="catalog-page shell" aria-labelledby="catalog-title">
       <div className="catalog-page__heading">
         <div>
-          <span className="eyebrow">تشكيلة {profile.name}</span>
-          <h1 id="catalog-title">كل المنتجات</h1>
-          <p>استكشف اختياراتنا واعثر على التفاصيل التي تناسبك.</p>
+          <span className="eyebrow">
+            {text(`تشكيلة ${profile.name}`, `${profile.name} collection`)}
+          </span>
+          <h1 id="catalog-title">{text("كل المنتجات", "All products")}</h1>
+          <p>{text(
+            "استكشف اختياراتنا واعثر على التفاصيل التي تناسبك.",
+            "Explore our selection and find what suits you.",
+          )}</p>
         </div>
         {catalog && status === "ready" ? (
           <span className="catalog-count" aria-live="polite">
-            {catalog.count} {catalog.count === 1 ? "منتج" : "منتجات"}
+            {catalog.count} {catalog.count === 1
+              ? text("منتج", "product")
+              : text("منتجات", "products")}
           </span>
         ) : null}
       </div>
 
       <div className="catalog-toolbar">
         <form role="search" onSubmit={submitSearch} className="catalog-search">
-          <label htmlFor="catalog-product-search">ابحث في المنتجات</label>
+          <label htmlFor="catalog-product-search">
+            {text("ابحث في المنتجات", "Search products")}
+          </label>
           <div>
             <SearchIcon />
             <input
@@ -336,14 +403,14 @@ export const CatalogPage = ({
               value={searchValue}
               maxLength={120}
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="اكتب اسم المنتج"
+              placeholder={text("اكتب اسم المنتج", "Enter a product name")}
               autoComplete="off"
             />
-            <button type="submit">بحث</button>
+            <button type="submit">{text("بحث", "Search")}</button>
           </div>
         </form>
         <label className="catalog-sort">
-          <span>ترتيب حسب</span>
+          <span>{text("ترتيب حسب", "Sort by")}</span>
           <select
             value={parsed.order}
             onChange={(event) =>
@@ -355,9 +422,9 @@ export const CatalogPage = ({
               )
             }
           >
-            <option value="latest">الأحدث</option>
-            <option value="title">الاسم: أ—ي</option>
-            <option value="-title">الاسم: ي—أ</option>
+            <option value="latest">{text("الأحدث", "Newest")}</option>
+            <option value="title">{text("الاسم: أ—ي", "Name: A–Z")}</option>
+            <option value="-title">{text("الاسم: ي—أ", "Name: Z–A")}</option>
           </select>
         </label>
       </div>

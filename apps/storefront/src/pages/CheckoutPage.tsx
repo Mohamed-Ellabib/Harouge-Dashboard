@@ -5,9 +5,11 @@ import { CheckIcon, PackageIcon, ShieldCheckIcon } from "../components/Icons";
 import { StatePanel } from "../components/StatePanel";
 import { navigate, StorefrontLink } from "../lib/navigation";
 import { formatStorefrontMoney } from "../lib/money";
+import { storefrontUiText } from "../lib/localization";
 import type {
   StorefrontCheckoutAddress,
   StorefrontProfileDto,
+  StorefrontPaymentMethod,
   StorefrontShippingOptionDto,
 } from "../types";
 
@@ -28,6 +30,8 @@ export const CheckoutPage = ({
 }: {
   profile: StorefrontProfileDto;
 }) => {
+  const text = (ar: string, en: string) =>
+    storefrontUiText(profile.locale, { ar, en });
   const {
     capability,
     cart,
@@ -36,6 +40,7 @@ export const CheckoutPage = ({
     indeterminateCompletion,
     pending,
     restoring,
+    retryCompletion,
     selectShipping,
     submitAddress,
   } = useCart();
@@ -51,11 +56,15 @@ export const CheckoutPage = ({
     StorefrontShippingOptionDto[]
   >([]);
   const [selectedShippingId, setSelectedShippingId] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<StorefrontPaymentMethod>(
+      capability.online_checkout.payment_methods[0] ?? "cod",
+    );
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    document.title = `إتمام الطلب | ${profile.name}`;
-  }, [profile.name]);
+    document.title = `${text("إتمام الطلب", "Checkout")} | ${profile.name}`;
+  }, [profile.locale, profile.name]);
 
   useEffect(() => {
     if (error) errorRef.current?.focus();
@@ -66,8 +75,12 @@ export const CheckoutPage = ({
       <div className="shell page-state-wrap">
         <StatePanel
           kind="unavailable"
-          title="إتمام الطلب غير متاح الآن"
-          message="لم تتغير منتجات المتجر، ويمكنك متابعة التصفح والعودة لاحقًا."
+          title={text("إتمام الطلب غير متاح الآن", "Checkout is unavailable")}
+          message={text(
+            "لم تتغير منتجات المتجر، ويمكنك متابعة التصفح والعودة لاحقًا.",
+            "You can continue browsing and return later.",
+          )}
+          locale={profile.locale}
         />
       </div>
     );
@@ -77,7 +90,32 @@ export const CheckoutPage = ({
     return (
       <div className="shell commerce-loading" aria-live="polite">
         <span className="loading-spinner" aria-hidden="true" />
-        <h1>جارٍ تجهيز إتمام الطلب</h1>
+        <h1>{text("جارٍ تجهيز إتمام الطلب", "Preparing checkout")}</h1>
+      </div>
+    );
+  }
+
+  if (indeterminateCompletion) {
+    return (
+      <div className="shell page-state-wrap completion-recovery-state">
+        <StatePanel
+          kind="unavailable"
+          title={text(
+            "نتيجة الطلب تحتاج إلى تحقق",
+            "Your order result needs verification",
+          )}
+          message={text(
+            "لا تنشئ طلباً جديداً. استخدم الزر أدناه للتحقق بأمان من نتيجة نفس الطلب وطريقة الدفع.",
+            "Do not create a new order. Use the button below to safely check the same order and payment method.",
+          )}
+          onRetry={() => void retryCompletion()}
+          retryDisabled={pending}
+          retryLabel={text(
+            pending ? "جارٍ التحقق..." : "تحقق من نتيجة الطلب",
+            pending ? "Checking..." : "Check order result",
+          )}
+          locale={profile.locale}
+        />
       </div>
     );
   }
@@ -87,21 +125,28 @@ export const CheckoutPage = ({
       <div className="shell page-state-wrap">
         <StatePanel
           kind="empty"
-          title="لا يوجد طلب لإكماله"
-          message="أضف منتجًا إلى السلة قبل الانتقال إلى إتمام الطلب."
+          title={text("لا يوجد طلب لإكماله", "There is no order to complete")}
+          message={text(
+            "أضف منتجًا إلى السلة قبل الانتقال إلى إتمام الطلب.",
+            "Add a product to your cart before continuing to checkout.",
+          )}
+          locale={profile.locale}
         />
         <StorefrontLink
           to="/products"
           className="button button--primary state-back-link"
         >
-          تصفح المنتجات
+          {text("تصفح المنتجات", "Browse products")}
         </StorefrontLink>
       </div>
     );
   }
 
   const countries = capability.online_checkout.country_codes;
-  const regionNames = new Intl.DisplayNames(["ar"], { type: "region" });
+  const regionNames = new Intl.DisplayNames(
+    [profile.locale === "en-LY" ? "en" : "ar"],
+    { type: "region" },
+  );
 
   const updateAddress = (
     field: keyof StorefrontCheckoutAddress,
@@ -133,7 +178,7 @@ export const CheckoutPage = ({
   const submitCompletion = async () => {
     if (indeterminateCompletion) return;
     try {
-      await completeOrder();
+      await completeOrder(selectedPaymentMethod);
       navigate("/order-confirmation", { replace: true });
     } catch {
       // The Cart context distinguishes an indeterminate completion result.
@@ -142,21 +187,24 @@ export const CheckoutPage = ({
 
   return (
     <section className="commerce-page shell" aria-labelledby="checkout-title">
-      <nav className="breadcrumbs" aria-label="مسار الصفحة">
-        <StorefrontLink to="/">الرئيسية</StorefrontLink>
+      <nav className="breadcrumbs" aria-label={text("مسار الصفحة", "Breadcrumb")}>
+        <StorefrontLink to="/">{text("الرئيسية", "Home")}</StorefrontLink>
         <span aria-hidden="true">/</span>
-        <StorefrontLink to="/cart">السلة</StorefrontLink>
+        <StorefrontLink to="/cart">{text("السلة", "Cart")}</StorefrontLink>
         <span aria-hidden="true">/</span>
-        <span aria-current="page">إتمام الطلب</span>
+        <span aria-current="page">{text("إتمام الطلب", "Checkout")}</span>
       </nav>
       <header className="commerce-heading commerce-heading--checkout">
         <div>
-          <h1 id="checkout-title">إتمام الطلب</h1>
-          <p>أدخل بيانات التوصيل ثم راجع الإجمالي قبل التأكيد.</p>
+          <h1 id="checkout-title">{text("إتمام الطلب", "Checkout")}</h1>
+          <p>{text(
+            "أدخل بيانات التوصيل ثم راجع الإجمالي قبل التأكيد.",
+            "Enter your delivery details, then review the total before confirming.",
+          )}</p>
         </div>
-        <ol className="checkout-progress" aria-label="خطوات إتمام الطلب">
+        <ol className="checkout-progress" aria-label={text("خطوات إتمام الطلب", "Checkout steps")}>
           <li className={stage === "details" ? "is-current" : "is-complete"}>
-            البيانات
+            {text("البيانات", "Details")}
           </li>
           <li
             className={
@@ -167,10 +215,10 @@ export const CheckoutPage = ({
                   : undefined
             }
           >
-            التوصيل
+            {text("التوصيل", "Delivery")}
           </li>
           <li className={stage === "review" ? "is-current" : undefined}>
-            المراجعة
+            {text("المراجعة", "Review")}
           </li>
         </ol>
       </header>
@@ -179,9 +227,9 @@ export const CheckoutPage = ({
         <div className="checkout-panel">
           <form onSubmit={submitDetails}>
             <fieldset disabled={pending || stage !== "details"}>
-              <legend>بيانات التواصل</legend>
+              <legend>{text("بيانات التواصل", "Contact details")}</legend>
               <label className="field field--wide">
-                <span>البريد الإلكتروني</span>
+                <span>{text("البريد الإلكتروني", "Email address")}</span>
                 <input
                   autoComplete="email"
                   autoFocus
@@ -197,7 +245,7 @@ export const CheckoutPage = ({
               </label>
               <div className="field-row">
                 <label className="field">
-                  <span>الاسم الأول</span>
+                  <span>{text("الاسم الأول", "First name")}</span>
                   <input
                     autoComplete="given-name"
                     maxLength={120}
@@ -209,7 +257,7 @@ export const CheckoutPage = ({
                   />
                 </label>
                 <label className="field">
-                  <span>اسم العائلة</span>
+                  <span>{text("اسم العائلة", "Last name")}</span>
                   <input
                     autoComplete="family-name"
                     maxLength={120}
@@ -224,9 +272,9 @@ export const CheckoutPage = ({
             </fieldset>
 
             <fieldset disabled={pending || stage !== "details"}>
-              <legend>عنوان التوصيل</legend>
+              <legend>{text("عنوان التوصيل", "Delivery address")}</legend>
               <label className="field field--wide">
-                <span>العنوان</span>
+                <span>{text("العنوان", "Address")}</span>
                 <input
                   autoComplete="street-address"
                   maxLength={240}
@@ -239,7 +287,7 @@ export const CheckoutPage = ({
               </label>
               <div className="field-row">
                 <label className="field">
-                  <span>المدينة</span>
+                  <span>{text("المدينة", "City")}</span>
                   <input
                     autoComplete="address-level2"
                     maxLength={120}
@@ -251,7 +299,7 @@ export const CheckoutPage = ({
                   />
                 </label>
                 <label className="field">
-                  <span>الدولة</span>
+                  <span>{text("الدولة", "Country")}</span>
                   <select
                     autoComplete="country"
                     required
@@ -269,7 +317,7 @@ export const CheckoutPage = ({
                 </label>
               </div>
               <label className="field field--wide">
-                <span>رقم الهاتف (اختياري)</span>
+                <span>{text("رقم الهاتف (اختياري)", "Phone number (optional)")}</span>
                 <input
                   autoComplete="tel"
                   inputMode="tel"
@@ -285,7 +333,9 @@ export const CheckoutPage = ({
                   className="button button--primary checkout-next"
                   type="submit"
                 >
-                  {pending ? "جارٍ الحفظ..." : "متابعة إلى التوصيل"}
+                  {pending
+                    ? text("جارٍ الحفظ...", "Saving…")
+                    : text("متابعة إلى التوصيل", "Continue to delivery")}
                 </button>
               ) : null}
             </fieldset>
@@ -298,8 +348,11 @@ export const CheckoutPage = ({
             >
               <div className="checkout-section-heading">
                 <div>
-                  <h2 id="shipping-title">طريقة التوصيل</h2>
-                  <p>اختر طريقة التوصيل المتاحة لهذا المتجر.</p>
+                  <h2 id="shipping-title">{text("طريقة التوصيل", "Delivery method")}</h2>
+                  <p>{text(
+                    "اختر طريقة التوصيل المتاحة لهذا المتجر.",
+                    "Choose the delivery method available for this store.",
+                  )}</p>
                 </div>
                 {stage === "review" ? <CheckIcon /> : null}
               </div>
@@ -315,7 +368,7 @@ export const CheckoutPage = ({
                   />
                   <span>{option.name}</span>
                   <strong>
-                    {formatStorefrontMoney(option.amount, cart.currency_code)}
+                    {formatStorefrontMoney(option.amount, cart.currency_code, profile.locale)}
                   </strong>
                 </label>
               ))}
@@ -326,7 +379,9 @@ export const CheckoutPage = ({
                   type="button"
                   onClick={() => void submitShipping()}
                 >
-                  {pending ? "جارٍ الحفظ..." : "مراجعة الطلب"}
+                  {pending
+                    ? text("جارٍ الحفظ...", "Saving…")
+                    : text("مراجعة الطلب", "Review order")}
                 </button>
               ) : null}
             </section>
@@ -336,21 +391,61 @@ export const CheckoutPage = ({
             <section className="review-section" aria-labelledby="review-title">
               <div className="checkout-section-heading">
                 <div>
-                  <h2 id="review-title">المراجعة والتأكيد</h2>
-                  <p>
-                    راجع الإجمالي. لن يتم تحصيل دفعة فعلية في هذا الاختبار
-                    المحلي.
-                  </p>
+                  <h2 id="review-title">{text("المراجعة والتأكيد", "Review and confirm")}</h2>
+                  <p>{text(
+                    "راجع تفاصيل الطلب والإجمالي قبل التأكيد.",
+                    "Review the order details and total before confirming.",
+                  )}</p>
                 </div>
                 <ShieldCheckIcon />
               </div>
+              <fieldset className="payment-methods" disabled={pending}>
+                <legend>{text("طريقة الدفع", "Payment method")}</legend>
+                {capability.online_checkout.payment_methods.map((method) => (
+                  <label className="payment-method" key={method}>
+                    <input
+                      checked={selectedPaymentMethod === method}
+                      name="payment-method"
+                      type="radio"
+                      value={method}
+                      onChange={() => setSelectedPaymentMethod(method)}
+                    />
+                    <span>
+                      <strong>
+                        {method === "cod"
+                          ? text("الدفع عند الاستلام", "Cash on delivery")
+                          : text("تحويل مصرفي يدوي", "Manual bank transfer")}
+                      </strong>
+                      <small>
+                        {method === "cod"
+                          ? text(
+                              "ادفع للمتجر عند استلام طلبك.",
+                              "Pay the store when your order is delivered.",
+                            )
+                          : text(
+                              "ستظهر تعليمات التحويل بعد تأكيد الطلب.",
+                              "Transfer instructions appear only after the order is confirmed.",
+                            )}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
               <button
                 className="button button--primary checkout-complete"
-                disabled={pending || indeterminateCompletion}
+                disabled={
+                  pending ||
+                  indeterminateCompletion ||
+                  !capability.online_checkout.payment_methods.includes(
+                    selectedPaymentMethod,
+                  )
+                }
                 type="button"
                 onClick={() => void submitCompletion()}
               >
-                {pending ? "جارٍ التأكيد..." : "تأكيد الطلب التجريبي"}
+                {pending
+                  ? text("جارٍ التأكيد...", "Confirming…")
+                  : text("تأكيد الطلب", "Confirm order")}
               </button>
             </section>
           ) : null}
@@ -371,7 +466,7 @@ export const CheckoutPage = ({
           className="order-summary order-summary--checkout"
           aria-labelledby="checkout-summary-title"
         >
-          <h2 id="checkout-summary-title">ملخص الطلب</h2>
+          <h2 id="checkout-summary-title">{text("ملخص الطلب", "Order summary")}</h2>
           <div className="summary-items">
             {cart.items.map((item) => (
               <div className="summary-item" key={item.id}>
@@ -386,40 +481,44 @@ export const CheckoutPage = ({
                 </div>
                 <p>
                   <strong>{item.title}</strong>
-                  <span>الكمية: {item.quantity}</span>
+                  <span>{text(`الكمية: ${item.quantity}`, `Quantity: ${item.quantity}`)}</span>
                 </p>
                 <strong>
-                  {formatStorefrontMoney(item.total, cart.currency_code)}
+                  {formatStorefrontMoney(item.total, cart.currency_code, profile.locale)}
                 </strong>
               </div>
             ))}
           </div>
           <dl>
             <div>
-              <dt>المجموع الفرعي</dt>
+              <dt>{text("المجموع الفرعي", "Subtotal")}</dt>
               <dd>
-                {formatStorefrontMoney(cart.item_subtotal, cart.currency_code)}
+                {formatStorefrontMoney(cart.item_subtotal, cart.currency_code, profile.locale)}
               </dd>
             </div>
             <div>
-              <dt>التوصيل</dt>
+              <dt>{text("التوصيل", "Delivery")}</dt>
               <dd>
                 {cart.shipping_method_selected
                   ? formatStorefrontMoney(
                       cart.shipping_total,
                       cart.currency_code,
+                      profile.locale,
                     )
-                  : "يُحدد بعد العنوان"}
+                    : text("يُحدد بعد العنوان", "Calculated after the address")}
               </dd>
             </div>
             <div className="order-summary__total">
-              <dt>الإجمالي</dt>
-              <dd>{formatStorefrontMoney(cart.total, cart.currency_code)}</dd>
+              <dt>{text("الإجمالي", "Total")}</dt>
+              <dd>{formatStorefrontMoney(cart.total, cart.currency_code, profile.locale)}</dd>
             </div>
           </dl>
           <p className="pilot-note">
             <ShieldCheckIcon />
-            تأكيد تجريبي محلي — لا يتم تحصيل دفعة فعلية.
+            {text(
+              "راجع الطلب بعناية قبل التأكيد.",
+              "Review your order carefully before confirming.",
+            )}
           </p>
         </aside>
       </div>

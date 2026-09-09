@@ -5,6 +5,7 @@ import MerchantMembership from "./merchant-membership"
 import StoreBrand from "./store-brand"
 import StoreCommerceReadiness from "./store-commerce-readiness"
 import StoreDomain from "./store-domain"
+import StorefrontDocument from "./storefront-document"
 import Tenant from "./tenant"
 
 const StoreProfile = model
@@ -24,8 +25,14 @@ const StoreProfile = model
     public_contact_email: model.text().nullable(),
     public_phone: model.text().nullable(),
     whatsapp_number: model.text().nullable(),
+    configuration_revision: model.number().default(1),
+    configuration_updated_by: model.text().nullable(),
+    configuration_updated_at: model.dateTime().nullable(),
     domains: model.hasMany(() => StoreDomain, { mappedBy: "store_profile" }),
     brand: model.hasOne(() => StoreBrand, { mappedBy: "store_profile" }),
+    storefront_document: model.hasOne(() => StorefrontDocument, {
+      mappedBy: "store_profile",
+    }),
     commerce_readiness: model.hasOne(() => StoreCommerceReadiness, {
       mappedBy: "store_profile",
     }),

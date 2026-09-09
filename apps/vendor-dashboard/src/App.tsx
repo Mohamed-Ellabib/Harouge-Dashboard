@@ -1,4 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  EnvelopeSimple,
+  Eye,
+  EyeSlash,
+  Headset,
+  LockKey,
+  Storefront,
+} from "@phosphor-icons/react";
+
+import { MerchantDashboard } from "./MerchantDashboard";
 
 type Vendor = {
   id: string;
@@ -25,7 +36,14 @@ type VendorProduct = {
   status: "draft" | "proposed" | "published" | "rejected";
   thumbnail: string | null;
   description?: string | null;
+  images?: VendorProductImage[];
   variants?: VendorProductVariant[];
+};
+
+type VendorProductImage = {
+  id?: string;
+  url: string;
+  rank?: number | null;
 };
 
 type VendorProductPrice = {
@@ -40,6 +58,13 @@ type VendorProductVariant = {
   sku: string | null;
   manage_inventory: boolean;
   allow_backorder?: boolean;
+  inventory_quantity?: number | null;
+  available_quantity?: number | null;
+  options?: Array<{
+    value: string;
+    option_id?: string;
+    option?: { id?: string; title?: string };
+  }>;
   prices?: VendorProductPrice[];
 };
 
@@ -82,13 +107,21 @@ type ProductForm = {
   currency_code: string;
   sku: string;
   variant_title: string;
+  images: ProductImageForm[];
   variants: ProductVariantForm[];
 };
 
+type ProductImageForm = {
+  id?: string;
+  url: string;
+};
+
 type ProductVariantForm = {
+  id?: string;
   size: string;
   color: string;
   price: string;
+  stock: string;
   sku: string;
 };
 
@@ -115,7 +148,8 @@ const emptyProductForm: ProductForm = {
   currency_code: "",
   sku: "",
   variant_title: "",
-  variants: [{ size: "", color: "", price: "", sku: "" }],
+  images: [],
+  variants: [{ size: "", color: "", price: "", stock: "", sku: "" }],
 };
 
 const emptyPasswordForm: PasswordForm = {
@@ -178,15 +212,47 @@ const navItems: {
   },
   {
     id: "profile",
-    label: "ملف المتجر",
+    label: "بيانات المتجر",
     icon: "M5 20V8l7-4 7 4v12M8 12h8M8 16h8",
   },
   {
     id: "security",
-    label: "الحماية",
+    label: "الأمان",
     icon: "M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6zM9.5 12l1.6 1.6L15 9.8",
   },
 ];
+
+const tabCopy: Record<TabId, { title: string; description: string }> = {
+  home: {
+    title: "نظرة عامة",
+    description: "ملخص سريع لمنتجات متجرك وطلباته الحالية.",
+  },
+  products: {
+    title: "المنتجات",
+    description: "إدارة المنتجات والنسخ والمخزون داخل متجرك.",
+  },
+  orders: {
+    title: "الطلبات",
+    description: "متابعة الطلبات المرتبطة بمتجرك فقط.",
+  },
+  profile: {
+    title: "بيانات المتجر",
+    description: "هوية متجرك والنطاقات المرتبطة به.",
+  },
+  security: {
+    title: "الأمان",
+    description: "إدارة كلمة مرور حساب البائع.",
+  },
+};
+
+const uiIcons = {
+  arrow: "M14 6l-6 6 6 6",
+  email: "M4 6h16v12H4zM4 7l8 6 8-6",
+  eye: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Zm9.5 2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
+  lock: "M7 11V8a5 5 0 0 1 10 0v3m-11 0h12v10H6z",
+  logout: "M10 5H5v14h5M14 8l4 4-4 4m4-4H9",
+  store: "M4 10h16l-2-5H6zM6 10v9h12v-9M9 19v-5h6v5",
+};
 
 const request = async <T,>(
   path: string,
@@ -238,12 +304,38 @@ const normalizeAmountValue = (amount: number | string | null | undefined) => {
   return String(amount);
 };
 
+const getVariantOption = (
+  variant: VendorProductVariant,
+  optionTitle: "Size" | "Color",
+) =>
+  variant.options?.find(
+    (option) => option.option?.title?.toLowerCase() === optionTitle.toLowerCase(),
+  )?.value;
+
 const productToForm = (
   product: VendorProduct,
   storeCurrency: string,
 ): ProductForm => {
   const primaryVariant = getPrimaryVariant(product);
   const primaryPrice = getPrimaryPrice(product);
+  const variants = product.variants?.length
+      ? product.variants.map((variant) => {
+        const [titleSize = "", titleColor = ""] = variant.title
+          .split("/")
+          .map((value) => value.trim());
+
+        return {
+          id: variant.id,
+          size: getVariantOption(variant, "Size") ?? titleSize,
+          color: getVariantOption(variant, "Color") ?? titleColor,
+          price: normalizeAmountValue(variant.prices?.[0]?.amount),
+          stock: variant.manage_inventory
+            ? normalizeAmountValue(variant.inventory_quantity ?? 0)
+            : "0",
+          sku: variant.sku ?? "",
+        };
+      })
+    : [{ size: "", color: "", price: "", stock: "", sku: "" }];
 
   return {
     title: product.title ?? "",
@@ -257,7 +349,17 @@ const productToForm = (
     currency_code: storeCurrency,
     sku: primaryVariant?.sku ?? "",
     variant_title: primaryVariant?.title ?? product.title ?? "",
-    variants: [{ size: "", color: "", price: "", sku: "" }],
+    images: (() => {
+      const images: ProductImageForm[] = (product.images ?? []).map((image) => ({
+        id: image.id,
+        url: image.url,
+      }));
+      if (product.thumbnail && !images.some((image) => image.url === product.thumbnail)) {
+        images.unshift({ url: product.thumbnail });
+      }
+      return images;
+    })(),
+    variants,
   };
 };
 
@@ -300,6 +402,151 @@ const formatDate = (value: string) => {
       }).format(date);
 };
 
+const vendorDemoMode =
+  import.meta.env.DEV &&
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("demo") === "1";
+
+const vendorDemoSession: VendorMeResponse = {
+  vendor: {
+    id: "vendor-demo",
+    name: "متجري الرياضي",
+    handle: "sport",
+    domains: ["store.labibtech.com/sport"],
+    branding: { logo_url: null, primary_color: "#1687ff" },
+  },
+  member: {
+    id: "member-demo",
+    email: "owner@nawa.local",
+    role: "owner",
+    status: "active",
+  },
+  commerce: { currency_code: "lyd" },
+};
+
+const vendorDemoProducts: VendorProduct[] = [
+  {
+    id: "product-demo-1",
+    title: "Ultra Pro Running Shoe",
+    handle: "ultra-pro-running-shoe",
+    status: "published",
+    thumbnail: "/assets/products/ultra-pro-black.png",
+    description: "A lightweight, comfortable running shoe designed for daily use and long distances.",
+    images: [{ url: "/assets/products/ultra-pro-black.png" }],
+    variants: [{
+      id: "variant-demo-1-0",
+      title: "42 / Black",
+      sku: "SH-BLK-42",
+      manage_inventory: true,
+      inventory_quantity: 12,
+      available_quantity: 12,
+      options: [
+        { value: "42", option: { title: "Size" } },
+        { value: "Black", option: { title: "Color" } },
+      ],
+      prices: [{ amount: 299, currency_code: "lyd" }],
+    }],
+  },
+  {
+    id: "product-demo-2",
+    title: "تيشيرت رياضي سريع الجفاف",
+    handle: "quick-dry-tshirt",
+    status: "published",
+    thumbnail: "/assets/preview/vase.png",
+    description: "تيشيرت رياضي خفيف وسريع الجفاف.",
+    variants: [{
+      id: "variant-demo-2",
+      title: "M / أسود",
+      sku: "TS-BLK-M",
+      manage_inventory: true,
+      inventory_quantity: 120,
+      prices: [{ amount: 79, currency_code: "lyd" }],
+    }],
+  },
+  {
+    id: "product-demo-3",
+    title: "شورت تدريب رجالي",
+    handle: "training-short",
+    status: "published",
+    thumbnail: "/assets/preview/mug.png",
+    description: "شورت تدريب عملي بقصة مريحة.",
+    variants: [{
+      id: "variant-demo-3",
+      title: "L / أسود",
+      sku: "SHORT-BLK-L",
+      manage_inventory: true,
+      inventory_quantity: 68,
+      prices: [{ amount: 69, currency_code: "lyd" }],
+    }],
+  },
+  {
+    id: "product-demo-4",
+    title: "زجاجة ماء رياضية 750 مل",
+    handle: "sports-bottle-750ml",
+    status: "published",
+    thumbnail: "/assets/preview/cushion.png",
+    description: "زجاجة رياضية متينة وسهلة الحمل.",
+    variants: [{ id: "variant-demo-4", title: "750ml / أسود", sku: "BTL-BLK", manage_inventory: true, inventory_quantity: 96, prices: [{ amount: 49, currency_code: "lyd" }] }],
+  },
+  {
+    id: "product-demo-5",
+    title: "حقيبة ظهر رياضية 25 لتر",
+    handle: "sport-backpack-25l",
+    status: "draft",
+    thumbnail: "/assets/preview/candle.png",
+    description: "حقيبة ظهر واسعة للتدريب والتنقل.",
+    variants: [{ id: "variant-demo-5", title: "25L / أسود", sku: "BAG-BLK-25", manage_inventory: true, inventory_quantity: 25, prices: [{ amount: 149, currency_code: "lyd" }] }],
+  },
+  {
+    id: "product-demo-6",
+    title: "جوارب رياضية قطنية",
+    handle: "sport-cotton-socks",
+    status: "published",
+    thumbnail: "/assets/preview/vase.png",
+    description: "جوارب رياضية مريحة للاستخدام اليومي.",
+    variants: [{ id: "variant-demo-6", title: "One Size / أبيض", sku: "SOCK-WHT", manage_inventory: true, inventory_quantity: 150, prices: [{ amount: 29, currency_code: "lyd" }] }],
+  },
+];
+
+const vendorDemoOrders: VendorOrder[] = [
+  {
+    id: "order-demo-1",
+    display_id: 1042,
+    status: "pending",
+    email: "buyer@example.test",
+    currency_code: "lyd",
+    vendor_total: 230,
+    created_at: "2026-08-05T08:00:00Z",
+    items: [{
+      id: "item-demo-1",
+      title: "قميص كلاسيكي",
+      quantity: 1,
+      unit_price: 85,
+      total: 85,
+      product_id: "product-demo-1",
+      variant_title: "أسود / M",
+    }],
+  },
+  {
+    id: "order-demo-2",
+    display_id: 1041,
+    status: "completed",
+    email: "customer@example.test",
+    currency_code: "lyd",
+    vendor_total: 145,
+    created_at: "2026-08-04T10:00:00Z",
+    items: [{
+      id: "item-demo-2",
+      title: "حقيبة جلدية",
+      quantity: 1,
+      unit_price: 145,
+      total: 145,
+      product_id: "product-demo-2",
+      variant_title: "بني",
+    }],
+  },
+];
+
 const Icon = ({ path }: { path: string }) => (
   <svg aria-hidden="true" className="icon" viewBox="0 0 24 24">
     <path d={path} />
@@ -321,6 +568,7 @@ function LoginScreen({
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -328,74 +576,111 @@ function LoginScreen({
   };
 
   return (
-    <main className="login-page" dir="rtl">
-      <section className="login-panel">
-        <div className="brand-lockup">
-          <div className="brand-mark">ف</div>
-          <div>
-            <p>منصة المتاجر</p>
-            <h1>دخول البائع</h1>
+    <main className="vendor-signin-shell" dir="rtl">
+      <aside className="merchant-brand-panel" aria-label="هوية LabibTech للبائعين">
+        <div className="merchant-brand-copy">
+          <img
+            className="merchant-brand-logo"
+            src="/assets/labibtech-logo.png"
+            alt="LabibTech"
+            width="1254"
+            height="1254"
+            draggable="false"
+          />
+          <div className="merchant-platform-label">
+            <Storefront aria-hidden="true" size={23} weight="regular" />
+            <span>لوحة البائع</span>
           </div>
+          <h2>تدير متجرك بسهولة واحتراف</h2>
+          <p>من المنتجات والمخزون إلى الطلبات والشحن،<br />كل ما تحتاجه لتشغيل متجرك بنجاح.</p>
         </div>
-        <p className="login-copy">
-          استخدم حساب البائع المرتبط بمتجرك. ستظهر هنا بيانات المتجر والمنتجات
-          والطلبات الخاصة بك فقط.
-        </p>
-        {notice && (
-          <div className={`notice notice-${notice.tone}`}>{notice.text}</div>
-        )}
-        <form className="login-form" onSubmit={submit}>
-          <label>
-            البريد الإلكتروني
-            <input
-              autoComplete="email"
-              dir="ltr"
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="vendor@example.com"
-              required
-              type="email"
-              value={email}
-            />
-          </label>
-          <label>
-            كلمة المرور
-            <input
-              autoComplete="current-password"
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="********"
-              required
-              type="password"
-              value={password}
-            />
-          </label>
-          <button className="primary-button" disabled={isLoading} type="submit">
-            {isLoading ? "جار تسجيل الدخول..." : "دخول لوحة البائع"}
-          </button>
-        </form>
-      </section>
-      <aside className="login-preview" aria-hidden="true">
-        <div className="preview-header">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="preview-grid">
-          <div />
-          <div />
-          <div />
-        </div>
-        <div className="preview-table">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
+        <img
+          className="merchant-core-art"
+          src="/assets/merchant-commerce-core.png"
+          alt="منظومة LabibTech لإدارة المتجر والمنتجات والمخزون والطلبات"
+          width="1536"
+          height="1536"
+          draggable="false"
+        />
       </aside>
+
+      <section className="merchant-auth-region" aria-label="تسجيل دخول البائع">
+        <article className="merchant-signin-card">
+          <header className="merchant-signin-heading">
+            <span className="merchant-signin-emblem">
+              <Storefront aria-hidden="true" size={58} weight="regular" />
+            </span>
+            <h1>مرحباً بك في <span>لوحة متجرك</span></h1>
+            <p>أدر منتجاتك وطلباتك ومخزونك من مكان واحد</p>
+          </header>
+
+          <form className="merchant-signin-form" onSubmit={submit}>
+            <label htmlFor="merchant-email">البريد الإلكتروني</label>
+            <div className="merchant-input-shell">
+              <input
+                id="merchant-email"
+                autoComplete="email"
+                dir="ltr"
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="أدخل بريدك الإلكتروني"
+                required
+                type="email"
+                value={email}
+              />
+              <EnvelopeSimple aria-hidden="true" size={31} weight="regular" />
+            </div>
+
+            <label htmlFor="merchant-password">كلمة المرور</label>
+            <div className="merchant-input-shell">
+              <input
+                id="merchant-password"
+                autoComplete="current-password"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="أدخل كلمة المرور"
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+              />
+              <LockKey aria-hidden="true" size={31} weight="regular" />
+              <button
+                className="password-toggle"
+                type="button"
+                aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((visible) => !visible)}
+              >
+                {showPassword ? (
+                  <EyeSlash aria-hidden="true" size={31} weight="regular" />
+                ) : (
+                  <Eye aria-hidden="true" size={31} weight="regular" />
+                )}
+              </button>
+            </div>
+
+            <div className="signin-notice-slot" aria-live="polite">
+              {notice ? <div className={`notice notice-${notice.tone}`}>{notice.text}</div> : null}
+            </div>
+
+            <button className="merchant-signin-button" disabled={isLoading} type="submit">
+              <span>{isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}</span>
+              <ArrowLeft aria-hidden="true" size={34} weight="regular" />
+            </button>
+          </form>
+
+          <footer className="merchant-signin-footer">
+            <span className="merchant-footer-line" aria-hidden="true" />
+            <div>
+              <Headset aria-hidden="true" size={27} weight="regular" />
+              <p>تحتاج إلى مساعدة؟ تواصل مع فريق <strong>LabibTech</strong></p>
+            </div>
+          </footer>
+        </article>
+      </section>
     </main>
   );
 }
 
-function Dashboard({
+export function LegacyDashboard({
   vendor,
   member,
   products,
@@ -460,10 +745,15 @@ function Dashboard({
     ? vendor.domains.join("، ")
     : "بدون نطاق";
   const canEditProduct = Boolean(selectedProduct || isCreatingProduct);
+  const currentTab = tabCopy[activeTab];
 
   return (
     <main className="dashboard-shell" dir="rtl">
       <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src="/assets/labibtech-logo.png" alt="LabibTech" width="1254" height="1254" />
+          <span>لوحة البائع</span>
+        </div>
         <div className="vendor-lockup">
           <div className="vendor-mark">
             {vendor.name.trim().slice(0, 1) || "م"}
@@ -486,22 +776,45 @@ function Dashboard({
             </button>
           ))}
         </nav>
-        <button className="logout-button" onClick={onLogout} type="button">
-          تسجيل الخروج
-        </button>
+        <div className="sidebar-footer">
+          <span>مساحة المتجر</span>
+          <strong>{vendor.name}</strong>
+        </div>
       </aside>
 
       <section className="workspace">
         <header className="topbar">
-          <div>
-            <h1>لوحة البائع</h1>
-            <p>إدارة المنتجات والطلبات المرتبطة بمتجرك فقط.</p>
+          <div className="store-context">
+            <span className="store-context__mark">{vendor.name.trim().slice(0, 1) || "م"}</span>
+            <div>
+              <strong>{vendor.name}</strong>
+              <span dir="ltr">{domains}</span>
+            </div>
           </div>
-          <div className="account-chip">
-            <span>{member.role === "owner" ? "مالك" : "مدير"}</span>
-            <strong dir="ltr">{member.email}</strong>
+          <div className="account-actions">
+            <div className="account-chip">
+              <span>{member.role === "owner" ? "مالك المتجر" : "مدير المتجر"}</span>
+              <strong dir="ltr">{member.email}</strong>
+            </div>
+            <button className="topbar-logout" onClick={onLogout} type="button">
+              <Icon path={uiIcons.logout} />
+              تسجيل الخروج
+            </button>
           </div>
         </header>
+
+        <div className="workspace-heading">
+          <div>
+            <h1>{currentTab.title}</h1>
+            <p>{currentTab.description}</p>
+          </div>
+          {(activeTab === "home" || activeTab === "products") ? (
+            <button className="primary-button workspace-primary-action" onClick={onStartCreateProduct} type="button">
+              <span aria-hidden="true">＋</span>
+              إنشاء منتج
+            </button>
+          ) : null}
+        </div>
 
         {notice && (
           <div className={`notice notice-${notice.tone}`}>{notice.text}</div>
@@ -539,7 +852,7 @@ function Dashboard({
                   onClick={onStartCreateProduct}
                   type="button"
                 >
-                  إنشاء منتج
+                  إضافة منتج
                 </button>
               </div>
               <div className="table-wrap">
@@ -718,7 +1031,7 @@ function Dashboard({
                               ...productForm,
                               variants: [
                                 ...productForm.variants,
-                                { size: "", color: "", price: "", sku: "" },
+                                { size: "", color: "", price: "", stock: "", sku: "" },
                               ],
                             })
                           }
@@ -730,13 +1043,13 @@ function Dashboard({
                       <div className="variant-editor__rows">
                         {productForm.variants.map((variant, index) => (
                           <div className="variant-row" key={index}>
-                            {(["size", "color", "price", "sku"] as const).map((field) => (
+                            {(["size", "color", "price", "stock", "sku"] as const).map((field) => (
                               <label key={field}>
-                                {{ size: "المقاس", color: "اللون", price: "السعر", sku: "SKU" }[field]}
+                                {{ size: "المقاس", color: "اللون", price: "السعر", stock: "المخزون", sku: "SKU" }[field]}
                                 <input
                                   dir={field === "color" ? undefined : "ltr"}
-                                  inputMode={field === "price" ? "decimal" : undefined}
-                                  min={field === "price" ? "0" : undefined}
+                                  inputMode={field === "price" ? "decimal" : field === "stock" ? "numeric" : undefined}
+                                  min={field === "price" || field === "stock" ? "0" : undefined}
                                   onChange={(event) =>
                                     onProductFormChange({
                                       ...productForm,
@@ -747,8 +1060,9 @@ function Dashboard({
                                       ),
                                     })
                                   }
-                                  placeholder={{ size: "M", color: "أسود", price: "15", sku: "TS-M-BLK" }[field]}
-                                  type={field === "price" ? "number" : "text"}
+                                  placeholder={{ size: "M", color: "أسود", price: "15", stock: "10", sku: "TS-M-BLK" }[field]}
+                                  step={field === "stock" ? "1" : undefined}
+                                  type={field === "price" || field === "stock" ? "number" : "text"}
                                   value={variant[field]}
                                 />
                               </label>
@@ -937,7 +1251,7 @@ function Dashboard({
           <section className="profile-panel">
             <div className="panel-heading">
               <div>
-                <h2>ملف المتجر</h2>
+                <h2>بيانات المتجر</h2>
                 <p>هذه البيانات تأتي من إعدادات البائع في لوحة الإدارة.</p>
               </div>
             </div>
@@ -974,7 +1288,7 @@ function Dashboard({
           <section className="security-panel">
             <div className="panel-heading">
               <div>
-                <h2>الحماية</h2>
+                <h2>الأمان</h2>
                 <p>غيّر كلمة مرور حسابك من داخل لوحة البائع.</p>
               </div>
             </div>
@@ -1048,13 +1362,24 @@ function Dashboard({
 }
 
 export default function App() {
-  const [me, setMe] = useState<VendorMeResponse | null>(null);
-  const [products, setProducts] = useState<VendorProduct[]>([]);
-  const [orders, setOrders] = useState<VendorOrder[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(
-    null,
+  const [me, setMe] = useState<VendorMeResponse | null>(
+    vendorDemoMode ? vendorDemoSession : null,
   );
-  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm);
+  const [products, setProducts] = useState<VendorProduct[]>(
+    vendorDemoMode ? vendorDemoProducts : [],
+  );
+  const [orders, setOrders] = useState<VendorOrder[]>(
+    vendorDemoMode ? vendorDemoOrders : [],
+  );
+  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
+  const [productForm, setProductForm] = useState<ProductForm>(
+    vendorDemoMode
+      ? {
+          ...emptyProductForm,
+          currency_code: vendorDemoSession.commerce.currency_code,
+        }
+      : emptyProductForm,
+  );
   const [passwordForm, setPasswordForm] =
     useState<PasswordForm>(emptyPasswordForm);
   const [activeTab, setActiveTab] = useState<TabId>("home");
@@ -1062,6 +1387,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isUploadingProductImages, setIsUploadingProductImages] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -1078,22 +1404,20 @@ export default function App() {
     setProducts(productData.products);
     setOrders(orderData.orders);
 
-    if (productData.products.length) {
-      setSelectedProduct(productData.products[0]);
-      setProductForm(
-        productToForm(productData.products[0], vendorMe.commerce.currency_code),
-      );
-      setIsCreatingProduct(false);
-    } else {
-      setSelectedProduct(null);
-      setProductForm({
-        ...emptyProductForm,
-        currency_code: vendorMe.commerce.currency_code,
-      });
-    }
+    setSelectedProduct(null);
+    setProductForm({
+      ...emptyProductForm,
+      currency_code: vendorMe.commerce.currency_code,
+    });
+    setIsCreatingProduct(false);
   };
 
   useEffect(() => {
+    if (vendorDemoMode) {
+      setIsLoading(false);
+      return;
+    }
+
     loadVendor()
       .catch(() => {
         setMe(null);
@@ -1157,19 +1481,11 @@ export default function App() {
 
   const cancelProductEdit = () => {
     setIsCreatingProduct(false);
-
-    if (products.length) {
-      setSelectedProduct(products[0]);
-      setProductForm(
-        productToForm(products[0], me?.commerce.currency_code ?? ""),
-      );
-    } else {
-      setSelectedProduct(null);
-      setProductForm({
-        ...emptyProductForm,
-        currency_code: me?.commerce.currency_code ?? "",
-      });
-    }
+    setSelectedProduct(null);
+    setProductForm({
+      ...emptyProductForm,
+      currency_code: me?.commerce.currency_code ?? "",
+    });
   };
 
   const saveProduct = async () => {
@@ -1181,49 +1497,90 @@ export default function App() {
     setNotice(null);
 
     try {
-      const price = productForm.price.trim();
-
       if (
-        isCreatingProduct &&
+        productForm.variants.length < 1 ||
         productForm.variants.some(
           (variant) =>
             !variant.size.trim() ||
             !variant.color.trim() ||
-            !variant.price.trim(),
+            !variant.price.trim() ||
+            !variant.stock.trim(),
         )
       ) {
         setNotice({
           tone: "error",
-          text: "المقاس واللون والسعر مطلوبة لكل نسخة.",
+          text: "Size, color, price and stock are required for every variant.",
         });
         return;
       }
 
-      const hasVariant = Boolean(selectedProduct?.variants?.length);
-      const shouldSendVariant =
-        isCreatingProduct || hasVariant || Boolean(price);
       const payload: Record<string, unknown> = {
         title: productForm.title,
         handle: productForm.handle,
         status: productForm.status,
         description: productForm.description,
-        thumbnail: productForm.thumbnail,
-      };
-
-      if (isCreatingProduct) {
-        payload.variants = productForm.variants.map((variant) => ({
+        thumbnail: productForm.images[0]?.url || productForm.thumbnail,
+        images: productForm.images
+          .filter((image) => image.url.trim())
+          .map((image) => ({ id: image.id, url: image.url.trim() })),
+        variants: productForm.variants.map((variant) => ({
+          id: variant.id,
           size: variant.size,
           color: variant.color,
           price: variant.price,
+          stock: variant.stock,
           sku: variant.sku,
-        }));
-      } else if (shouldSendVariant) {
-        payload.sku = productForm.sku;
-        payload.variant_title = productForm.variant_title || productForm.title;
+        })),
+      };
 
-        if (price) {
-          payload.price = price;
-        }
+      if (!payload.thumbnail) {
+        payload.thumbnail = null;
+      }
+
+      if (vendorDemoMode) {
+        const productId = selectedProduct?.id ?? `product-demo-${Date.now()}`;
+        const product: VendorProduct = {
+          id: productId,
+          title: productForm.title,
+          handle: productForm.handle,
+          status: productForm.status,
+          description: productForm.description,
+          thumbnail: productForm.images[0]?.url || null,
+          images: productForm.images.filter((image) => image.url.trim()),
+          variants: productForm.variants.map((variant, index) => ({
+            id: variant.id ?? `variant-demo-${Date.now()}-${index}`,
+            title: `${variant.size.trim()} / ${variant.color.trim()}`,
+            sku: variant.sku.trim() || null,
+            manage_inventory: true,
+            allow_backorder: false,
+            inventory_quantity: Number(variant.stock),
+            available_quantity: Number(variant.stock),
+            options: [
+              { value: variant.size.trim(), option: { title: "Size" } },
+              { value: variant.color.trim(), option: { title: "Color" } },
+            ],
+            prices: [
+              {
+                amount: variant.price,
+                currency_code: productForm.currency_code || "lyd",
+              },
+            ],
+          })),
+        };
+
+        setProducts((current) =>
+          isCreatingProduct
+            ? [product, ...current]
+            : current.map((entry) => (entry.id === product.id ? product : entry)),
+        );
+        setSelectedProduct(product);
+        setProductForm(productToForm(product, productForm.currency_code));
+        setIsCreatingProduct(false);
+        setNotice({
+          tone: "success",
+          text: isCreatingProduct ? "Product created." : "Product saved.",
+        });
+        return;
       }
 
       const data = await request<{ product: VendorProduct }>(
@@ -1250,16 +1607,112 @@ export default function App() {
       setIsCreatingProduct(false);
       setNotice({
         tone: "success",
-        text: isCreatingProduct ? "تم إنشاء المنتج." : "تم حفظ المنتج.",
+        text: isCreatingProduct ? "Product created." : "Product saved.",
       });
     } catch (error) {
       setNotice({
         tone: "error",
         text:
-          error instanceof Error ? error.message : "تعذر حفظ المنتج المحدد.",
+          error instanceof Error ? error.message : "The product could not be saved.",
       });
     } finally {
       setIsSavingProduct(false);
+    }
+  };
+
+  const uploadProductImages = async (files: File[]) => {
+    if (!files.length) {
+      return;
+    }
+
+    if (productForm.images.length + files.length > 12) {
+      setNotice({ tone: "error", text: "A product can have up to 12 images." });
+      return;
+    }
+
+    setIsUploadingProductImages(true);
+    setNotice(null);
+
+    try {
+      const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (files.some((file) => !allowedTypes.has(file.type) || file.size > 4 * 1024 * 1024)) {
+        throw new Error("Use JPG, PNG or WebP images no larger than 4 MB each.");
+      }
+
+      if (vendorDemoMode) {
+        const uploaded = files.map((file) => ({ url: URL.createObjectURL(file) }));
+        setProductForm((current) => ({
+          ...current,
+          images: [...current.images, ...uploaded],
+        }));
+        return;
+      }
+
+      const encodedFiles = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise<{ filename: string; mime_type: string; content: string }>(
+              (resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error("The image file could not be read."));
+                reader.onload = () => {
+                  const result = typeof reader.result === "string" ? reader.result : "";
+                  const content = result.includes(",") ? result.slice(result.indexOf(",") + 1) : "";
+                  if (!content) {
+                    reject(new Error("The image file could not be read."));
+                    return;
+                  }
+                  resolve({
+                    filename: file.name,
+                    mime_type: file.type,
+                    content,
+                  });
+                };
+                reader.readAsDataURL(file);
+              },
+            ),
+        ),
+      );
+      const data = await request<{ files: ProductImageForm[] }>("/vendor/uploads", {
+        method: "POST",
+        body: JSON.stringify({ files: encodedFiles }),
+      });
+      setProductForm((current) => ({
+        ...current,
+        images: [...current.images, ...data.files],
+      }));
+      setNotice({ tone: "success", text: "Product images uploaded." });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "Product images could not be uploaded.",
+      });
+    } finally {
+      setIsUploadingProductImages(false);
+    }
+  };
+
+  const deleteProduct = async (product: VendorProduct) => {
+    setNotice(null);
+
+    try {
+      if (!vendorDemoMode) {
+        await request(`/vendor/products/${product.id}`, { method: "DELETE" });
+      }
+
+      setProducts((current) => current.filter((entry) => entry.id !== product.id));
+      setSelectedProduct(null);
+      setIsCreatingProduct(false);
+      setProductForm({
+        ...emptyProductForm,
+        currency_code: me?.commerce.currency_code ?? "",
+      });
+      setNotice({ tone: "success", text: "Product deleted." });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "The product could not be deleted.",
+      });
     }
   };
 
@@ -1312,11 +1765,13 @@ export default function App() {
   }
 
   return (
-    <Dashboard
+    <MerchantDashboard
       activeTab={activeTab}
+      isDemo={vendorDemoMode}
       isCreatingProduct={isCreatingProduct}
       isSavingPassword={isSavingPassword}
       isSavingProduct={isSavingProduct}
+      isUploadingProductImages={isUploadingProductImages}
       member={me.member}
       notice={notice}
       onCancelProductEdit={cancelProductEdit}
@@ -1325,8 +1780,10 @@ export default function App() {
       onProductFormChange={setProductForm}
       onSavePassword={savePassword}
       onSaveProduct={saveProduct}
+      onDeleteProduct={deleteProduct}
       onSelectProduct={selectProduct}
       onStartCreateProduct={startCreateProduct}
+      onUploadProductImages={uploadProductImages}
       onTabChange={setActiveTab}
       orders={orders}
       passwordForm={passwordForm}

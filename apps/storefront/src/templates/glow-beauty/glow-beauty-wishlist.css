@@ -1,0 +1,332 @@
+.glow-beauty-wishlist-page {
+  min-height: 100dvh;
+  padding: 16px 16px 116px;
+  overflow-x: hidden;
+}
+
+.glow-beauty-wishlist-header {
+  display: grid;
+  min-height: 82px;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  align-items: start;
+  padding: 4px 3px 4px 5px;
+}
+
+.glow-beauty-wishlist-header p,
+.glow-beauty-wishlist-header h1 { margin: 0; }
+
+.glow-beauty-wishlist-header p {
+  color: #68635f;
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.glow-beauty-wishlist-header h1 {
+  margin-top: 6px;
+  font-size: 28px;
+  font-weight: 790;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.glow-beauty-wishlist-header > a {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-top: 1px;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--beauty-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(78, 51, 34, 0.055);
+}
+
+.glow-beauty-wishlist-header > a svg { width: 25px; height: 25px; stroke-width: 1.65; }
+
+.glow-beauty-wishlist-header > a b {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+  font-size: 8px;
+}
+
+.glow-beauty-wishlist-summary {
+  display: grid;
+  min-height: 88px;
+  grid-template-columns: 46px minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 11px;
+  padding: 0 15px;
+  border: 1px solid rgba(244, 220, 204, 0.72);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(84, 52, 32, 0.045);
+}
+
+.glow-beauty-wishlist-summary > span {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--beauty-orange);
+  background: #fff0e6;
+}
+
+.glow-beauty-wishlist-summary > span svg { width: 22px; height: 22px; }
+.glow-beauty-wishlist-summary strong { display: block; font-size: 16px; font-weight: 780; letter-spacing: -0.025em; }
+.glow-beauty-wishlist-summary p { overflow: hidden; margin: 5px 0 0; color: #6f6965; font-size: 12px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+
+.glow-beauty-wishlist-summary > button {
+  height: 44px;
+  border-radius: 13px;
+  color: #fff;
+  background: var(--beauty-orange);
+  box-shadow: 0 7px 18px rgba(226, 79, 0, 0.18);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.glow-beauty-wishlist-summary > button:disabled { cursor: default; opacity: 0.45; }
+
+.glow-beauty-wishlist-search {
+  display: grid;
+  height: 52px;
+  grid-template-columns: 35px minmax(0, 1fr);
+  align-items: center;
+  padding: 0 16px;
+  margin-top: 9px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(84, 52, 32, 0.045);
+}
+
+.glow-beauty-wishlist-search svg { width: 22px; height: 22px; color: #625f5c; stroke-width: 1.7; }
+.glow-beauty-wishlist-search input { min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px; }
+.glow-beauty-wishlist-search input::placeholder { color: #75706c; opacity: 1; }
+
+.glow-beauty-wishlist-tabs {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+  margin-top: 18px;
+  scrollbar-width: none;
+}
+
+.glow-beauty-wishlist-tabs::-webkit-scrollbar { display: none; }
+
+.glow-beauty-wishlist-tabs button {
+  min-width: 0;
+  height: 38px;
+  flex: 0 0 auto;
+  padding: 0 17px;
+  border: 1px solid #f1dacb;
+  border-radius: 19px;
+  background: transparent;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.glow-beauty-wishlist-tabs button.is-active { border-color: var(--beauty-orange); color: #fff; background: var(--beauty-orange); }
+
+.glow-beauty-wishlist-controls {
+  display: flex;
+  height: 50px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glow-beauty-wishlist-controls p { margin: 0; font-size: 13px; font-weight: 520; }
+.glow-beauty-wishlist-controls label { position: relative; display: flex; align-items: center; }
+
+.glow-beauty-wishlist-controls select {
+  min-width: 116px;
+  height: 32px;
+  padding: 0 22px 0 8px;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  background: transparent;
+  font-size: 13px;
+  text-align: right;
+}
+
+.glow-beauty-wishlist-controls label svg { position: absolute; right: 0; width: 17px; height: 17px; pointer-events: none; }
+
+.glow-beauty-wishlist-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.glow-beauty-wishlist-card {
+  display: grid;
+  min-width: 0;
+  min-height: 164px;
+  grid-template-columns: 148px minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 18px rgba(83, 53, 32, 0.05);
+}
+
+.glow-beauty-wishlist-card__image {
+  position: relative;
+  height: 152px;
+  overflow: hidden;
+  margin: 6px;
+  border-radius: 14px;
+  background: #fff0e7;
+}
+
+.glow-beauty-wishlist-card__image > a,
+.glow-beauty-wishlist-card__image img { display: block; width: 100%; height: 100%; }
+.glow-beauty-wishlist-card__image img { object-fit: cover; }
+
+.glow-beauty-wishlist-card__image > span {
+  position: absolute;
+  top: 7px;
+  left: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: #df302d;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.glow-beauty-wishlist-card__image > button {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-wishlist-card__image > button svg { width: 18px; height: 18px; }
+.glow-beauty-wishlist-card__copy { min-width: 0; padding: 17px 14px 13px 8px; }
+.glow-beauty-wishlist-card h2 { overflow: hidden; margin: 0; font-size: 16px; font-weight: 790; letter-spacing: -0.025em; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.glow-beauty-wishlist-card h2 a { color: inherit; text-decoration: none; }
+.glow-beauty-wishlist-card p { overflow: hidden; margin: 7px 0 0; color: #77716e; font-size: 13px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.glow-beauty-wishlist-card__copy > div { margin-top: 10px; color: #66615d; font-size: 12px; }
+.glow-beauty-wishlist-card__copy > div span { display: inline-flex; align-items: center; gap: 4px; }
+.glow-beauty-wishlist-card__copy > div svg { width: 14px; height: 14px; color: #ff9200; }
+.glow-beauty-wishlist-card footer { display: flex; align-items: center; justify-content: space-between; gap: 7px; margin-top: 13px; }
+.glow-beauty-wishlist-card footer strong { font-size: 16px; font-weight: 850; }
+
+.glow-beauty-wishlist-card footer button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid #47423f;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.glow-beauty-wishlist-card footer button.is-added { border-color: var(--beauty-orange); color: var(--beauty-orange-deep); background: #fff5ef; }
+.glow-beauty-wishlist-card footer button svg { width: 16px; height: 16px; }
+
+.glow-beauty-wishlist-empty {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px solid #f1dacb;
+  border-radius: 18px;
+  text-align: center;
+}
+
+.glow-beauty-wishlist-empty svg { width: 35px; height: 35px; color: var(--beauty-orange); }
+.glow-beauty-wishlist-empty p { margin: 0; color: var(--beauty-muted); font-size: 11px; }
+
+.glow-beauty-wishlist-notice,
+.glow-beauty-wishlist-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] {
+  font-family: "Cairo Variable", Cairo, Arial, sans-serif;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-header h1,
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-summary strong,
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-card h2 {
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-summary {
+  padding-block: 12px;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-summary p {
+  white-space: normal;
+  line-height: 1.6;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-controls select {
+  padding: 0 8px 0 22px;
+  min-width: 0;
+  max-width: 210px;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-controls label svg,
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-header > a b {
+  right: auto;
+  left: 0;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-card__image > span {
+  left: auto;
+  right: 6px;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-card__image > button {
+  right: auto;
+  left: 7px;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-card__copy {
+  padding-inline: 8px 14px;
+  text-align: right;
+}
+
+.glow-beauty-wishlist-page[dir="rtl"] .glow-beauty-wishlist-card footer {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 380px) {
+  .glow-beauty-wishlist-page { padding-inline: 12px; }
+  .glow-beauty-wishlist-summary { grid-template-columns: 40px minmax(0, 1fr) 112px; padding-inline: 10px; }
+  .glow-beauty-wishlist-summary > button { font-size: 11px; }
+  .glow-beauty-wishlist-tabs { gap: 7px; }
+  .glow-beauty-wishlist-card { grid-template-columns: 126px minmax(0, 1fr); }
+  .glow-beauty-wishlist-card__image { height: 142px; }
+  .glow-beauty-wishlist-card__copy { padding-inline-end: 10px; }
+  .glow-beauty-wishlist-card footer button { padding-inline: 7px; }
+}

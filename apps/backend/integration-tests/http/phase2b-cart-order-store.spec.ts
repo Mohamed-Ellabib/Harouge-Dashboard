@@ -34,7 +34,7 @@ const testEnv = {
   VENDOR_SESSION_SECRET: "test-only-vendor-secret-not-for-production",
   STORE_CORS: "http://127.0.0.1:8000",
   ADMIN_CORS: "http://127.0.0.1:9000",
-  AUTH_CORS: "http://127.0.0.1:5173",
+  AUTH_CORS: "http://127.0.0.1:5175",
 };
 
 const statusResponse = { validateStatus: () => true };
@@ -122,8 +122,8 @@ medusaIntegrationTestRunner({
       };
       const complete = async (cartId: string) =>
         await api.post(
-          `/store/carts/${cartId}/complete`,
-          {},
+          `/store/saas/carts/${cartId}/complete`,
+          { payment_method: "cod" },
           { headers: headersA(), validateStatus: () => true },
         );
 
@@ -416,7 +416,9 @@ medusaIntegrationTestRunner({
 
         expect(first.status).toBe(200);
         expect(first.data.type).toBe("order");
-        const orderId = first.data.order.id;
+        const orderId = await getOrderIdForCart(getContainer(), cart.id);
+        expect(typeof orderId).toBe("string");
+        if (!orderId) throw new Error("Order ownership was not created.");
         const orderLinks = await listStoreOrderLinks(getContainer(), {
           order_id: orderId,
         });
@@ -430,7 +432,7 @@ medusaIntegrationTestRunner({
 
         const retry = await complete(cart.id);
         expect(retry.status).toBe(200);
-        expect(retry.data.order.id).toBe(orderId);
+        expect(retry.data.order.display_id).toBe(first.data.order.display_id);
         expect(
           await listStoreOrderLinks(getContainer(), { order_id: orderId }),
         ).toHaveLength(1);
@@ -528,7 +530,10 @@ medusaIntegrationTestRunner({
         const cart = await createCartA();
         await prepareCheckout(cart.id);
         const completed = await complete(cart.id);
-        const orderId = completed.data.order.id;
+        expect(completed.status).toBe(200);
+        const orderId = await getOrderIdForCart(getContainer(), cart.id);
+        expect(typeof orderId).toBe("string");
+        if (!orderId) throw new Error("Order ownership was not created.");
         const listA = await api.get("/vendor/orders", {
           headers: { Cookie: fixtures.merchantCookieA },
         });

@@ -10,7 +10,7 @@ medusaIntegrationTestRunner({
     VENDOR_SESSION_SECRET: "test-only-vendor-secret-not-for-production",
     STORE_CORS: "http://127.0.0.1:8000",
     ADMIN_CORS: "http://127.0.0.1:9000",
-    AUTH_CORS: "http://127.0.0.1:5173",
+    AUTH_CORS: "http://127.0.0.1:5175",
   },
   hooks: {
     beforeServerStart: async (container) => {

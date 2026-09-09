@@ -1,0 +1,167 @@
+.glow-beauty-welcome-page {
+  position: relative;
+  height: 922px;
+  min-height: 922px;
+  overflow: hidden;
+  padding: 0;
+  background: #fff5ec;
+  isolation: isolate;
+  transition: opacity 320ms ease, transform 320ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.glow-beauty-welcome-page.is-exiting {
+  opacity: 0;
+  transform: scale(1.015);
+}
+
+.glow-beauty-welcome-page__campaign {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 600ms cubic-bezier(.22, 1, .36, 1), object-position 600ms ease;
+}
+
+.glow-beauty-welcome-page.slide-1 .glow-beauty-welcome-page__campaign { object-position: 49% center; transform: scale(1.012); }
+.glow-beauty-welcome-page.slide-2 .glow-beauty-welcome-page__campaign { object-position: 51% center; transform: scale(1.008); }
+
+.glow-beauty-welcome-page__content {
+  position: absolute;
+  z-index: 2;
+  top: 22px;
+  right: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  flex-direction: column;
+}
+
+.glow-beauty-welcome-page__mark {
+  display: block;
+  width: 27px;
+  height: 29px;
+  object-fit: contain;
+}
+
+.glow-beauty-welcome-page__brand {
+  margin: 14px 0 0;
+  color: #322319;
+  font-size: 15px;
+  font-weight: 510;
+  letter-spacing: .31em;
+  line-height: 1;
+}
+
+.glow-beauty-welcome-page h1 {
+  display: flex;
+  align-items: center;
+  margin: 28px 0 0;
+  color: #2f1c11;
+  font-family: "Bodoni MT", Didot, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -.045em;
+  line-height: .98;
+  flex-direction: column;
+}
+
+.glow-beauty-welcome-page h1 span {
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: -.02em;
+}
+
+.glow-beauty-welcome-page h1 strong {
+  margin-top: 7px;
+  font-size: 49px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.glow-beauty-welcome-page__intro {
+  margin: 22px 0 0;
+  color: #504e4b;
+  font-size: 14px;
+  font-weight: 480;
+  line-height: 1.5;
+}
+
+.glow-beauty-welcome-page__content > a {
+  display: inline-flex;
+  width: 195px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 14px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--beauty-orange);
+  box-shadow: 0 10px 26px rgba(225, 76, 0, .17);
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: .02em;
+  text-decoration: none;
+}
+
+.glow-beauty-welcome-page__content > a svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 180ms ease;
+}
+
+.glow-beauty-welcome-page__content > a:hover svg,
+.glow-beauty-welcome-page__content > a:focus-visible svg { transform: translateX(3px); }
+
+.glow-beauty-welcome-page__content > a:focus-visible,
+.glow-beauty-welcome-page__dots button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, .96);
+  outline-offset: 3px;
+}
+
+.glow-beauty-welcome-page__dots {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 19px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+}
+
+.glow-beauty-welcome-page__dots button {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  background: #f5c49f;
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+
+.glow-beauty-welcome-page__dots button.is-active {
+  background: var(--beauty-orange);
+  transform: scale(1.05);
+}
+
+@media (max-width: 380px) {
+  .glow-beauty-welcome-page__content { right: 8px; left: 8px; }
+  .glow-beauty-welcome-page h1 strong { font-size: 44px; }
+  .glow-beauty-welcome-page__intro { font-size: 13px; }
+}
+
+@media (min-width: 720px) {
+  .glow-beauty-welcome-page { margin-block: 24px; border-radius: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-beauty-welcome-page,
+  .glow-beauty-welcome-page__campaign,
+  .glow-beauty-welcome-page__content > a svg,
+  .glow-beauty-welcome-page__dots button { transition-duration: .01ms; }
+}

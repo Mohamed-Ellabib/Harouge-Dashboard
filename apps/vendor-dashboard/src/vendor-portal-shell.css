@@ -1,0 +1,86 @@
+.vendor-portal {
+  min-height: 1086px;
+  padding: 48px 0 47px;
+}
+
+.vendor-portal .vendor-home__app {
+  height: 991px;
+}
+
+.vendor-portal .vendor-home__sidebar {
+  height: 955px;
+}
+
+.vendor-portal .vendor-home__workspace {
+  grid-template-rows: 89px 860px;
+  height: 955px;
+}
+
+.vendor-portal .vendor-home__topbar {
+  height: 89px;
+}
+
+.vendor-portal .vendor-home__live-card {
+  bottom: 50px;
+  height: 181px;
+}
+
+.vendor-portal__page {
+  background: rgba(250, 250, 249, 0.91);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 17px;
+  box-shadow: 0 10px 36px rgba(28, 35, 30, 0.025);
+  height: 860px;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.vendor-portal__notice {
+  background: #0b603b;
+  border-radius: 12px;
+  bottom: 28px;
+  box-shadow: 0 16px 44px rgba(8, 57, 33, 0.22);
+  color: #fff;
+  font-size: 13px;
+  left: 50%;
+  max-width: 460px;
+  padding: 12px 18px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 80;
+}
+
+.vendor-portal__notice.is-error { background: #a32929; }
+.vendor-portal__notice.is-info { background: #315e79; }
+
+@media (max-width: 900px) {
+  .vendor-portal {
+    min-height: 100dvh;
+    padding: 12px;
+  }
+
+  .vendor-portal .vendor-home__app,
+  .vendor-portal--settings .vendor-home__app {
+    display: block;
+    height: auto;
+    padding: 10px;
+    width: 100%;
+  }
+
+  .vendor-portal .vendor-home__sidebar,
+  .vendor-portal .vendor-home__workspace,
+  .vendor-portal--settings .vendor-home__sidebar,
+  .vendor-portal--settings .vendor-home__workspace {
+    height: auto;
+  }
+
+  .vendor-portal__page,
+  .vendor-portal--orders .vendor-portal__page,
+  .vendor-portal--settings .vendor-portal__page {
+    height: auto;
+    margin-top: 8px;
+    min-height: 760px;
+    overflow: visible;
+  }
+}

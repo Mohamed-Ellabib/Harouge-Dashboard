@@ -1,0 +1,175 @@
+.glow-beauty-product-grid.glow-beauty-home-product-grid {
+  align-items: start;
+  gap: 10px;
+}
+
+.glow-beauty-home-product-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.glow-beauty-product-card.glow-beauty-product-card--home {
+  padding: 0;
+  border: 1px solid #f1e4da;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 20px rgba(83, 53, 32, 0.07);
+  font-family: inherit;
+}
+
+.glow-beauty-product-card--home .glow-beauty-product-card__image {
+  aspect-ratio: 1.1;
+  border-radius: 13px 13px 0 0;
+}
+
+.glow-beauty-home-product-column:first-child .glow-beauty-product-card--home:nth-child(odd) .glow-beauty-product-card__image {
+  aspect-ratio: .88;
+}
+
+.glow-beauty-home-product-column:first-child .glow-beauty-product-card--home:nth-child(even) .glow-beauty-product-card__image {
+  aspect-ratio: 1.45;
+}
+
+.glow-beauty-product-card--home .glow-beauty-product-card__image img {
+  display: block;
+  object-position: center;
+}
+
+.glow-beauty-product-card--home .glow-beauty-product-card__image > button {
+  top: 8px;
+  inset-inline-start: auto;
+  inset-inline-end: 8px;
+  width: 32px;
+  height: 32px;
+  color: #6c6a67;
+  background: rgba(255, 252, 248, 0.96);
+}
+
+.glow-beauty-product-card--home .glow-beauty-product-card__image > button[aria-pressed="true"] {
+  color: var(--beauty-orange);
+}
+
+.glow-beauty-home-card__body {
+  padding: 6px 7px 7px;
+  text-align: start;
+}
+
+.glow-beauty-home-card__meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+  margin: 0 0 3px;
+  color: var(--beauty-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.glow-beauty-home-card__meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glow-beauty-home-card__meta svg {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+}
+
+.glow-beauty-home-card__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.glow-beauty-product-card--home .glow-beauty-home-card__title h3 {
+  min-width: 0;
+  margin: 0;
+  color: var(--beauty-ink);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+  line-height: 1.35;
+}
+
+.glow-beauty-home-card__rating {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  color: var(--beauty-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.glow-beauty-home-card__rating svg {
+  width: 13px;
+  height: 13px;
+  color: #ff9b00;
+}
+
+.glow-beauty-home-card__price {
+  margin: 0 0 5px;
+  color: var(--beauty-ink);
+  font-size: clamp(20px, 6vw, 28px);
+  font-weight: 850;
+  letter-spacing: -.025em;
+  line-height: 1.15;
+}
+
+.glow-beauty-home-card__price .price-currency {
+  margin-inline: 3px;
+  color: var(--beauty-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.glow-beauty-home-card__price .price-decimal,
+.glow-beauty-home-card__price .price-fraction {
+  font-size: 14px;
+  letter-spacing: -.02em;
+}
+
+.glow-beauty-home-card__body > button.glow-beauty-home-card__action {
+  display: flex;
+  width: 100%;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 4px 5px;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--beauty-orange);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.glow-beauty-home-card__action svg {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+}
+
+.glow-beauty-home-card__body > button.glow-beauty-home-card__action:hover { background: var(--beauty-orange-deep); }
+
+.glow-beauty-product-card--home button:focus-visible {
+  outline: 2px solid var(--beauty-orange-deep);
+  outline-offset: 2px;
+}
+
+[dir="rtl"] .glow-beauty-product-card--home .glow-beauty-home-card__title h3 {
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+
+.glow-beauty-home-product-grid > .glow-beauty-search-message {
+  grid-column: 1 / -1;
+}

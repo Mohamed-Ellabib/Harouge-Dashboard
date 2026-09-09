@@ -1,0 +1,69 @@
+/* Temporary owner-approved layout while replacement navigation is designed. */
+.admin-commerce-overview.admin-dashboard-enter {
+  --admin-shell-width: 100%;
+  --admin-shell-height: max(760px, 100dvh);
+  --admin-shell-x: 0px;
+  --admin-shell-y: 0px;
+  display: block;
+  height: auto;
+  min-width: 0;
+  min-height: 100dvh;
+  padding: 0;
+  background: var(--admin-shell);
+}
+
+.admin-commerce-overview > .admin-commerce-overview__shell {
+  --admin-content-left: 24px;
+  --admin-content-right: 24px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.admin-commerce-overview > .admin-commerce-overview__shell > .admin-commerce-overview__header,
+.admin-commerce-overview > .admin-commerce-overview__shell > .admin-commerce-overview__rail,
+.owner-dashboard-shell .owner-topbar,
+.owner-dashboard-shell > .owner-sidebar,
+.owner-dashboard-shell > .owner-sidebar-backdrop {
+  display: none;
+}
+
+.admin-commerce-overview__shell > .admin-commerce-overview__welcome {
+  top: 24px;
+}
+
+.admin-commerce-overview__shell > .admin-commerce-overview__content {
+  top: 94px;
+}
+
+.admin-control-plane__shell > .admin-control-plane__page {
+  top: 24px;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+}
+
+.owner-dashboard-shell:has(> .owner-dashboard-stage) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.owner-dashboard-shell > .owner-dashboard-stage {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+@media (min-width: 1201px) {
+  .admin-commerce-overview > .admin-commerce-overview__popover--date {
+    top: 81px;
+    right: 204px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .admin-commerce-overview > .admin-commerce-overview__shell {
+    min-height: 100dvh;
+  }
+
+  .admin-commerce-overview__shell > .admin-commerce-overview__welcome {
+    margin-top: 0;
+  }
+}

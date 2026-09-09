@@ -24,6 +24,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { listPlatformVendors } from "../api"
 import { platformPortfolioDemo } from "../demo-data"
 import type { DashboardRoute, PlatformVendor } from "../types"
+import { isAdminVisualPreviewEnabled } from "../visual-preview"
 import { ProvisionStoreDialog } from "./ProvisionStoreDialog"
 
 type ModuleCopy = {
@@ -86,18 +87,18 @@ const moduleCopy: Partial<Record<DashboardRoute, ModuleCopy>> = {
 }
 
 const commerceLinks = [
-  { label: "الطلبات", description: "المعالجة والإيفاء والاسترجاع والتحويل", path: "/app/orders", icon: ShoppingCart },
-  { label: "المنتجات", description: "المنتجات والمتغيرات والأسعار والوسائط", path: "/app/products", icon: Tag },
-  { label: "التصنيفات", description: "الفئات والمجموعات وخيارات المنتجات", path: "/app/categories", icon: Tag },
-  { label: "المخزون", description: "عناصر المخزون والحجوزات والمواقع", path: "/app/inventory", icon: ServerStack },
-  { label: "العملاء", description: "العملاء والمجموعات والعناوين", path: "/app/customers", icon: Users },
-  { label: "التسويق", description: "العروض والحملات وقوائم الأسعار", path: "/app/promotions", icon: RocketLaunch },
-  { label: "المناطق والضرائب", description: "المناطق والعملات ومناطق الضرائب", path: "/app/settings/regions", icon: Globe },
-  { label: "قنوات البيع", description: "القنوات ومواقع المخزون والشحن", path: "/app/settings/sales-channels", icon: BuildingStorefront },
-  { label: "المستخدمون والصلاحيات", description: "المستخدمون والأدوار والسياسات", path: "/app/settings/users", icon: User },
-  { label: "مفاتيح API", description: "المفاتيح القابلة للنشر والمفاتيح السرية", path: "/app/settings/publishable-api-keys", icon: Key },
-  { label: "سير العمل", description: "عمليات التنفيذ وحالاتها", path: "/app/settings/workflows", icon: CodeBranch },
-  { label: "إعدادات المتجر", description: "العملات واللغات والبيانات الوصفية", path: "/app/settings/store", icon: CogSixTooth },
+  { section: "orders", label: "الطلبات", description: "المعالجة والإيفاء والاسترجاع والتحويل", path: "/app/orders", icon: ShoppingCart },
+  { section: "products", label: "المنتجات", description: "المنتجات والمتغيرات والأسعار والوسائط", path: "/app/products", icon: Tag },
+  { section: "categories", label: "التصنيفات", description: "الفئات والمجموعات وخيارات المنتجات", path: "/app/categories", icon: Tag },
+  { section: "inventory", label: "المخزون", description: "عناصر المخزون والحجوزات والمواقع", path: "/app/inventory", icon: ServerStack },
+  { section: "customers", label: "العملاء", description: "العملاء والمجموعات والعناوين", path: "/app/customers", icon: Users },
+  { section: "marketing", label: "التسويق", description: "العروض والحملات وقوائم الأسعار", path: "/app/promotions", icon: RocketLaunch },
+  { section: "regions", label: "المناطق والضرائب", description: "المناطق والعملات ومناطق الضرائب", path: "/app/settings/regions", icon: Globe },
+  { section: "channels", label: "قنوات البيع", description: "القنوات ومواقع المخزون والشحن", path: "/app/settings/sales-channels", icon: BuildingStorefront },
+  { section: "users", label: "المستخدمون والصلاحيات", description: "المستخدمون والأدوار والسياسات", path: "/app/settings/users", icon: User },
+  { section: "api", label: "مفاتيح API", description: "المفاتيح القابلة للنشر والمفاتيح السرية", path: "/app/settings/publishable-api-keys", icon: Key },
+  { section: "workflows", label: "سير العمل", description: "عمليات التنفيذ وحالاتها", path: "/app/settings/workflows", icon: CodeBranch },
+  { section: "settings", label: "إعدادات المتجر", description: "العملات واللغات والبيانات الوصفية", path: "/app/settings/store", icon: CogSixTooth },
 ]
 
 const legacyCompatibilityRoutes = new Set<DashboardRoute>([
@@ -110,8 +111,7 @@ const compatibilityNotice =
   "هذه البيانات مرجعية مؤقتاً؛ تغييرات دورة حياة المتجر والحذف متوقفة حتى اكتمال الربط الدائم."
 
 export function PlatformModulePage({ route }: { route: DashboardRoute }) {
-  const demoMode =
-    import.meta.env.DEV && new URLSearchParams(window.location.search).get("demo") === "1"
+  const demoMode = isAdminVisualPreviewEnabled()
   const copy = moduleCopy[route] ?? moduleCopy.commerce!
   const Icon = copy.icon
   const [vendors, setVendors] = useState<PlatformVendor[]>([])
@@ -207,17 +207,25 @@ function ModuleBody({ route, vendors, onProvision }: { route: DashboardRoute; ve
   }
 
   if (route === "commerce") {
+    const params = new URLSearchParams(window.location.search)
+    const requestedSection = params.get("section")
+    const requestedStore = params.get("store")
+    const requestedLink = commerceLinks.find((item) => item.section === requestedSection)
+    const orderedLinks = requestedLink
+      ? [requestedLink, ...commerceLinks.filter((item) => item !== requestedLink)]
+      : commerceLinks
+
     return (
       <section className="commerce-workspace-links">
         <div className="phase-boundary-note">
           <ShieldCheck />
-          <div><strong>محرك التجارة الحالي محفوظ بالكامل</strong><span>تفتح هذه الروابط الصفحات العاملة حالياً بنفس جلسة الإدارة. سننقل واجهاتها إلى نظام LabibTech تدريجياً دون خسارة الوظائف.</span></div>
+          <div><strong>{requestedLink ? `الوجهة المحددة: ${requestedLink.label}` : "محرك التجارة الحالي محفوظ بالكامل"}</strong><span>{requestedStore ? `المتجر المحدد: ${requestedStore}. ` : ""}تفتح هذه الروابط الصفحات العاملة حالياً بنفس جلسة الإدارة. سننقل واجهاتها إلى نظام LabibTech تدريجياً دون خسارة الوظائف.</span></div>
         </div>
         <div className="commerce-links-grid">
-          {commerceLinks.map((item) => {
+          {orderedLinks.map((item) => {
             const ItemIcon = item.icon
             return (
-              <a key={item.path} href={item.path}>
+              <a key={item.path} href={item.path} className={item === requestedLink ? "is-requested" : undefined} aria-current={item === requestedLink ? "page" : undefined}>
                 <ItemIcon />
                 <div><strong>{item.label}</strong><span>{item.description}</span></div>
                 <ArrowUpRightOnBox />

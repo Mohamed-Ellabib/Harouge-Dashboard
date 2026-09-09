@@ -1,0 +1,610 @@
+.order-confirmation-page {
+  --confirm-bg: #050607;
+  --confirm-text: #f8f5ef;
+  --confirm-muted: #c7c0b7;
+  --confirm-gold: var(--brand-secondary-decoration, #d9a24e);
+  --confirm-gold-light: var(--brand-secondary-decoration, #f1c674);
+  --confirm-border: rgba(255, 255, 255, 0.13);
+  --confirm-nav-height: 76px;
+  min-height: 100dvh;
+  padding-bottom: var(--confirm-nav-height);
+  background: var(--confirm-bg);
+  color: var(--confirm-text);
+}
+
+.order-confirmation-page,
+.order-confirmation-page * {
+  box-sizing: border-box;
+}
+
+.order-confirmation-page a,
+.order-confirmation-page button {
+  font-family: inherit;
+}
+
+@keyframes order-confirmation-mark-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.62);
+    box-shadow:
+      0 0 0 0 transparent,
+      0 0 0 0 transparent,
+      0 0 0 transparent;
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(0) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--brand-secondary-decoration) 13%, transparent),
+      0 0 0 15px color-mix(in srgb, var(--brand-secondary-decoration) 6%, transparent),
+      0 22px 72px color-mix(in srgb, var(--brand-secondary-decoration) 20%, transparent);
+  }
+}
+
+@keyframes order-confirmation-mark-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 0 0 8px color-mix(in srgb, var(--brand-secondary-decoration) 13%, transparent),
+      0 0 0 15px color-mix(in srgb, var(--brand-secondary-decoration) 6%, transparent),
+      0 22px 72px color-mix(in srgb, var(--brand-secondary-decoration) 20%, transparent);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.025);
+    box-shadow:
+      0 0 0 10px color-mix(in srgb, var(--brand-secondary-decoration) 17%, transparent),
+      0 0 0 20px color-mix(in srgb, var(--brand-secondary-decoration) 8%, transparent),
+      0 26px 86px color-mix(in srgb, var(--brand-secondary-decoration) 30%, transparent);
+  }
+}
+
+@keyframes order-confirmation-stroke-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes order-confirmation-spark {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4);
+  }
+  35% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.35);
+  }
+  100% {
+    opacity: 0.72;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes order-confirmation-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.order-confirmation-page__hero {
+  position: relative;
+  min-height: clamp(440px, 50dvh, 590px);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+  padding-top: 62px;
+  background:
+    linear-gradient(180deg, rgba(2, 3, 4, 0.86) 0%, rgba(7, 7, 7, 0.22) 42%, rgba(5, 6, 7, 0.95) 100%),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.3), transparent 32%, transparent 68%, rgba(0, 0, 0, 0.3)),
+    url('/customer-assets/order-confirmation-bg.webp') center / cover no-repeat;
+  isolation: isolate;
+}
+
+.order-confirmation-page__hero::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 1px) top / 100% 1px no-repeat,
+    linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--brand-secondary-decoration) 12%, transparent) 47%, transparent 78%);
+  pointer-events: none;
+}
+
+.order-confirmation-page__hero-content {
+  width: min(100%, 853px);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  margin: 0 auto;
+  padding: 20px 36px 10px;
+  text-align: center;
+}
+
+.order-confirmation-page__success-icon {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  border: 4px solid color-mix(in srgb, var(--brand-secondary-decoration) 88%, transparent);
+  border-radius: 999px;
+  color: var(--confirm-gold-light);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brand-secondary-decoration-soft) 12%, transparent), color-mix(in srgb, var(--brand-secondary-decoration) 2%, transparent)),
+    rgba(0, 0, 0, 0.34);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--brand-secondary-decoration) 13%, transparent),
+    0 0 0 15px color-mix(in srgb, var(--brand-secondary-decoration) 6%, transparent),
+    0 22px 72px color-mix(in srgb, var(--brand-secondary-decoration) 20%, transparent);
+  opacity: 0;
+  transform-origin: center;
+  animation:
+    order-confirmation-mark-enter 760ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both,
+    order-confirmation-mark-breathe 2800ms ease-in-out 1050ms infinite;
+}
+
+.order-confirmation-page__success-icon::before,
+.order-confirmation-page__success-icon::after {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--confirm-gold-light);
+  content: "";
+  box-shadow: 0 0 26px color-mix(in srgb, var(--brand-secondary-decoration) 82%, transparent);
+  opacity: 0;
+  animation: order-confirmation-spark 780ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+}
+
+.order-confirmation-page__success-icon::before {
+  left: -24px;
+}
+
+.order-confirmation-page__success-icon::after {
+  right: -24px;
+}
+
+.order-confirmation-page__success-icon svg {
+  width: 62px;
+  height: 62px;
+  stroke-width: 1.9;
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--brand-secondary-decoration) 18%, transparent));
+}
+
+.order-confirmation-page__success-icon svg circle {
+  stroke-dasharray: 72;
+  stroke-dashoffset: 72;
+  animation: order-confirmation-stroke-draw 640ms ease-out 320ms forwards;
+}
+
+.order-confirmation-page__success-icon svg path {
+  stroke-dasharray: 34;
+  stroke-dashoffset: 34;
+  animation: order-confirmation-stroke-draw 560ms cubic-bezier(0.16, 1, 0.3, 1) 680ms forwards;
+}
+
+.order-confirmation-page__eyebrow-row,
+.order-confirmation-page__hero-footer {
+  display: grid;
+  grid-template-columns: minmax(54px, 130px) auto minmax(54px, 130px);
+  align-items: center;
+  gap: 16px;
+  color: var(--confirm-gold);
+  font-weight: 950;
+  text-align: center;
+}
+
+.order-confirmation-page__eyebrow-row {
+  margin-top: 2px;
+  font-size: 23px;
+  opacity: 0;
+  animation: order-confirmation-content-enter 580ms cubic-bezier(0.16, 1, 0.3, 1) 860ms both;
+}
+
+.order-confirmation-page__eyebrow-row i,
+.order-confirmation-page__hero-footer i {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-secondary-decoration) 90%, transparent), transparent);
+}
+
+.order-confirmation-page__hero h1 {
+  max-width: 690px;
+  margin: 0;
+  color: #fff;
+  font-size: 48px;
+  font-weight: 950;
+  line-height: 1.14;
+  text-wrap: balance;
+  text-shadow: 0 18px 42px rgba(0, 0, 0, 0.56);
+  opacity: 0;
+  animation: order-confirmation-content-enter 620ms cubic-bezier(0.16, 1, 0.3, 1) 1040ms both;
+}
+
+.order-confirmation-page__hero p {
+  max-width: 560px;
+  margin: 0;
+  color: rgba(244, 240, 235, 0.82);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.65;
+  opacity: 0;
+  animation: order-confirmation-content-enter 620ms cubic-bezier(0.16, 1, 0.3, 1) 1180ms both;
+}
+
+.order-confirmation-page__hero-footer {
+  width: min(100%, 853px);
+  margin: 0 auto;
+  padding: 6px 50px 16px;
+  font-size: 25px;
+  opacity: 0;
+  animation: order-confirmation-content-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) 1320ms both;
+}
+
+.order-confirmation-page__details {
+  width: min(100%, 853px);
+  display: grid;
+  gap: 16px;
+  margin: 0 auto;
+  padding: 14px 22px 24px;
+  background:
+    linear-gradient(180deg, rgba(5, 6, 7, 0.96), rgba(5, 6, 7, 1)),
+    var(--confirm-bg);
+  opacity: 0;
+  animation: order-confirmation-content-enter 640ms cubic-bezier(0.16, 1, 0.3, 1) 1460ms both;
+}
+
+.order-confirmation-page__summary {
+  display: grid;
+  gap: 10px;
+}
+
+.order-confirmation-page__summary div {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 16px;
+  border: 1px solid var(--confirm-border);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.045);
+  opacity: 0;
+  animation: order-confirmation-content-enter 520ms cubic-bezier(0.16, 1, 0.3, 1) 1580ms both;
+}
+
+.order-confirmation-page__summary div:nth-child(2) {
+  animation-delay: 1660ms;
+}
+
+.order-confirmation-page__summary div:nth-child(3) {
+  animation-delay: 1740ms;
+}
+
+.order-confirmation-page__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  opacity: 0;
+  animation: order-confirmation-content-enter 560ms cubic-bezier(0.16, 1, 0.3, 1) 1840ms both;
+}
+
+.order-confirmation-page__summary span {
+  color: #dfd8ce;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.order-confirmation-page__summary b {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.order-confirmation-page__primary,
+.order-confirmation-page__secondary {
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 13px;
+  font-size: 17px;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.order-confirmation-page__primary {
+  background: linear-gradient(180deg, var(--brand-secondary-decoration, #efc273), var(--brand-secondary-decoration, #d49b4a));
+  color: #130d07;
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--brand-secondary-decoration) 20%, transparent);
+}
+
+.order-confirmation-page__secondary {
+  border: 1px solid color-mix(in srgb, var(--brand-secondary-decoration) 70%, transparent);
+  color: var(--confirm-gold);
+  background: color-mix(in srgb, var(--brand-secondary-decoration) 4%, transparent);
+}
+
+.order-confirmation-page__secondary svg {
+  width: 22px;
+  height: 22px;
+}
+
+@media (max-width: 640px) {
+  .order-confirmation-page {
+    --confirm-nav-height: 64px;
+  }
+
+  .order-confirmation-page__hero {
+    min-height: clamp(390px, 50dvh, 490px);
+    padding-top: 54px;
+    background-position: center top;
+  }
+
+  .order-confirmation-page__hero-content {
+    gap: 13px;
+    padding: 22px 22px 10px;
+  }
+
+  .order-confirmation-page__success-icon {
+    width: 88px;
+    height: 88px;
+    border-width: 3px;
+  }
+
+  .order-confirmation-page__success-icon::before,
+  .order-confirmation-page__success-icon::after {
+    width: 8px;
+    height: 8px;
+  }
+
+  .order-confirmation-page__success-icon::before {
+    left: -18px;
+  }
+
+  .order-confirmation-page__success-icon::after {
+    right: -18px;
+  }
+
+  .order-confirmation-page__success-icon svg {
+    width: 50px;
+    height: 50px;
+  }
+
+  .order-confirmation-page__eyebrow-row,
+  .order-confirmation-page__hero-footer {
+    grid-template-columns: minmax(34px, 1fr) auto minmax(34px, 1fr);
+    gap: 10px;
+  }
+
+  .order-confirmation-page__eyebrow-row {
+    font-size: 18px;
+  }
+
+  .order-confirmation-page__hero h1 {
+    max-width: 390px;
+    font-size: 32px;
+    line-height: 1.15;
+  }
+
+  .order-confirmation-page__hero p {
+    max-width: 330px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .order-confirmation-page__hero-footer {
+    padding: 4px 28px 14px;
+    font-size: 20px;
+  }
+
+  .order-confirmation-page__details {
+    padding: 14px 12px 22px;
+  }
+
+  .order-confirmation-page__summary div {
+    min-height: 50px;
+  }
+
+  .order-confirmation-page__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .order-confirmation-page__primary,
+  .order-confirmation-page__secondary {
+    min-height: 50px;
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-confirmation-page__success-icon,
+  .order-confirmation-page__success-icon::before,
+  .order-confirmation-page__success-icon::after,
+  .order-confirmation-page__success-icon svg circle,
+  .order-confirmation-page__success-icon svg path,
+  .order-confirmation-page__eyebrow-row,
+  .order-confirmation-page__hero h1,
+  .order-confirmation-page__hero p,
+  .order-confirmation-page__hero-footer,
+  .order-confirmation-page__details,
+  .order-confirmation-page__summary div,
+  .order-confirmation-page__actions {
+    animation: none;
+    filter: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .order-confirmation-page__success-icon svg circle,
+  .order-confirmation-page__success-icon svg path {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Light order confirmation redesign */
+.order-confirmation-page {
+  --confirm-bg: #fbf3e5;
+  --confirm-text: #2c2115;
+  --confirm-muted: #756a5a;
+  --confirm-gold: var(--brand-decoration, #a87424);
+  --confirm-gold-light: var(--brand-secondary-decoration, #d7ae5d);
+  --confirm-border: color-mix(in srgb, var(--brand-decoration) 20%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 251, 243, 0.18) 0, rgba(255, 251, 243, 0.38) 520px, #fbf3e5 980px, #fbf3e5 100%),
+    url('/customer-assets/order-confirmation-page-bg.webp') center top / min(100%, 853px) auto no-repeat,
+    linear-gradient(180deg, #fff8ed, #f6ead8);
+  color: var(--confirm-text);
+}
+
+.order-confirmation-page__hero {
+  background:
+    linear-gradient(180deg, rgba(255, 251, 243, 0.68) 0%, rgba(255, 251, 243, 0.2) 42%, rgba(251, 243, 229, 0.88) 100%),
+    linear-gradient(90deg, rgba(255, 249, 239, 0.28), transparent 32%, transparent 68%, rgba(255, 249, 239, 0.28)),
+    url('/customer-assets/order-confirmation-page-bg.webp') center top / min(100%, 853px) auto no-repeat,
+    #fff6e8;
+}
+
+.order-confirmation-page__hero::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62), transparent 1px) top / 100% 1px no-repeat,
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--brand-secondary-decoration-soft) 50%, transparent), transparent 28%),
+    linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--brand-decoration) 13%, transparent) 46%, transparent 82%);
+}
+
+.order-confirmation-page__success-icon {
+  border-color: color-mix(in srgb, var(--brand-decoration) 62%, transparent);
+  color: var(--brand-decoration, #a87424);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 247, 231, 0.72)),
+    rgba(255, 250, 242, 0.66);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--brand-decoration) 12%, transparent),
+    0 0 0 15px color-mix(in srgb, var(--brand-decoration) 6%, transparent),
+    0 24px 62px color-mix(in srgb, var(--brand-accent) 16%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.order-confirmation-page__success-icon::before,
+.order-confirmation-page__success-icon::after {
+  background: var(--brand-secondary-decoration, #d2a54d);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--brand-secondary-decoration) 70%, transparent);
+}
+
+.order-confirmation-page__success-icon svg {
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--brand-accent) 16%, transparent));
+}
+
+.order-confirmation-page__eyebrow-row,
+.order-confirmation-page__hero-footer {
+  color: var(--brand-accent, #9f6b1d);
+}
+
+.order-confirmation-page__eyebrow-row i,
+.order-confirmation-page__hero-footer i {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-decoration) 74%, transparent), transparent);
+}
+
+.order-confirmation-page__hero h1 {
+  color: #2c2115;
+  text-shadow: 0 14px 34px rgba(255, 255, 255, 0.82);
+}
+
+.order-confirmation-page__hero p {
+  color: #665b4b;
+  text-shadow: 0 8px 22px rgba(255, 255, 255, 0.7);
+}
+
+.order-confirmation-page__details {
+  border: 1px solid color-mix(in srgb, var(--brand-decoration) 13%, transparent);
+  border-radius: 24px 24px 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 242, 0.64)),
+    rgba(255, 250, 242, 0.7);
+  box-shadow:
+    0 -12px 34px color-mix(in srgb, var(--brand-accent) 8%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.order-confirmation-page__summary div {
+  border-color: color-mix(in srgb, var(--brand-decoration) 19%, transparent);
+  background: rgba(255, 252, 247, 0.76);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--brand-accent) 7%, transparent);
+}
+
+.order-confirmation-page__summary span {
+  color: #746858;
+}
+
+.order-confirmation-page__summary b {
+  color: #2c2115;
+}
+
+.order-confirmation-page__primary {
+  background: linear-gradient(180deg, var(--brand-secondary-decoration, #dfb85f), var(--brand-decoration, #a97821));
+  color: #fffaf2;
+  box-shadow:
+    0 18px 38px color-mix(in srgb, var(--brand-accent) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.order-confirmation-page__secondary {
+  border-color: color-mix(in srgb, var(--brand-decoration) 34%, transparent);
+  color: var(--brand-accent, #8f5f17);
+  background: rgba(255, 251, 244, 0.74);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--brand-accent) 7%, transparent);
+}
+
+.order-confirmation-page__bottom-nav {
+  border-top-color: color-mix(in srgb, var(--brand-decoration) 18%, transparent);
+  background: rgba(255, 252, 247, 0.96);
+  box-shadow: 0 -12px 28px color-mix(in srgb, var(--brand-accent) 10%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.order-confirmation-page__bottom-nav a {
+  color: #756b5c;
+}
+
+.order-confirmation-page__bottom-nav a:hover,
+.order-confirmation-page__bottom-nav a:focus-visible {
+  color: var(--brand-accent, #9c681c);
+}
+
+@media (max-width: 640px) {
+  .order-confirmation-page {
+    background:
+      linear-gradient(180deg, rgba(255, 251, 243, 0.14) 0, rgba(255, 251, 243, 0.34) 440px, #fbf3e5 820px, #fbf3e5 100%),
+      url('/customer-assets/order-confirmation-page-bg.webp') center top / 100% auto no-repeat,
+      linear-gradient(180deg, #fff8ed, #f6ead8);
+  }
+
+  .order-confirmation-page__hero {
+    background:
+      linear-gradient(180deg, rgba(255, 251, 243, 0.7) 0%, rgba(255, 251, 243, 0.2) 45%, rgba(251, 243, 229, 0.9) 100%),
+      url('/customer-assets/order-confirmation-page-bg.webp') center top / 100% auto no-repeat,
+      #fff6e8;
+  }
+
+  .order-confirmation-page__details {
+    border-radius: 19px 19px 0 0;
+  }
+}

@@ -1,0 +1,151 @@
+/*
+ * The reference application compiled these rules after Tailwind's reset.
+ * LabibTech's shared reset is unlayered, so the handful of intentional source
+ * margins below must be restated unlayered to preserve the original geometry.
+ */
+.storefront-template--luxe-commerce-full .customer-home .customer-categories h2 {
+  margin: 0 0 18px;
+}
+
+.storefront-template--luxe-commerce-full .customer-home .customer-auth p {
+  margin: 11px 0 10px;
+}
+
+.storefront-template--luxe-commerce-full .customer-home .customer-footer h2 {
+  margin: 0 0 10px;
+}
+
+.storefront-template--luxe-commerce-full .customer-home .customer-footer__brand p {
+  margin: 0 0 18px;
+}
+
+.storefront-template--luxe-commerce-full .customer-home .customer-footer__bottom p {
+  line-height: 1.5;
+}
+
+.storefront-template--luxe-commerce-full .customer-home .storefront-search {
+  z-index: 1200;
+}
+
+/* Preserve the source composition while providing the required English LTR mode. */
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-home,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-header__inner {
+  direction: ltr;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero__copy,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-categories,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-products,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__grid section:first-child,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__contact {
+  direction: ltr;
+  text-align: left !important;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero h1 {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero-trust__grid {
+  direction: ltr;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero-trust__item {
+  border-right: 1px solid color-mix(in srgb, var(--brand-decoration) 22%, transparent);
+  border-left: 0;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero-trust__item:last-child {
+  border-right: 0;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-category span {
+  right: auto;
+  left: 0;
+  padding: 19px 0 0 27px;
+  direction: ltr;
+  text-align: left;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-category::after {
+  background: linear-gradient(90deg, rgba(16, 14, 12, 0.93) 0%, rgba(25, 21, 17, 0.74) 34%, rgba(25, 21, 17, 0.12) 68%, transparent 100%);
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-category em::before {
+  content: "→";
+  margin-right: 7px;
+  margin-left: 0;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__grid section:first-child {
+  padding-right: 0;
+  padding-left: 28px;
+  border-right: 1px solid color-mix(in srgb, var(--brand-decoration) 20%, transparent);
+  border-left: 0;
+  justify-items: start;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__grid section:last-child {
+  padding-right: 28px;
+  padding-left: 0;
+  border-left: 0;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__brand-logo {
+  object-position: left center;
+}
+
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__contact a,
+.storefront-template--luxe-commerce-full[dir="ltr"] .customer-footer__contact span {
+  direction: ltr;
+}
+
+@media (max-width: 760px) {
+  .storefront-template--luxe-commerce-full .customer-home .customer-categories h2 {
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero__slide {
+    background-position: 56% center;
+  }
+
+  .storefront-template--luxe-commerce-full[dir="ltr"] .customer-hero p {
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+}
+.customer-home .customer-button--hero {
+  border: 1px solid var(--hero-button-background);
+  background: var(--hero-button-background);
+  color: var(--hero-button-text);
+}
+
+.customer-home .customer-button--hero-outline {
+  background: transparent;
+  color: var(--hero-button-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hero-button-background) 22%, transparent);
+}
+.customer-home .customer-brands__card img {
+  width: calc(100% - 28px);
+  height: calc(100% - 18px);
+  object-fit: contain;
+}
+
+.customer-home .customer-brands__track {
+  --customer-brand-marquee-step: calc(var(--customer-brand-count, 8) * 224px);
+}
+
+.customer-home .customer-brands__marquee:hover .customer-brands__track,
+.customer-home .customer-brands__marquee:focus-within .customer-brands__track {
+  animation-play-state: paused;
+}
+
+@media (max-width: 640px) {
+  .customer-home .customer-brands__track {
+    --customer-brand-marquee-step: calc(var(--customer-brand-count, 8) * 152px);
+  }
+}

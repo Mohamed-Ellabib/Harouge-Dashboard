@@ -1,0 +1,49 @@
+/* Readability layer shared by every authenticated Admin screen. Preserve the
+   established hierarchy while preventing dense labels from becoming tiny. */
+.admin-commerce-overview {
+  font-size: 15px;
+}
+
+.admin-commerce-overview :where(
+  a,
+  button,
+  dd,
+  dt,
+  input,
+  label,
+  li,
+  p,
+  select,
+  small,
+  td,
+  textarea,
+  th
+):not(.studio-reference *) {
+  font-size: max(14px, 1em) !important;
+}
+
+.admin-commerce-overview .admin-commerce-overview__top-nav button {
+  font-size: 16px !important;
+}
+
+.admin-commerce-overview .admin-commerce-overview__card h2 {
+  font-size: 19px;
+}
+
+.admin-commerce-overview .admin-commerce-overview__store-row > span,
+.admin-commerce-overview .admin-directory-row,
+.admin-commerce-overview .admin-platform-user-row,
+.admin-commerce-overview .admin-request-row,
+.admin-commerce-overview .admin-audit-row {
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .admin-commerce-overview {
+    font-size: 15px;
+  }
+
+  .admin-commerce-overview .admin-commerce-overview__top-nav button {
+    font-size: 15px !important;
+  }
+}

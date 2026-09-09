@@ -1,9 +1,12 @@
 const FALLBACK_ACCENT = "#1455e6";
 const REQUIRED_TEXT_CONTRAST = 4.5;
+const CAIRO_FONT_FAMILY =
+  '"Cairo Variable", "Cairo", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
 export type StorefrontTheme = {
   configuredColor: string | null;
   decorationColor: string;
+  secondaryDecorationColor: string;
   accentColor: string;
   accentHoverColor: string;
   accentSoftColor: string;
@@ -102,14 +105,18 @@ const contrastSafeAccent = (color: string): string => {
 
 export const deriveStorefrontTheme = (
   primaryColor: unknown,
+  secondaryColor?: unknown,
 ): StorefrontTheme => {
   const configuredColor = normalizeHexColor(primaryColor);
   const decorationColor = configuredColor ?? FALLBACK_ACCENT;
+  const secondaryDecorationColor =
+    normalizeHexColor(secondaryColor) ?? decorationColor;
   const accentColor = contrastSafeAccent(decorationColor);
 
   return {
     configuredColor,
     decorationColor,
+    secondaryDecorationColor,
     accentColor,
     accentHoverColor: mix("#000000", accentColor, 0.14),
     accentSoftColor: mix(accentColor, "#ffffff", 0.1),
@@ -121,8 +128,21 @@ export const storefrontThemeCssVariables = (
   theme: StorefrontTheme,
 ): Record<`--${string}`, string> => ({
   "--brand-decoration": theme.decorationColor,
+  "--brand-secondary-decoration": theme.secondaryDecorationColor,
+  "--brand-secondary-decoration-soft": mix(
+    theme.secondaryDecorationColor,
+    "#ffffff",
+    0.12,
+  ),
   "--brand-accent": theme.accentColor,
   "--brand-accent-hover": theme.accentHoverColor,
   "--brand-accent-soft": theme.accentSoftColor,
   "--brand-on-accent": theme.onAccentColor,
+});
+
+export const storefrontTypographyCssVariables = (
+  typographyKey: unknown,
+): Record<"--storefront-font-family", string> => ({
+  "--storefront-font-family":
+    typographyKey === "cairo" ? CAIRO_FONT_FAMILY : CAIRO_FONT_FAMILY,
 });

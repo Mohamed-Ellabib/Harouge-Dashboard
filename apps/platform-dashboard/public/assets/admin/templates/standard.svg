@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 768 512" role="img" aria-labelledby="title description">
+  <title id="title">Standard storefront</title>
+  <desc id="description">Warm editorial fashion storefront with product cards.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffaf4"/><stop offset="1" stop-color="#ead8c4"/></linearGradient>
+    <linearGradient id="dress" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e9876d"/><stop offset=".34" stop-color="#8bb8bd"/><stop offset=".67" stop-color="#efb85d"/><stop offset="1" stop-color="#9c9cd0"/></linearGradient>
+  </defs>
+  <rect width="768" height="512" rx="28" fill="url(#bg)"/>
+  <rect x="32" y="30" width="704" height="52" rx="18" fill="#fff" fill-opacity=".74"/>
+  <text x="54" y="65" font-family="Georgia,serif" font-size="30" fill="#17120e">STYLE.</text>
+  <g fill="#33271f" font-family="Arial,sans-serif" font-size="14"><text x="280" y="62">New Arrivals</text><text x="390" y="62">Women</text><text x="466" y="62">Accessories</text></g>
+  <rect x="32" y="104" width="704" height="252" rx="24" fill="#ead5bd"/>
+  <text x="70" y="154" font-family="Arial,sans-serif" font-size="14" letter-spacing="2" fill="#83511d">NEW SEASON</text>
+  <text x="68" y="212" font-family="Georgia,serif" font-size="48" fill="#17120e">WEAR YOUR</text>
+  <text x="68" y="262" font-family="Georgia,serif" font-size="48" fill="#17120e">CONFIDENCE</text>
+  <rect x="70" y="292" width="154" height="42" rx="14" fill="#3f2100"/><text x="92" y="319" font-family="Arial,sans-serif" font-size="15" fill="#fff">Shop collection</text>
+  <path d="M520 128c42 0 87 33 95 86 6 40-4 104-24 142H436c19-36 12-82 17-126 6-58 27-102 67-102Z" fill="#bc8b64"/>
+  <path d="M497 151c8-39 65-43 82-8 8 18 3 43-11 54-24 20-62-3-71-46Z" fill="#4d2c20"/>
+  <path d="M474 207c31-22 96-21 127 8l-10 141H451Z" fill="#cba177"/>
+  <text x="36" y="394" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#17120e">Latest Arrivals</text>
+  <g><rect x="34" y="410" width="164" height="82" rx="16" fill="#f8eee5"/><path d="M91 425h47l20 55H71Z" fill="#efe0bd" stroke="#22170f" stroke-width="2"/>
+    <rect x="220" y="410" width="164" height="82" rx="16" fill="#f8eee5"/><path d="M283 422h39l28 58h-95Z" fill="url(#dress)"/>
+    <rect x="406" y="410" width="164" height="82" rx="16" fill="#f8eee5"/><path d="M449 452c0-22 18-32 38-32h18c20 0 35 11 35 32v27h-91Z" fill="#4b2a17"/>
+    <rect x="592" y="410" width="142" height="82" rx="16" fill="#f8eee5"/><path d="M616 468c34-4 60-21 93-37l9 11c-23 29-63 40-102 36Z" fill="#dfc4a0"/></g>
+</svg>

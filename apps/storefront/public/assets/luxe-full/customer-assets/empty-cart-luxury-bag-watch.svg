@@ -1,0 +1,59 @@
+<svg width="720" height="560" viewBox="0 0 720 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 318) rotate(90) scale(228 270)">
+      <stop offset="0" stop-color="#E8B765" stop-opacity="0.26"/>
+      <stop offset="0.44" stop-color="#D9A24E" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#D9A24E" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="210" y1="102" x2="515" y2="476" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE4A4"/>
+      <stop offset="0.42" stop-color="#E6B15D"/>
+      <stop offset="1" stop-color="#A96F26"/>
+    </linearGradient>
+    <linearGradient id="dimGold" x1="196" y1="139" x2="520" y2="486" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DDA456"/>
+      <stop offset="1" stop-color="#6B431D"/>
+    </linearGradient>
+    <filter id="softGlow" x="82" y="22" width="556" height="510" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.86 0 0 0 0 0.55 0 0 0 0 0.19 0 0 0 0.45 0"/>
+      <feBlend in2="BackgroundImageFix" mode="screen"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+    <filter id="shadow" x="150" y="408" width="420" height="104" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="360" cy="286" rx="295" ry="238" fill="url(#halo)"/>
+  <ellipse cx="360" cy="458" rx="180" ry="24" fill="#D9A24E" fill-opacity="0.2" filter="url(#shadow)"/>
+
+  <g opacity="0.95" filter="url(#softGlow)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M214 206L183 404C181.5 413.5 188.8 422 198.4 422H480.5C491.4 422 499.2 411.3 495.7 400.9L438.6 207.7C436.5 201.4 430.6 197.2 424 197.2H230.1C222.3 197.2 215.2 198.2 214 206Z" stroke="url(#dimGold)" stroke-width="5"/>
+    <path d="M232 198H497C505.6 198 512.8 204.5 513.6 213.1L529.4 405.4C530.2 415.2 522.5 423.7 512.7 423.7H229.8C221 423.7 213.7 416.9 213.1 408.2L197.8 216.1C197 206.3 204.7 198 214.6 198H232Z" stroke="url(#gold)" stroke-width="6"/>
+    <path d="M279 209V175C279 113.5 316.5 74 361.2 74C405.8 74 442 113.1 442 175V209" stroke="url(#gold)" stroke-width="6"/>
+    <path d="M312 209V169C312 112.7 335.9 73.7 366.2 73.7C397 73.7 421 112.7 421 169V209" stroke="url(#gold)" stroke-width="4" opacity="0.84"/>
+    <circle cx="283" cy="224" r="6" fill="#E8B765"/>
+    <circle cx="447" cy="224" r="6" fill="#E8B765"/>
+
+    <path d="M342 213H396C405.4 213 413 220.6 413 230V274H325V230C325 220.6 332.6 213 342 213Z" stroke="url(#dimGold)" stroke-width="4"/>
+    <path d="M329 368H412V414C412 423.4 404.4 431 395 431H346C336.6 431 329 423.4 329 414V368Z" stroke="url(#dimGold)" stroke-width="4"/>
+    <circle cx="370" cy="321" r="64" stroke="url(#gold)" stroke-width="5"/>
+    <circle cx="370" cy="321" r="52" stroke="url(#dimGold)" stroke-width="2.4" opacity="0.78"/>
+    <path d="M370 321L337 295" stroke="url(#gold)" stroke-width="4"/>
+    <path d="M370 321L400 283" stroke="url(#gold)" stroke-width="4"/>
+    <path d="M433 310H446C452 310 456 314 456 320V326C456 332 452 336 446 336H433" stroke="url(#gold)" stroke-width="4"/>
+  </g>
+
+  <g opacity="0.9">
+    <path d="M154 244H190" stroke="#FFE4A4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M172 226V262" stroke="#FFE4A4" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="172" cy="244" r="3" fill="#FFE4A4"/>
+    <path d="M537 270H574" stroke="#FFE4A4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M555.5 251.5V288.5" stroke="#FFE4A4" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="555.5" cy="270" r="3" fill="#FFE4A4"/>
+    <path d="M493 139H514" stroke="#E8B765" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+    <path d="M503.5 128.5V149.5" stroke="#E8B765" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+  </g>
+</svg>

@@ -8,8 +8,12 @@ import {
 
 import { POST as commerceSetupApi } from "../../src/api/admin/saas/stores/[store_profile_id]/commerce-setup/route";
 import { GET as commerceReadinessApi } from "../../src/api/admin/saas/stores/[store_profile_id]/commerce-readiness/route";
-import { GET as commerceSetupStatusApi } from "../../src/api/admin/saas/commerce-setup/[id]/route";
+import {
+  GET as commerceSetupStatusApi,
+  POST as retryCommerceSetupApi,
+} from "../../src/api/admin/saas/commerce-setup/[id]/route";
 import { listStoreOrderLinks } from "../../src/api/_utils/checkout-ownership-links";
+import { getOrderIdForCart } from "../../src/api/_utils/cart-store-context";
 import { platformProvisioningRateLimiter } from "../../src/api/_utils/platform-provisioning-rate-limit";
 import { assertStoreOnlineCheckoutReady } from "../../src/api/_utils/store-commerce-readiness";
 import { vendorLoginRateLimiter } from "../../src/api/_utils/vendor-login-rate-limit";
@@ -44,7 +48,7 @@ const testEnv = {
   SAAS_SUPPORTED_CURRENCIES: "lyd,usd,eur",
   STORE_CORS: "http://127.0.0.1:8000",
   ADMIN_CORS: "http://127.0.0.1:9000",
-  AUTH_CORS: "http://127.0.0.1:5173",
+  AUTH_CORS: "http://127.0.0.1:5175",
 };
 
 let sequence = 0;
@@ -280,6 +284,39 @@ medusaIntegrationTestRunner({
       expect(completed.shipping_option_ids).toEqual([failedOptionId]);
       expect(retried.status).toBe("completed");
       expect(retried.retry_count).toBe(1);
+    });
+
+    it("lets an authenticated platform owner retry a failed setup by record id", async () => {
+      const store = await provision(unique("readiness-admin-retry"));
+      const key = `commerce:${store.handle}`;
+      await expect(
+        setup(store.store_profile_id, key, 725, "shipping_option"),
+      ).rejects.toBeDefined();
+      const saas = getContainer().resolve(SAAS_MODULE) as any;
+      const [failed] = await saas.listStoreCommerceSetups({
+        idempotency_key: key,
+      });
+      const recorder = responseRecorder();
+
+      await retryCommerceSetupApi(
+        {
+          scope: getContainer(),
+          params: { id: failed.id },
+          auth_context: { actor_id: "platform-admin-readiness-test" },
+        } as any,
+        recorder.response as any,
+      );
+
+      expect(recorder.state.statusCode).toBe(200);
+      expect(recorder.state.body.commerce_setup).toMatchObject({
+        status: "completed",
+        readiness_status: "ready",
+        store_profile_id: store.store_profile_id,
+      });
+      expect(await saas.retrieveStoreCommerceSetup(failed.id)).toMatchObject({
+        status: "completed",
+        retry_count: 1,
+      });
     });
 
     it("retains an expired lease and requires operator attention before replay", async () => {
@@ -720,8 +757,8 @@ medusaIntegrationTestRunner({
             handle: `variant-product-${suffixA}`,
             status: "published",
             variants: [
-              { size: "M", color: "Black", price: 1600, sku: `M-${suffixA}` },
-              { size: "L", color: "Black", price: 1700, sku: `L-${suffixA}` },
+              { size: "M", color: "Black", price: 1600, stock: 2, sku: `M-${suffixA}` },
+              { size: "L", color: "Black", price: 1700, stock: 1, sku: `L-${suffixA}` },
             ],
           },
           { headers: { Cookie: cookieA } },
@@ -758,6 +795,7 @@ medusaIntegrationTestRunner({
           status: "available",
           currency_code: "lyd",
           country_codes: ["ly"],
+          payment_methods: ["cod"],
         },
       });
       expect(purchaseA.data).toEqual({
@@ -882,11 +920,16 @@ medusaIntegrationTestRunner({
         { headers: headersA },
       );
       const completed = await api.post(
-        `/store/carts/${cart.id}/complete`,
-        {},
+        `/store/saas/carts/${cart.id}/complete`,
+        { payment_method: "cod" },
         { headers: headersA },
       );
-      const orderId = completed.data.order.id;
+      expect(completed.data.order.payment).toEqual({
+        method: "cod",
+        status: "pending_fulfillment",
+      });
+      const orderId = await getOrderIdForCart(getContainer(), cart.id);
+      if (!orderId) throw new Error("Order ownership was not created.");
       const links = await listStoreOrderLinks(getContainer(), {
         order_id: orderId,
       });

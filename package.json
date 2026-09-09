@@ -1,5 +1,5 @@
 {
-  "name": "medusa-commerce-backend",
+  "name": "labibtech-commerce-saas",
   "private": true,
   "packageManager": "npm@11.12.1",
   "engines": {
@@ -13,6 +13,15 @@
     "test": "node ./scripts/run-workspace-tests.js",
     "backend:seed": "turbo seed --filter=@dtc/backend",
     "backend:dev": "turbo dev --filter=@dtc/backend",
+    "backend:configure": "npm.cmd run supabase:configure --workspace @dtc/backend --",
+    "backend:rotate-password": "npm.cmd run supabase:rotate-password --workspace @dtc/backend",
+    "backend:migrate": "npm.cmd run supabase:db:migrate --workspace @dtc/backend",
+    "backend:harden": "npm.cmd run supabase:harden --workspace @dtc/backend",
+    "backend:platform-admin": "npm.cmd run supabase:platform-admin --workspace @dtc/backend",
+    "backend:demo-portfolio": "npm.cmd run supabase:demo-portfolio --workspace @dtc/backend",
+    "backend:probe": "npm.cmd run supabase:probe --workspace @dtc/backend",
+    "backend:status": "npm.cmd run supabase:status --workspace @dtc/backend",
+    "backend:monitor": "npm.cmd run supabase:monitor --workspace @dtc/backend",
     "vendor:dev": "turbo dev --filter=@dtc/vendor-dashboard",
     "vendor:build": "turbo build --filter=@dtc/vendor-dashboard",
     "platform:dev": "turbo dev --filter=@dtc/platform-dashboard",

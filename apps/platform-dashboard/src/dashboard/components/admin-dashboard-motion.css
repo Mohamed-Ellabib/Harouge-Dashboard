@@ -1,0 +1,104 @@
+/* Authenticated dashboard entrance and route transitions. Keep this layer
+   compositor-only so the dense control plane never shifts during motion. */
+@keyframes admin-dashboard-frame-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.994);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes admin-dashboard-slide-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes admin-dashboard-rail-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.admin-dashboard-enter .admin-commerce-overview__shell {
+  animation: admin-dashboard-frame-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__header {
+  animation: admin-dashboard-slide-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) 55ms both;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__welcome {
+  animation: admin-dashboard-slide-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) 125ms both;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__rail {
+  animation: admin-dashboard-rail-enter 620ms cubic-bezier(0.22, 1, 0.36, 1) 155ms both;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > *,
+.admin-dashboard-enter .admin-control-plane__page > section > * {
+  animation: admin-dashboard-slide-enter 660ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(1),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(1) {
+  animation-delay: 180ms;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(2),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(2) {
+  animation-delay: 240ms;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(3),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(3) {
+  animation-delay: 300ms;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(4),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(4) {
+  animation-delay: 360ms;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(5),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(5) {
+  animation-delay: 420ms;
+}
+
+.admin-dashboard-enter .admin-commerce-overview__content > :nth-child(n + 6),
+.admin-dashboard-enter .admin-control-plane__page > section > :nth-child(n + 6) {
+  animation-delay: 480ms;
+}
+
+.admin-dashboard-enter .admin-control-plane__page > :not(section) {
+  animation: admin-dashboard-slide-enter 640ms cubic-bezier(0.22, 1, 0.36, 1) 170ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-dashboard-enter .admin-commerce-overview__shell,
+  .admin-dashboard-enter .admin-commerce-overview__header,
+  .admin-dashboard-enter .admin-commerce-overview__welcome,
+  .admin-dashboard-enter .admin-commerce-overview__rail,
+  .admin-dashboard-enter .admin-commerce-overview__content > *,
+  .admin-dashboard-enter .admin-control-plane__page > *,
+  .admin-dashboard-enter .admin-control-plane__page > section > * {
+    animation: none;
+  }
+}

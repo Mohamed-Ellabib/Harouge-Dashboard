@@ -2,6 +2,8 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils";
 import { Modules } from "@medusajs/framework/utils";
 
 import { POST as provisionApi } from "../../src/api/admin/saas/provisioning/route";
+import { GET as portfolioApi } from "../../src/api/admin/saas/portfolio/route";
+import { GET as storefrontPreviewApi } from "../../src/api/admin/saas/stores/[id]/storefront-preview/route";
 import { POST as createLegacyVendorApi } from "../../src/api/admin/vendors/route";
 import {
   DELETE as deleteLegacyVendorApi,
@@ -33,7 +35,7 @@ const testEnv = {
   SAAS_SUPPORTED_CURRENCIES: "lyd,usd,eur",
   STORE_CORS: "http://127.0.0.1:8000",
   ADMIN_CORS: "http://127.0.0.1:9000",
-  AUTH_CORS: "http://127.0.0.1:5173",
+  AUTH_CORS: "http://127.0.0.1:5175",
 };
 
 let sequence = 0;
@@ -557,6 +559,130 @@ medusaIntegrationTestRunner({
             password: provisioningPassword,
           }),
         ).rejects.toMatchObject({ response: { status: 401 } });
+      });
+
+      it("returns the canonical owner portfolio with real multi-Store clients", async () => {
+        const id = suffix("owner-portfolio");
+        const ownerEmail = "portfolio-" + id + "@example.test";
+        const tenantKey = "portfolio-" + id;
+        const tenantName = "Portfolio Client " + id;
+        const firstRequest = provisioningRequest({
+          suffix: id + "-a",
+          tenantKey,
+          tenantName,
+          ownerEmail,
+        });
+        const first = await provision(
+          getContainer(),
+          "provision:" + id + ":a",
+          firstRequest,
+        );
+        const secondRequest = provisioningRequest({
+          suffix: id + "-b",
+          tenantKey,
+          tenantName,
+          reuseTenant: true,
+          ownerEmail,
+          reuseOwner: true,
+          planCode: "professional_commerce",
+        });
+        const second = await provision(
+          getContainer(),
+          "provision:" + id + ":b",
+          secondRequest,
+        );
+        const recorder = responseRecorder();
+
+        await portfolioApi(
+          {
+            scope: getContainer(),
+            query: { q: tenantKey },
+            auth_context: { actor_id: "platform-admin-test" },
+          } as any,
+          recorder.response as any,
+        );
+
+        expect(recorder.state.statusCode).toBe(200);
+        expect(recorder.state.body.count).toBe(1);
+        expect(recorder.state.body.clients).toHaveLength(1);
+        expect(recorder.state.body.clients[0]).toMatchObject({
+          id: first.tenant_id,
+          key: tenantKey,
+          name: tenantName,
+          status: "active",
+        });
+        expect(recorder.state.body.clients[0].stores).toHaveLength(2);
+        expect(recorder.state.body.clients[0].stores).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: first.store_profile_id,
+              handle: first.handle,
+              status: "active",
+              plan_code: "starter_whatsapp",
+              compatibility_vendor: expect.objectContaining({
+                status: "active",
+              }),
+              commerce_readiness: expect.objectContaining({
+                status: "not_required",
+              }),
+            }),
+            expect.objectContaining({
+              id: second.store_profile_id,
+              handle: second.handle,
+              status: "active",
+              plan_code: "professional_commerce",
+              commerce_readiness: expect.objectContaining({
+                status: "pending",
+              }),
+            }),
+          ]),
+        );
+        expect(recorder.state.body.summary).toMatchObject({
+          active_clients: 1,
+          total_stores: 2,
+          active_stores: 2,
+          commerce_ready: 0,
+          needs_attention: 0,
+        });
+        const serialized = JSON.stringify(recorder.state.body);
+        expect(serialized).not.toContain(provisioningPassword);
+        expect(serialized).not.toContain("password_hash");
+        expect(serialized).not.toContain("publishable_api_key_id");
+
+        const previewRecorder = responseRecorder();
+        await storefrontPreviewApi(
+          {
+            scope: getContainer(),
+            params: { id: first.store_profile_id },
+            auth_context: { actor_id: "platform-admin-test" },
+          } as any,
+          previewRecorder.response as any,
+        );
+
+        expect(previewRecorder.state.statusCode).toBe(200);
+        expect(previewRecorder.state.body.storefront).toMatchObject({
+          name: firstRequest.store.name,
+          handle: first.handle,
+          domain: first.public_domain,
+          locale: "ar-LY",
+          contact: {
+            public_email: firstRequest.contact.public_email,
+            public_phone: firstRequest.contact.public_phone,
+            whatsapp_number: firstRequest.contact.whatsapp_number,
+          },
+          branding: {
+            logo_url: firstRequest.brand.logo_url,
+            primary_color: firstRequest.brand.primary_color,
+            secondary_color: firstRequest.brand.secondary_color,
+            typography_key: firstRequest.brand.typography_key,
+          },
+          products: [],
+          product_count: 0,
+        });
+        const serializedPreview = JSON.stringify(previewRecorder.state.body);
+        expect(serializedPreview).not.toContain(provisioningPassword);
+        expect(serializedPreview).not.toContain("publishable_api_key");
+        expect(serializedPreview).not.toContain("medusa_store_id");
       });
 
       it("resolves merchant/public contexts and rejects a mismatched Store key", async () => {

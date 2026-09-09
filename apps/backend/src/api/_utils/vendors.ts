@@ -199,9 +199,93 @@ export type PublicStoreProfile = {
   name: string
   handle: string
   domain: string | null
+  locale: "ar-LY" | "en-LY"
+  contact: {
+    public_email: string | null
+    public_phone: string | null
+    whatsapp_number: string | null
+  }
   branding: {
     logo_url: string | null
     primary_color: string | null
+    secondary_color: string | null
+    typography_key: "cairo"
+  }
+  storefront: null | {
+    schema_version: 1
+    template_key:
+      | "luxe-commerce"
+      | "luxe-commerce-full"
+      | "modern-market"
+      | "home-living"
+      | "standard"
+      | "glow-beauty"
+      | "drops"
+      | "urbx"
+      | "template-6"
+    content: {
+      appearance?: import("../../modules/saas/platform-storefront-document").StorefrontDocumentV1["appearance"]
+      home?: import("../../modules/saas/platform-storefront-document").StorefrontDocumentV1["home"]
+      shop?: import("../../modules/saas/platform-storefront-document").StorefrontDocumentV1["shop"]
+      hero: {
+        eyebrow: { ar: string; en: string }
+        heading: { ar: string; en: string }
+        subheading: { ar: string; en: string }
+        cta_label: { ar: string; en: string }
+        cta_target: "catalog" | "contact"
+        image_url: string | null
+        slides: Array<{
+          id: string
+          image_url: string
+          alt: { ar: string; en: string }
+          enabled: boolean
+        }>
+        buttons: Array<{
+          id: string
+          label: { ar: string; en: string }
+          href: string
+          background_color: string
+          text_color: string
+          style: "solid" | "outline"
+          enabled: boolean
+        }>
+        benefits: Array<{
+          id: string
+          icon: "award" | "shield" | "truck" | "package" | "check" | "heart" | "globe" | "clock" | "headset" | "sparkle"
+          title: { ar: string; en: string }
+          subtitle: { ar: string; en: string }
+        }>
+      }
+      brands: {
+        heading: { ar: string; en: string }
+        subheading: { ar: string; en: string }
+        search_placeholder?: { ar: string; en: string }
+        explore_label?: { ar: string; en: string }
+        view_all_label?: { ar: string; en: string }
+        items: Array<{
+          id: string
+          name: { ar: string; en: string }
+          slug: string
+          image_url: string | null
+          banner_image_url?: string | null
+        }>
+      }
+      about: {
+        title: { ar: string; en: string }
+        body: { ar: string; en: string }
+      }
+      contact: {
+        heading: { ar: string; en: string }
+        body: { ar: string; en: string }
+      }
+      policies: Record<
+        "delivery" | "returns" | "privacy" | "terms",
+        {
+          title: { ar: string; en: string }
+          body: { ar: string; en: string }
+        }
+      >
+    }
   }
 }
 
@@ -216,10 +300,19 @@ export const serializePublicStoreProfile = (
     name: vendor.name,
     handle: vendor.handle,
     domain: primaryDomain,
+    locale: "ar-LY",
+    contact: {
+      public_email: vendor.contact_email ?? null,
+      public_phone: null,
+      whatsapp_number: null,
+    },
     branding: {
       logo_url: vendor.logo_url ?? null,
       primary_color: vendor.primary_color ?? null,
+      secondary_color: null,
+      typography_key: "cairo",
     },
+    storefront: null,
   }
 }
 
@@ -528,15 +621,31 @@ export const listProducts = async (
     fields: [
       "id",
       "title",
+      "subtitle",
       "handle",
       "status",
       "thumbnail",
       "description",
+      "metadata",
+      "images.id",
+      "images.url",
+      "images.rank",
+      "options.id",
+      "options.title",
+      "options.values.id",
+      "options.values.value",
+      "options.values.rank",
       "variants.id",
       "variants.title",
       "variants.sku",
       "variants.manage_inventory",
       "variants.allow_backorder",
+      "variants.variant_rank",
+      "variants.options.id",
+      "variants.options.value",
+      "variants.options.option_id",
+      "variants.options.option.id",
+      "variants.options.option.title",
       "variants.prices.id",
       "variants.prices.amount",
       "variants.prices.currency_code",

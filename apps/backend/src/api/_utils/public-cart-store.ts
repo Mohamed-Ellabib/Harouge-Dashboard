@@ -10,7 +10,6 @@ import {
   getCartIdForPaymentCollection,
   resolveCartStoreContext,
   type CartStoreContext,
-  validateCartForCompletion,
 } from "./cart-store-context";
 import {
   assertPromotionCodesAllowedForStore,
@@ -288,7 +287,9 @@ const validateExistingCartRequest = async (
   }
 
   if (path.endsWith("/complete")) {
-    await validateCartForCompletion(req, context.cartId);
+    throw invalid(
+      "Choose a supported payment method through the Store checkout endpoint.",
+    );
   }
 };
 

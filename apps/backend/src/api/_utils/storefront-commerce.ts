@@ -1,6 +1,7 @@
 import type { MedusaRequest } from "@medusajs/framework/http";
 import {
   ContainerRegistrationKeys,
+  getVariantAvailability,
   MedusaError,
   QueryContext,
 } from "@medusajs/framework/utils";
@@ -167,12 +168,26 @@ export const resolveStorefrontPurchaseOptions = async (
     throw notFound();
   }
 
+  const variantIds = variants.map((variant: Record<string, any>) => variant.id);
+  const availability = await getVariantAvailability(query, {
+    variant_ids: variantIds,
+    sales_channel_id: context.salesChannelId,
+  });
+
   const publicVariants = variants.map((variant: Record<string, any>) => {
     const prices = Array.isArray(variant?.prices) ? variant.prices : [];
     const price = prices.length === 1 ? prices[0] : null;
     const calculatedPrice = variant?.calculated_price;
     const unitPrice = Number(calculatedPrice?.calculated_amount);
     const options = publicVariantOptions(variant);
+    const availableQuantity = availability[variant.id]?.availability;
+    const isLegacyUntracked =
+      variant.manage_inventory === false && variant.allow_backorder === true;
+    const isTracked =
+      variant.manage_inventory === true &&
+      variant.allow_backorder === false &&
+      Number.isSafeInteger(availableQuantity) &&
+      Number(availableQuantity) >= 0;
 
     if (
       typeof variant.id !== "string" ||
@@ -180,8 +195,7 @@ export const resolveStorefrontPurchaseOptions = async (
       typeof variant.title !== "string" ||
       !variant.title.trim() ||
       variant.title.length > 240 ||
-      variant.manage_inventory !== false ||
-      variant.allow_backorder !== true ||
+      (!isLegacyUntracked && !isTracked) ||
       !options ||
       !price ||
       String(price.currency_code ?? "").toLowerCase() !== commerce.currencyCode ||
@@ -199,7 +213,8 @@ export const resolveStorefrontPurchaseOptions = async (
       title: variant.title.trim(),
       options,
       unit_price: unitPrice,
-      available_for_sale: true as const,
+      available_for_sale:
+        isLegacyUntracked || Number(availableQuantity) > 0,
     };
   });
   const valuesFor = (name: "size" | "color"): string[] => {

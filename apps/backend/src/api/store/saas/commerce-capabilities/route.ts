@@ -4,12 +4,14 @@ import { MedusaError } from "@medusajs/framework/utils";
 import { resolveStoreCommerceConfiguration } from "../../../_utils/checkout-store-policy";
 import { getPublicStoreContext } from "../../../_utils/public-store-context";
 import { assertStoreOnlineCheckoutReady } from "../../../_utils/store-commerce-readiness";
+import { listAvailableStorefrontPaymentMethods } from "../../../../modules/saas/storefront-order-payment";
 
 const unavailable = {
   online_checkout: {
     status: "unavailable" as const,
     currency_code: null,
     country_codes: [] as string[],
+    payment_methods: [] as string[],
   },
 };
 
@@ -31,16 +33,17 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       context.medusaStoreId,
       { validateGraph: true },
     );
-    const commerce = await resolveStoreCommerceConfiguration(
-      req,
-      context.medusaStoreId,
-    );
+    const [commerce, paymentMethods] = await Promise.all([
+      resolveStoreCommerceConfiguration(req, context.medusaStoreId),
+      listAvailableStorefrontPaymentMethods(req.scope, context.storeProfileId),
+    ]);
 
     return res.json({
       online_checkout: {
         status: "available",
         currency_code: commerce.currencyCode,
         country_codes: commerce.countryCodes,
+        payment_methods: paymentMethods,
       },
     });
   } catch {

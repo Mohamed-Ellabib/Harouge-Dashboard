@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { createHash, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import {
   closeSync,
@@ -7,7 +8,6 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
-  statSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -20,6 +20,8 @@ import EmbeddedPostgres from "embedded-postgres";
 
 const require = createRequire(import.meta.url);
 const {
+  DISPOSABLE_DATABASE_GUARD,
+  DISPOSABLE_DATABASE_LOCK_PATH,
   assertSafeTestDatabase,
   loadTestEnvironment,
 } = require("./test-environment.js");
@@ -34,6 +36,20 @@ const databaseUrl = new URL(process.env.TEST_DATABASE_URL);
 const command = process.argv[2];
 const commandArgs = process.argv.slice(3);
 
+delete process.env.DATABASE_URL;
+delete process.env.TEST_DATABASE_GUARD_VALIDATED;
+delete process.env.SUPABASE_DEVELOPMENT_DATABASE_URL;
+
+for (const key of Object.keys(process.env)) {
+  if (
+    key.startsWith("LABIBTECH_SUPABASE_") ||
+    key.startsWith("LABIBTECH_LOCAL_") ||
+    key.startsWith("PLATFORM_ADMIN_BOOTSTRAP_")
+  ) {
+    delete process.env[key];
+  }
+}
+
 if (!command) {
   throw new Error(
     "A command is required after the disposable database wrapper.",
@@ -46,7 +62,9 @@ const lockDirectory = resolve(testDataDirectory, "locks");
 mkdirSync(databaseDirectory, { recursive: true });
 mkdirSync(lockDirectory, { recursive: true });
 
-const runLockPath = resolve(lockDirectory, "disposable-postgres-run.lock");
+const runLockPath = DISPOSABLE_DATABASE_LOCK_PATH;
+let runToken = randomBytes(32).toString("base64url");
+const runTokenHash = createHash("sha256").update(runToken).digest("hex");
 let runLockDescriptor;
 let runLockOwned = false;
 let childProcess;
@@ -71,6 +89,7 @@ const writeRunLockState = (childPid) => {
     JSON.stringify({
       pid: process.pid,
       childPid: childPid ?? null,
+      runTokenHash,
       acquiredAt: new Date().toISOString(),
     }),
     0,
@@ -79,53 +98,31 @@ const writeRunLockState = (childPid) => {
 };
 
 const acquireRunLock = () => {
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      runLockDescriptor = openSync(runLockPath, "wx", 0o600);
-      runLockOwned = true;
-      writeRunLockState();
-      process.env.DISPOSABLE_DATABASE_RUN_LOCK_HELD = "true";
-      process.env.DISPOSABLE_DATABASE_LOCK_PATH = runLockPath;
-      return;
-    } catch (error) {
-      if (error?.code !== "EEXIST") {
-        throw error;
-      }
-
-      let ownerPid = 0;
-      let childPid = 0;
-      let lockAgeMilliseconds = 0;
-
-      try {
-        const lockState = JSON.parse(readFileSync(runLockPath, "utf8"));
-        ownerPid = Number(lockState.pid);
-        childPid = Number(lockState.childPid);
-      } catch {
-        lockAgeMilliseconds = Date.now() - statSync(runLockPath).mtimeMs;
-      }
-
-      if (processIsAlive(ownerPid) || processIsAlive(childPid)) {
-        throw new Error(
-          "The disposable PostgreSQL database is already in use by another guarded run.",
-        );
-      }
-
-      if (!ownerPid && lockAgeMilliseconds < 30_000) {
-        throw new Error(
-          "The disposable PostgreSQL database lock is being initialized by another guarded run.",
-        );
-      }
-
-      unlinkSync(runLockPath);
+  try {
+    runLockDescriptor = openSync(runLockPath, "wx", 0o600);
+    runLockOwned = true;
+    writeRunLockState();
+    process.env.DISPOSABLE_DATABASE_RUN_LOCK_HELD = "true";
+    process.env.DISPOSABLE_DATABASE_LOCK_PATH = runLockPath;
+    process.env.LABIBTECH_DISPOSABLE_TEST_DATABASE_GUARD =
+      DISPOSABLE_DATABASE_GUARD;
+    process.env.LABIBTECH_DISPOSABLE_TEST_RUN_TOKEN = runToken;
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      throw new Error(
+        "The disposable PostgreSQL lock already exists; verify the prior run before removing that exact lock.",
+      );
     }
-  }
 
-  throw new Error("The disposable PostgreSQL run lock could not be acquired.");
+    throw error;
+  }
 };
 
 const releaseRunLock = () => {
   delete process.env.DISPOSABLE_DATABASE_RUN_LOCK_HELD;
   delete process.env.DISPOSABLE_DATABASE_LOCK_PATH;
+  delete process.env.LABIBTECH_DISPOSABLE_TEST_DATABASE_GUARD;
+  delete process.env.LABIBTECH_DISPOSABLE_TEST_RUN_TOKEN;
 
   if (!runLockOwned) {
     return;
@@ -136,9 +133,26 @@ const releaseRunLock = () => {
     runLockDescriptor = undefined;
   }
 
-  if (existsSync(runLockPath)) {
-    unlinkSync(runLockPath);
+  if (!existsSync(runLockPath)) {
+    throw new Error("The owned disposable PostgreSQL lock disappeared.");
   }
+
+  let state;
+
+  try {
+    state = JSON.parse(readFileSync(runLockPath, "utf8"));
+  } catch {
+    throw new Error("The owned disposable PostgreSQL lock is invalid.");
+  }
+
+  if (
+    Number(state.pid) !== process.pid ||
+    state.runTokenHash !== runTokenHash
+  ) {
+    throw new Error("The disposable PostgreSQL lock ownership changed.");
+  }
+
+  unlinkSync(runLockPath);
 
   runLockOwned = false;
 };
@@ -246,8 +260,8 @@ const requestShutdown = (signal) => {
 process.on("SIGINT", () => requestShutdown("SIGINT"));
 process.on("SIGTERM", () => requestShutdown("SIGTERM"));
 
-const targetIsReady = async () => {
-  const portIsOpen = await new Promise((resolvePort) => {
+const targetPortIsOpen = async () =>
+  new Promise((resolvePort) => {
     const socket = createConnection({ host: "127.0.0.1", port: target.port });
     const finish = (isOpen) => {
       socket.destroy();
@@ -259,23 +273,6 @@ const targetIsReady = async () => {
     socket.once("timeout", () => finish(false));
     socket.once("error", () => finish(false));
   });
-
-  if (!portIsOpen) {
-    return false;
-  }
-
-  const client = postgres.getPgClient(target.databaseName, "127.0.0.1");
-
-  try {
-    await client.connect();
-    await client.query("select 1");
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await client.end().catch(() => undefined);
-  }
-};
 
 const stopOwnedPostgres = async () => {
   const postgresProcess = postgres.process;
@@ -331,24 +328,28 @@ const stopOwnedPostgres = async () => {
 try {
   acquireRunLock();
 
-  if (!(await targetIsReady())) {
-    if (!existsSync(resolve(databaseDirectory, "PG_VERSION"))) {
-      await postgres.initialise();
-    }
-
-    await postgres.start();
-
-    const client = postgres.getPgClient("postgres", "127.0.0.1");
-    await client.connect();
-    const existing = await client.query(
-      "select 1 from pg_database where datname = $1",
-      [target.databaseName],
+  if (await targetPortIsOpen()) {
+    throw new Error(
+      "The disposable PostgreSQL port is already in use; refusing an unowned database.",
     );
-    await client.end();
+  }
 
-    if (!existing.rowCount) {
-      await postgres.createDatabase(target.databaseName);
-    }
+  if (!existsSync(resolve(databaseDirectory, "PG_VERSION"))) {
+    await postgres.initialise();
+  }
+
+  await postgres.start();
+
+  const client = postgres.getPgClient("postgres", "127.0.0.1");
+  await client.connect();
+  const existing = await client.query(
+    "select 1 from pg_database where datname = $1",
+    [target.databaseName],
+  );
+  await client.end();
+
+  if (!existing.rowCount) {
+    await postgres.createDatabase(target.databaseName);
   }
 
   console.log(
@@ -359,12 +360,16 @@ try {
     throw new Error("The guarded disposable database run was interrupted.");
   }
 
+  const childEnvironment = {
+    ...process.env,
+    NODE_ENV: "test",
+  };
+  delete childEnvironment.DATABASE_URL;
+  delete childEnvironment.TEST_DATABASE_GUARD_VALIDATED;
+
   const child = spawn(command, commandArgs, {
     cwd: backendDirectory,
-    env: {
-      ...process.env,
-      NODE_ENV: "test",
-    },
+    env: childEnvironment,
     stdio: ["inherit", "inherit", "inherit", "ipc"],
     detached: process.platform !== "win32",
     shell: false,
@@ -377,6 +382,8 @@ try {
   }
 
   writeRunLockState(child.pid);
+  runToken = "";
+  delete process.env.LABIBTECH_DISPOSABLE_TEST_RUN_TOKEN;
 
   if (requestedSignal) {
     deliverShutdownRequest();
@@ -391,6 +398,10 @@ try {
   childProcess = undefined;
 } finally {
   clearTimeout(forcedShutdownTimer);
+
+  if (!childHasExited(childProcess)) {
+    forceChildTermination();
+  }
 
   let postgresStopError;
 

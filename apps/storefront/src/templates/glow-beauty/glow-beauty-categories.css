@@ -1,0 +1,378 @@
+.glow-beauty-categories-page {
+  min-height: 922px;
+  padding: 12px 16px 49px;
+}
+
+.glow-beauty-categories-header {
+  display: grid;
+  height: 44px;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+}
+
+.glow-beauty-categories-header > div {
+  min-width: 0;
+}
+
+.glow-beauty-categories-header p {
+  margin: 0 0 3px;
+  color: #66615d;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.glow-beauty-categories-header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.glow-beauty-categories-header > a {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--beauty-ink);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 24px rgba(78, 51, 34, 0.055);
+}
+
+.glow-beauty-categories-header > a svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 1.65;
+}
+
+.glow-beauty-categories-header > a b {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+  font-size: 8px;
+}
+
+.glow-beauty-categories-search {
+  display: grid;
+  height: 40px;
+  grid-template-columns: 35px minmax(0, 1fr);
+  align-items: center;
+  padding: 0 15px;
+  margin-top: 10px;
+  border-radius: 21px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px rgba(84, 52, 32, 0.05);
+}
+
+.glow-beauty-categories-search svg {
+  width: 22px;
+  height: 22px;
+  color: #625f5c;
+  stroke-width: 1.65;
+}
+
+.glow-beauty-categories-search input {
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.glow-beauty-categories-search input::placeholder { color: #736e6a; opacity: 1; }
+
+.glow-beauty-category-browser {
+  margin-top: 14px;
+}
+
+.glow-beauty-category-browser > header {
+  display: flex;
+  min-height: 23px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.glow-beauty-category-browser h2,
+.glow-beauty-concerns h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.glow-beauty-category-browser > header > a {
+  color: var(--beauty-orange);
+  font-size: 10px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.glow-beauty-category-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.glow-beauty-category-card {
+  height: 158px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 7px 22px rgba(91, 57, 36, 0.045);
+}
+
+.glow-beauty-category-card__image {
+  position: relative;
+  display: block;
+  height: 119px;
+  overflow: hidden;
+  background: #ffecdf;
+}
+
+.glow-beauty-category-card__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.glow-beauty-category-card__image img.is-skincare,
+.glow-beauty-category-card__image img.is-offers {
+  object-position: 74% center;
+}
+
+.glow-beauty-category-card__image img.is-makeup {
+  object-position: 78% center;
+}
+
+.glow-beauty-category-card__image img.is-fragrance {
+  object-position: center 52%;
+}
+
+.glow-beauty-category-card__image img.is-haircare,
+.glow-beauty-category-card__image img.is-tools {
+  object-position: center 46%;
+}
+
+.glow-beauty-category-card__image > span {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+  font-size: 8px;
+  line-height: 1.05;
+  text-align: center;
+  flex-direction: column;
+}
+
+.glow-beauty-category-card__image > span b { font-size: 15px; line-height: 0.92; }
+
+.glow-beauty-category-card > div {
+  display: grid;
+  height: 39px;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+}
+
+.glow-beauty-category-card > div > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.glow-beauty-category-card > div strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glow-beauty-category-card > div small {
+  margin-top: 2px;
+  color: #6c6763;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.glow-beauty-category-card > div > a {
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--beauty-orange);
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(90, 56, 34, 0.08);
+}
+
+.glow-beauty-category-card > div > a svg { width: 17px; height: 17px; }
+
+.glow-beauty-categories-empty {
+  display: grid;
+  height: 490px;
+  place-items: center;
+  margin: 0;
+  color: var(--beauty-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.glow-beauty-concerns {
+  margin-top: 7px;
+}
+
+.glow-beauty-concerns h2 {
+  height: 20px;
+  line-height: 20px;
+}
+
+.glow-beauty-concerns > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 8px;
+  margin-top: 4px;
+}
+
+.glow-beauty-concerns button {
+  display: grid;
+  height: 36px;
+  grid-template-columns: 29px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 13px;
+  border: 1px solid #f0e2d9;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  text-align: left;
+}
+
+.glow-beauty-concerns button > svg:first-child {
+  width: 22px;
+  height: 22px;
+  color: var(--beauty-orange);
+  stroke-width: 1.4;
+}
+
+.glow-beauty-concerns button span {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glow-beauty-concerns button > svg:last-child { width: 15px; height: 15px; }
+
+.glow-beauty-edit-banner {
+  position: relative;
+  display: block;
+  height: 100px;
+  margin-top: 3px;
+  overflow: hidden;
+  border-radius: 13px;
+  color: var(--beauty-ink);
+  background: #ffe8d9;
+  text-decoration: none;
+}
+
+.glow-beauty-edit-banner > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 74% center;
+}
+
+.glow-beauty-edit-banner > span {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 54%;
+  height: 100%;
+  justify-content: center;
+  padding-left: 18px;
+  flex-direction: column;
+}
+
+.glow-beauty-edit-banner small {
+  color: var(--beauty-orange);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.glow-beauty-edit-banner strong {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.glow-beauty-edit-banner p {
+  margin: 5px 0 0;
+  color: #6c6763;
+  font-size: 9px;
+}
+
+.glow-beauty-edit-banner i {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  margin-top: 7px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--beauty-orange);
+}
+
+.glow-beauty-edit-banner i svg { width: 14px; height: 14px; }
+
+@media (max-width: 390px) {
+  .glow-beauty-categories-page { padding-right: 12px; padding-left: 12px; }
+  .glow-beauty-category-card-grid { gap: 7px; }
+  .glow-beauty-concerns > div { column-gap: 7px; }
+  .glow-beauty-concerns button { padding: 0 9px; }
+}
+
+@media (min-width: 720px) {
+  .glow-beauty-categories-page { margin-top: 24px; margin-bottom: 24px; border-radius: 34px; }
+}
+
+/* Readable shared storefront scale. */
+.glow-beauty-categories-header p { font-size: 14px; }
+.glow-beauty-categories-header h1 { font-size: 28px; }
+.glow-beauty-categories-search input { font-size: 14px; }
+.glow-beauty-category-browser h2,
+.glow-beauty-concerns h2 { font-size: 18px; }
+.glow-beauty-category-browser > header > a { font-size: 13px; }
+.glow-beauty-category-card__image > span { font-size: 10px; }
+.glow-beauty-category-card > div strong { font-size: 15px; }
+.glow-beauty-category-card > div small { font-size: 12px; }
+.glow-beauty-concerns button { font-size: 14px; }
+.glow-beauty-edit-banner small { font-size: 10px; }
+.glow-beauty-edit-banner strong { font-size: 20px; }
+.glow-beauty-edit-banner p { font-size: 12px; }

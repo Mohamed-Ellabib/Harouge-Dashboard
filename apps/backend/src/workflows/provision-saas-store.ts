@@ -1,5 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework/types";
 import {
+  merchantAccountMutationLock,
+  merchantStoreMembershipMutationLock,
+  withMerchantMembershipMutationLocks,
+} from "../api/_utils/merchant-membership-locks";
+import {
   safeProvisioningError,
   temporaryDomainForHandle,
   type ProvisionStoreInput,
@@ -157,13 +162,25 @@ const executeOwnedProvisioning = async (
     maybeInjectProvisioningFailure(input, "brand");
     record = await ensureProvisioningDomains(container, record, request);
     maybeInjectProvisioningFailure(input, "domain");
-    record = await ensureProvisioningMerchantAccount(
+    record = await withMerchantMembershipMutationLocks(
       container,
-      record,
-      request,
+      [
+        merchantAccountMutationLock(request.owner.email),
+        merchantStoreMembershipMutationLock(
+          requiredProvisioningId(record, "store_profile_id"),
+        ),
+      ],
+      async () => {
+        let current = await ensureProvisioningMerchantAccount(
+          container,
+          record,
+          request,
+        );
+        maybeInjectProvisioningFailure(input, "merchant_account");
+        current = await ensureProvisioningMembership(container, current);
+        return current;
+      },
     );
-    maybeInjectProvisioningFailure(input, "merchant_account");
-    record = await ensureProvisioningMembership(container, record);
     maybeInjectProvisioningFailure(input, "membership");
     maybeInjectProvisioningFailure(input, "graph_validation");
     return await completeProvisioningGraph(container, record, request);

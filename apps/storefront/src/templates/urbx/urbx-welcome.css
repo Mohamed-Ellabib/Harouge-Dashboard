@@ -1,0 +1,37 @@
+.storefront-template--urbx:has(.urbx-welcome){background:#070707;color:var(--urbx-text,#fff)}
+.urbx-welcome :is(h1,h2,h3){color:var(--urbx-heading-color,var(--urbx-text,#fff))}
+.urbx-welcome{container-type:inline-size;width:100%;max-width:864px;margin-inline:auto;background:var(--urbx-canvas,#070707);color:var(--urbx-text,#fff);font-family:var(--urbx-body-font,"URBX Condensed"),sans-serif;isolation:isolate}
+.urbx-welcome__scene{position:relative;min-height:210.764cqw;isolation:isolate}
+.urbx-welcome__art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-1}
+.urbx-welcome button{font:inherit;border:0;color:inherit;background:none;padding:0}
+.urbx-welcome button:focus-visible{outline:2px solid var(--urbx-accent);outline-offset:5px}
+.urbx-welcome__language{position:absolute;right:4.6cqw;top:4.6cqw;display:flex;align-items:center;gap:1.4cqw;font-size:3.35cqw!important;font-weight:600!important;min-height:44px}
+.urbx-welcome__language svg{width:5.5cqw;height:5.5cqw}
+.urbx-welcome__identity{position:absolute;top:13.1cqw;left:2.8cqw;width:47cqw}
+.urbx-welcome__wordmark{width:100%;mix-blend-mode:screen}
+.urbx-welcome__custom-name{font:400 10cqw/1.1 var(--urbx-heading-font,"URBX Marker"),cursive;overflow-wrap:anywhere;padding:2cqw;color:var(--urbx-accent)}
+.urbx-welcome__tagline{position:absolute;top:31cqw;left:5.6cqw;max-width:54cqw;color:var(--urbx-accent);font-family:var(--urbx-body-font,Arial),sans-serif;font-size:3.6cqw;font-weight:700;letter-spacing:1.45cqw;line-height:1.2}
+.urbx-welcome__headline{position:absolute;top:43cqw;left:5.2cqw;width:75cqw;font:400 17cqw/1 var(--urbx-heading-font,"URBX Anton"),Impact,sans-serif;letter-spacing:-.1cqw;color:var(--urbx-text,#fafafa);overflow-wrap:break-word;transform:scaleX(.75);transform-origin:left top}
+.urbx-welcome__headline span{display:block}
+.urbx-welcome__statement{position:absolute;top:94cqw;left:4.5cqw;width:57cqw;color:var(--urbx-accent)}
+.urbx-welcome__statement p{font:400 13.5cqw/1.12 var(--urbx-heading-font,"URBX Marker"),cursive;letter-spacing:-.45cqw;white-space:nowrap;transform:scaleX(.81) skewX(-8deg) rotate(-2deg);transform-origin:left center}
+.urbx-welcome__statement img{width:100%;height:5.5cqw;object-fit:fill;mix-blend-mode:screen;margin-top:.7cqw}
+.urbx-welcome__intro{position:absolute;top:118.5cqw;left:5.6cqw;max-width:53cqw;font-family:var(--urbx-body-font,Arial),sans-serif;font-size:3.45cqw;line-height:1.36;letter-spacing:0;text-wrap:pretty}
+.urbx-welcome__benefits{position:absolute;top:140.8cqw;left:4.5cqw;width:51cqw;display:grid;grid-template-columns:1fr 1.1fr 1fr}
+.urbx-welcome__benefit{display:flex;flex-direction:column;align-items:center;font:400 2.5cqw/1.5 var(--urbx-heading-font,"URBX Anton"),sans-serif;text-align:center;min-width:0;padding-inline:.3cqw}
+.urbx-welcome__benefit + .urbx-welcome__benefit{border-left:1px solid #8c8c8c}
+.urbx-welcome__benefit svg{width:8cqw;height:8cqw;margin-bottom:1.6cqw}
+.urbx-welcome__benefit span{max-width:100%;white-space:nowrap}
+.urbx-welcome .urbx-welcome__shop{position:absolute;top:180cqw;left:5.1cqw;width:89.8cqw;min-height:13.3cqw;display:flex;align-items:center;justify-content:center;gap:5.5cqw;padding:1.5cqw 3cqw;border-radius:2.5cqw;background:var(--urbx-accent);color:var(--urbx-button-text,#070707);font:400 5.3cqw/1.15 var(--urbx-heading-font,"URBX Anton"),sans-serif;transition:filter .15s ease}
+.urbx-welcome__shop svg{width:7cqw;height:7cqw;flex:none}
+.urbx-welcome__shop:hover{filter:brightness(1.08)}
+.urbx-welcome__signin{position:absolute;top:198.1cqw;left:3cqw;right:3cqw;display:flex;align-items:center;justify-content:center;gap:1.5cqw;font-family:var(--urbx-body-font,Arial),sans-serif;font-size:3.7cqw;line-height:1.5;color:var(--urbx-muted,#b9b9b9)}
+.urbx-welcome__signin button{color:var(--urbx-text,#fff);text-decoration:underline;text-underline-offset:.45cqw;min-height:44px;white-space:nowrap}
+.urbx-notice{width:min(90vw,420px);padding:30px 24px;border:1px solid #555;border-radius:14px;background:var(--urbx-surface,#101010);color:var(--urbx-text,#fff);font:20px/1.4 var(--urbx-body-font,"URBX Condensed"),sans-serif;box-shadow:0 20px 80px #0008}
+.urbx-notice::backdrop{background:#000b}
+.urbx-notice h2{font-size:30px;margin-bottom:14px;padding-right:25px}
+.urbx-notice p{color:var(--urbx-muted,#c7c7c7)}
+.urbx-welcome .urbx-notice__close{position:absolute;right:10px;top:10px;width:40px;height:40px;display:grid;place-items:center}
+.urbx-welcome .urbx-notice__action{margin-top:24px;display:flex;justify-content:center;align-items:center;gap:15px;width:100%;padding:12px;background:var(--urbx-accent);color:var(--urbx-button-text,#070707);border-radius:8px;font-weight:600}
+@media(min-width:900px){.urbx-welcome{max-width:480px}}
+@media(prefers-reduced-motion:reduce){.urbx-welcome *{transition:none!important}}
